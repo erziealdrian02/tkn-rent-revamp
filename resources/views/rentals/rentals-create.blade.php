@@ -4,323 +4,138 @@
 
 @section('content')
 <div class="page-header">
-          <div class="page-header-left">
-            <h2 class="page-header-title">Create New Rental</h2>
-            <p class="page-header-subtitle">Add a new equipment rental transaction</p>
-          </div>
-        </div>
+    <div class="page-header-left">
+        <h2 class="page-header-title">Create New Rental</h2>
+        <p class="page-header-subtitle">Add a new equipment rental transaction</p>
+    </div>
+</div>
 
-        <!-- Section 1: Rental Information -->
-        <div class="form-section">
-          <h5 class="form-section-title"><i class="bi bi-info-circle me-2"></i>Rental Information</h5>
-          <div class="row g-3">
-            <div class="col-md-4">
-              <label class="form-label form-label-er">Rental Number</label>
-              <input type="text" class="form-control" id="rentalId" readonly>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label form-label-er">Customer *</label>
-              <select class="form-select" id="customerSelect" onchange="updateProjects()">
-                <option value="">Select Customer</option>
-              </select>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label form-label-er">Project *</label>
-              <select class="form-select" id="projectSelect">
-                <option value="">Select Project</option>
-              </select>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label form-label-er">Rental Start Date *</label>
-              <input type="date" class="form-control" id="startDate" value="2026-09-05">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label form-label-er">Expected Return Date *</label>
-              <input type="date" class="form-control" id="endDate" value="2026-12-05">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label form-label-er">Branch *</label>
-              <select class="form-select" id="branchSelect">
-                <option>Jakarta Warehouse</option>
-                <option>Bekasi Warehouse</option>
-                <option>Surabaya Warehouse</option>
-              </select>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label form-label-er">Duration (months)</label>
-              <input type="number" class="form-control" value="3" id="durationInput">
-            </div>
-            <div class="col-12">
-              <label class="form-label form-label-er">Notes</label>
-              <textarea class="form-control" rows="2" placeholder="Additional notes..." id="notesArea"></textarea>
-            </div>
-          </div>
-        </div>
+@if(session('error'))
+    <div class="alert alert-danger">{{ session('error') }}</div>
+@endif
+@if($errors->any())
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            @foreach($errors->all() as $err)
+                <li>{{ $err }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
 
-        <!-- Section 2: Equipment Items -->
-        <div class="form-section">
-          <h5 class="form-section-title">
-            <i class="bi bi-tools me-2"></i>Equipment Items
-            <button class="btn btn-primary btn-sm float-end" onclick="addEquipmentRow()"><i class="bi bi-plus-lg me-1"></i>Add Equipment</button>
-          </h5>
-          <div class="er-table-wrapper">
-            <table class="er-table" id="equipmentTable">
-              <thead>
-                <tr>
-                  <th style="width:25%">Equipment</th>
-                  <th>Available</th>
-                  <th style="width:80px">Qty</th>
-                  <th style="width:140px">Rate / Month</th>
-                  <th style="width:80px">Duration</th>
-                  <th style="width:140px">Subtotal</th>
-                  <th style="width:60px"></th>
-                </tr>
-              </thead>
-              <tbody id="equipmentBody">
-                <tr data-row="0">
-                  <td>
-                    <select class="form-select form-select-sm" onchange="updateAvailability(this, 0)">
-                      <option value="">Select Equipment</option>
-                      <option value="gen50" data-rate="5000000" data-avail="19">Generator 50 KVA</option>
-                      <option value="gen100" data-rate="8500000" data-avail="12">Generator 100 KVA</option>
-                      <option value="cab50" data-rate="500000" data-avail="85">Power Cable 50m</option>
-                      <option value="cab100" data-rate="900000" data-avail="36">Power Cable 100m</option>
-                      <option value="lad6" data-rate="300000" data-avail="28">Aluminium Ladder 6m</option>
-                      <option value="lad8" data-rate="450000" data-avail="17">Aluminium Ladder 8m</option>
-                      <option value="wld" data-rate="3500000" data-avail="8">Welding Machine 400A</option>
-                      <option value="cmp" data-rate="4000000" data-avail="6">Air Compressor 10HP</option>
-                      <option value="lgt" data-rate="2500000" data-avail="9">Tower Light 4x1000W</option>
-                      <option value="pmp" data-rate="3000000" data-avail="7">Submersible Pump 4"</option>
-                    </select>
-                  </td>
-                  <td><span class="badge-status available" id="avail-0">-</span></td>
-                  <td><input type="number" class="form-control form-control-sm" value="1" min="1" onchange="calcRow(0)"></td>
-                  <td><input type="text" class="form-control form-control-sm" id="rate-0" readonly value="-"></td>
-                  <td><input type="number" class="form-control form-control-sm" value="3" onchange="calcRow(0)"></td>
-                  <td><strong id="subtotal-0">-</strong></td>
-                  <td><button class="btn-action danger" onclick="removeRow(this)"><i class="bi bi-trash"></i></button></td>
-                </tr>
-              </tbody>
+<form method="POST" action="{{ route('rentals.store') }}">
+    @csrf
+    <!-- Section 1: Rental Information -->
+    <div class="form-section">
+        <h5 class="form-section-title"><i class="bi bi-info-circle me-2"></i>Rental Information</h5>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label form-label-er">Project *</label>
+                <select name="project_id" class="form-select" required>
+                    <option value="">Select Project</option>
+                    @foreach($projects as $p)
+                        <option value="{{ $p->id }}">{{ $p->name }} (Customer: {{ $p->customer->name ?? '-' }})</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label form-label-er">Branch (Source) *</label>
+                <select name="branch_id" class="form-select" required>
+                    <option value="">Select Branch</option>
+                    @foreach($branches as $b)
+                        <option value="{{ $b->id }}">{{ $b->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label form-label-er">Rental Start Date *</label>
+                <input type="date" name="start_date" class="form-control" required value="{{ date('Y-m-d') }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label form-label-er">Expected Return Date *</label>
+                <input type="date" name="return_date" class="form-control" required value="{{ date('Y-m-d', strtotime('+3 months')) }}">
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 2: Equipment Items -->
+    <div class="form-section mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="form-section-title mb-0"><i class="bi bi-box me-2"></i>Equipment Details</h5>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addEquipmentRow()"><i class="bi bi-plus me-1"></i>Add Item</button>
+        </div>
+        <div class="er-table-wrapper">
+            <table class="er-table">
+                <thead>
+                    <tr>
+                        <th>Equipment</th>
+                        <th width="150">Quantity</th>
+                        <th width="200">Unit Price (Rp)</th>
+                        <th width="80"></th>
+                    </tr>
+                </thead>
+                <tbody id="equipmentBody">
+                    <!-- Rows dynamically generated -->
+                </tbody>
             </table>
-          </div>
         </div>
+    </div>
 
-        <!-- Section 3: Summary -->
-        <div class="form-section">
-          <h5 class="form-section-title"><i class="bi bi-calculator me-2"></i>Summary</h5>
-          <div class="row justify-content-end">
-            <div class="col-md-4">
-              <table class="w-100">
-                <tr><td class="py-1 text-muted">Subtotal</td><td class="py-1 text-end fw-600" id="summarySubtotal">Rp 0</td></tr>
-                <tr><td class="py-1 text-muted">Discount</td><td class="py-1 text-end">
-                  <input type="text" class="form-control form-control-sm d-inline-block" style="width:140px;text-align:right" value="0" id="discountInput" onchange="calcSummary()">
-                </td></tr>
-                <tr class="border-top"><td class="py-2 fw-600">Estimated Total</td><td class="py-2 text-end fw-600 fs-5" style="color:var(--primary)" id="summaryTotal">Rp 0</td></tr>
-              </table>
-            </div>
-          </div>
-        </div>
+    <!-- Actions -->
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <a href="{{ route('rentals.index') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Save Draft & Proceed</button>
+    </div>
+</form>
 
-        <!-- Section 4: Approval -->
-        <div class="form-section">
-          <h5 class="form-section-title"><i class="bi bi-check2-square me-2"></i>Approval Status</h5>
-          <div class="d-flex align-items-center gap-3">
-            <span class="badge-status draft">Draft</span>
-            <span class="text-muted fs-12">This rental will need manager approval before delivery</span>
-          </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="d-flex justify-content-between align-items-center mt-3">
-          <a href="{{ url('rentals') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
-          <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary" onclick="submitRental(true)"><i class="bi bi-save me-1"></i>Save Draft</button>
-            <button class="btn btn-primary" onclick="submitRental(false)"><i class="bi bi-send me-1"></i>Submit for Approval</button>
-          </div>
-        </div>
-@endsection
-
-@push('scripts')
 <script>
-const user = initApp('rentals', [{label:'Rental',href:'#'},{label:'Rentals',href:'rentals'},{label:'Create'}], 'Create Rental');
-
-    document.getElementById('rentalId').value = MockData.generateId('RNT', 'rentals');
-
-    // Populate customers
-    const cs = document.getElementById('customerSelect');
-    MockData.customers.filter(c=>c.status==='Active').forEach(c => {
-      const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; cs.appendChild(o);
-    });
-
-    function updateProjects() {
-      const cid = document.getElementById('customerSelect').value;
-      const ps = document.getElementById('projectSelect');
-      ps.innerHTML = '<option value="">Select Project</option>';
-      MockData.projects.filter(p=>p.customerId===cid).forEach(p => {
-        const o = document.createElement('option'); o.value = p.id; o.textContent = p.name; ps.appendChild(o);
-      });
-    }
-
     let rowCount = 0;
-    
-    // Group equipment by name and get available quantities and standard rates
-    const equipmentCatalog = [];
-    MockData.stock.forEach(s => {
-      let cat = equipmentCatalog.find(c => c.name === s.equipment);
-      if(!cat) {
-        // Find rate from equipment list
-        const eq = MockData.equipment.find(e => e.name === s.equipment);
-        equipmentCatalog.push({
-          id: eq ? eq.id : s.equipment,
-          name: s.equipment,
-          rate: eq ? eq.rate : 0,
-          avail: s.available
-        });
-      } else {
-        cat.avail += s.available;
-      }
-    });
+    const equipmentList = [
+        @foreach($equipment as $eq)
+            { id: '{{ $eq->id }}', name: '{{ $eq->name }}', rate: {{ $eq->rental_rate ?? 0 }} },
+        @endforeach
+    ];
 
     function getEquipmentOptions() {
-      let html = '<option value="">Select Equipment</option>';
-      equipmentCatalog.forEach(c => {
-        html += `<option value="${c.id}" data-name="${c.name}" data-rate="${c.rate}" data-avail="${c.avail}">${c.name}</option>`;
-      });
-      return html;
+        let html = '<option value="">Select Equipment</option>';
+        equipmentList.forEach(e => {
+            html += `<option value="${e.id}" data-rate="${e.rate}">${e.name}</option>`;
+        });
+        return html;
     }
 
     function addEquipmentRow() {
-      const tbody = document.getElementById('equipmentBody');
-      const idx = rowCount++;
-      const row = document.createElement('tr');
-      row.setAttribute('data-row', idx);
-      row.innerHTML = `
-        <td>
-          <select class="form-select form-select-sm" onchange="updateAvailability(this, ${idx})">
-            ${getEquipmentOptions()}
-          </select>
-        </td>
-        <td><span class="badge-status available" id="avail-${idx}">-</span></td>
-        <td><input type="number" class="form-control form-control-sm" value="1" min="1" onchange="calcRow(${idx})"></td>
-        <td><input type="text" class="form-control form-control-sm" id="rate-${idx}" readonly value="-"></td>
-        <td><input type="number" class="form-control form-control-sm" value="3" onchange="calcRow(${idx})"></td>
-        <td><strong id="subtotal-${idx}">-</strong></td>
-        <td><button class="btn-action danger" onclick="removeRow(this)"><i class="bi bi-trash"></i></button></td>
-      `;
-      tbody.appendChild(row);
+        const tbody = document.getElementById('equipmentBody');
+        const idx = rowCount++;
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>
+                <select name="items[${idx}][equipment_id]" class="form-select form-select-sm eq-select" required onchange="updateRate(this, ${idx})">
+                    ${getEquipmentOptions()}
+                </select>
+            </td>
+            <td>
+                <input type="number" name="items[${idx}][quantity]" class="form-control form-control-sm" value="1" min="1" required>
+            </td>
+            <td>
+                <input type="number" name="items[${idx}][unit_price]" id="rate-${idx}" class="form-control form-control-sm" value="0" min="0" required>
+            </td>
+            <td>
+                <button type="button" class="btn-action danger" onclick="this.closest('tr').remove()"><i class="bi bi-trash"></i></button>
+            </td>
+        `;
+        tbody.appendChild(row);
     }
 
-    function removeRow(btn) {
-      btn.closest('tr').remove();
-      calcSummary();
+    function updateRate(selectObj, idx) {
+        const option = selectObj.options[selectObj.selectedIndex];
+        const rate = option.getAttribute('data-rate');
+        document.getElementById(`rate-${idx}`).value = rate || 0;
     }
 
-    function updateAvailability(sel, idx) {
-      const opt = sel.options[sel.selectedIndex];
-      const avail = opt.dataset.avail || '-';
-      const rate = opt.dataset.rate || 0;
-      document.getElementById(`avail-${idx}`).textContent = avail === '-' ? '-' : avail + ' units';
-      document.getElementById(`rate-${idx}`).value = rate > 0 ? formatRupiah(rate) : '-';
-      sel.closest('tr').querySelector('[type="number"]').__rate = Number(rate);
-      calcRow(idx);
-    }
-
-    function calcRow(idx) {
-      const row = document.querySelector(`tr[data-row="${idx}"]`);
-      if (!row) return;
-      const inputs = row.querySelectorAll('input[type="number"]');
-      const qty = Number(inputs[0].value);
-      const duration = Number(inputs[1].value);
-      const sel = row.querySelector('select');
-      const opt = sel.options[sel.selectedIndex];
-      const rate = Number(opt.dataset?.rate || 0);
-      const sub = qty * rate * duration;
-      document.getElementById(`subtotal-${idx}`).textContent = sub > 0 ? formatRupiah(sub) : '-';
-      calcSummary();
-    }
-
-    function calcSummary() {
-      let subtotal = 0;
-      document.querySelectorAll('[id^="subtotal-"]').forEach(el => {
-        const val = el.textContent.replace(/[^\d]/g, '');
-        subtotal += Number(val) || 0;
-      });
-      const discount = Number(document.getElementById('discountInput').value.replace(/[^\d]/g, '')) || 0;
-      document.getElementById('summarySubtotal').textContent = formatRupiah(subtotal);
-      document.getElementById('summaryTotal').textContent = formatRupiah(subtotal - discount);
-    }
-    
-    function submitRental(isDraft) {
-      const cusId = document.getElementById('customerSelect').value;
-      const prjId = document.getElementById('projectSelect').value;
-      if(!cusId || !prjId) {
-        showToast('Please select a customer and project', 'danger');
-        return;
-      }
-      
-      const items = [];
-      document.querySelectorAll('#equipmentBody tr').forEach(row => {
-        const sel = row.querySelector('select');
-        if(!sel.value) return;
-        const opt = sel.options[sel.selectedIndex];
-        const inputs = row.querySelectorAll('input[type="number"]');
-        
-        items.push({
-          equipmentId: sel.value,
-          name: opt.dataset.name,
-          quantity: Number(inputs[0].value),
-          rate: Number(opt.dataset.rate),
-          duration: Number(inputs[1].value),
-          subtotal: Number(inputs[0].value) * Number(opt.dataset.rate) * Number(inputs[1].value)
-        });
-      });
-      
-      if(items.length === 0) {
-        showToast('Please add at least one item', 'danger');
-        return;
-      }
-      
-      let subtotal = items.reduce((s, i) => s + i.subtotal, 0);
-      let discount = Number(document.getElementById('discountInput').value.replace(/[^\d]/g, '')) || 0;
-
-      const newRnt = {
-        id: document.getElementById('rentalId').value,
-        customerId: cusId,
-        customerName: MockData.customers.find(c=>c.id===cusId)?.name,
-        projectId: prjId,
-        projectName: MockData.projects.find(p=>p.id===prjId)?.name,
-        rentalDate: document.getElementById('startDate').value,
-        returnDate: document.getElementById('endDate').value,
-        branch: document.getElementById('branchSelect').value,
-        branchId: 'BR-001',
-        totalItems: items.length,
-        deliveryStatus: 'Pending',
-        status: isDraft ? 'Draft' : 'Draft', // Saved as draft first, then submitted
-        invoiceStatus: 'Draft',
-        notes: document.getElementById('notesArea').value,
-        items: items,
-        subtotal: subtotal,
-        discount: discount,
-        total: subtotal - discount,
-        createdBy: user.name || 'Admin',
-        createdAt: new Date().toISOString().replace('T',' ').substring(0,16)
-      };
-      
-      MockData.rentals.push(newRnt);
-      MockData.save('rentals');
-      
-      if (!isDraft) {
-        BizLogic.Rental.submit(newRnt.id);
-      } else {
-        BizLogic.Activity.log(`Rental ${newRnt.id} created as Draft`, 'info');
-      }
-      
-      showToast(`Rental ${newRnt.id} saved!`, 'success');
-      setTimeout(()=>window.location.href='rentals', 1000);
-    }
-
-    // Initialize first row empty
-    document.getElementById('equipmentBody').innerHTML = '';
-    addEquipmentRow();
+    // Initialize with 1 row
+    document.addEventListener("DOMContentLoaded", function() {
+        addEquipmentRow();
+    });
 </script>
-@endpush
+@endsection
