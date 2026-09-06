@@ -14,7 +14,12 @@ use App\Http\Controllers\RentalController;
 use App\Http\Controllers\RepairController;
 use App\Http\Controllers\ReturnController;
 use App\Http\Controllers\StockController;
-use App\Http\Controllers\VehicleController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\GoodsReceiptController;
+use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\LedgerController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -49,9 +54,7 @@ Route::get('/', function () {
 Route::middleware('auth')->group(function () {
 
     // Dashboard
-    Route::get('/dashboard', function () {
-        return view('dashboard.dashboard-index');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // ── RENTAL MODULE ──
     Route::resource('rentals', RentalController::class)->except(['edit', 'update', 'destroy']);
@@ -93,26 +96,11 @@ Route::middleware('auth')->group(function () {
     })->name('movements.show');
 
     // ── PURCHASES ──
-    Route::get('/purchases', function () {
-        return view('purchases.purchases-index');
-    })->name('purchases.index');
-
-    Route::get('/purchase-create', function () {
-        return view('purchases.purchases-create');
-    })->name('purchases.create');
-
-    Route::get('/purchase-detail', function () {
-        return view('purchases.purchases-show');
-    })->name('purchases.show');
+    Route::resource('purchases', PurchaseController::class)->except(['edit', 'update', 'destroy']);
+    Route::post('/purchases/{purchase}/approve', [PurchaseController::class, 'approve'])->name('purchases.approve');
 
     // ── GOODS RECEIPTS ──
-    Route::get('/goods-receipts', function () {
-        return view('goods-receipts.goods-receipts-index');
-    })->name('goods-receipts.index');
-
-    Route::get('/goods-receipt-detail', function () {
-        return view('goods-receipts.goods-receipts-show');
-    })->name('goods-receipts.show');
+    Route::resource('goods-receipts', GoodsReceiptController::class)->except(['edit', 'update', 'destroy']);
 
     // ── REPAIRS ──
     Route::resource('repairs', RepairController::class)->except(['create', 'store', 'edit', 'update', 'destroy']);
@@ -137,18 +125,13 @@ Route::middleware('auth')->group(function () {
     })->name('accounts.index');
 
     // ── INVOICES ──
-    Route::get('/invoices', function () {
-        return view('invoices.invoices-index');
-    })->name('invoices.index');
+    Route::resource('invoices', InvoiceController::class)->only(['index', 'show']);
 
-    Route::get('/invoice-detail', function () {
-        return view('invoices.invoices-show');
-    })->name('invoices.show');
+    // ── PAYMENTS ──
+    Route::post('payments', [PaymentController::class, 'store'])->name('payments.store');
 
     // ── FINANCE LEDGER ──
-    Route::get('/finance-ledger', function () {
-        return view('finance.finance-ledger');
-    })->name('finance.ledger');
+    Route::get('/finance-ledger', [LedgerController::class, 'index'])->name('finance.ledger');
 
     // ── ADMIN ──
     Route::get('/users', function () {
