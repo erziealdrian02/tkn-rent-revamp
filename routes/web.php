@@ -9,6 +9,9 @@ use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\StockController;
+use App\Http\Controllers\RentalController;
+use App\Http\Controllers\DeliveryController;
+use App\Http\Controllers\DriverPortalController;
 
 /*
 |--------------------------------------------------------------------------
@@ -47,29 +50,16 @@ Route::middleware('auth')->group(function () {
     })->name('dashboard');
 
     // ── RENTAL MODULE ──
-    Route::get('/rentals', function () {
-        return view('rentals.rentals-index');
-    })->name('rentals.index');
-
-    Route::get('/rental-create', function () {
-        return view('rentals.rentals-create');
-    })->name('rentals.create');
-
-    Route::get('/rental-detail', function () {
-        return view('rentals.rentals-show');
-    })->name('rentals.show');
+    Route::resource('rentals', RentalController::class)->except(['edit', 'update', 'destroy']);
+    Route::post('/rentals/{rental}/approve', [RentalController::class, 'approve'])->name('rentals.approve');
+    Route::post('/rentals/{rental}/cancel', [RentalController::class, 'cancel'])->name('rentals.cancel');
 
     // ── PROJECTS ──
     Route::resource('projects', ProjectController::class);
 
     // ── DELIVERIES ──
-    Route::get('/deliveries', function () {
-        return view('deliveries.deliveries-index');
-    })->name('deliveries.index');
-
-    Route::get('/delivery-detail', function () {
-        return view('deliveries.deliveries-show');
-    })->name('deliveries.show');
+    Route::resource('deliveries', DeliveryController::class)->except(['edit', 'update', 'destroy']);
+    Route::post('/deliveries/{delivery}/dispatch', [DeliveryController::class, 'dispatchDelivery'])->name('deliveries.dispatch');
 
     // ── RETURNS ──
     Route::get('/returns', function () {
@@ -193,12 +183,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/driver-dashboard', function () {
         return view('driver.dashboard');
     })->name('driver.dashboard');
-
-    Route::get('/driver-deliveries', function () {
-        return view('driver.deliveries');
-    })->name('driver.deliveries');
-
-    Route::get('/driver-delivery-detail', function () {
-        return view('driver.delivery-show');
-    })->name('driver.delivery.show');
+    // ── DRIVER PORTAL ──
+    // Currently relying on auth middleware, role checking can be done in Controller or custom Middleware.
+    Route::prefix('driver')->name('driver.')->group(function () {
+        Route::get('/deliveries', [DriverPortalController::class, 'index'])->name('deliveries.index');
+        Route::get('/deliveries/{delivery}', [DriverPortalController::class, 'show'])->name('deliveries.show');
+        Route::post('/deliveries/{delivery}/capture-pod', [DriverPortalController::class, 'capturePoD'])->name('deliveries.capture_pod');
+    });
 });

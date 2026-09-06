@@ -14,4 +14,14 @@ class RentalItem extends Model
     protected $keyType = 'string';
     public $incrementing = false;
     protected $guarded = [];
+
+    public function rental()
+    {
+        return $this->belongsTo(Rental::class, 'rental_id');
+    }
+
+    public function equipment()
+    {
+        return $this->belongsTo(Equipment::class, 'equipment_id');
+    }
 }

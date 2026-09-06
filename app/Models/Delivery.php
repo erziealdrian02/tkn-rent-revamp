@@ -14,4 +14,24 @@ class Delivery extends Model
     protected $keyType = 'string';
     public $incrementing = false;
     protected $guarded = [];
+
+    public function rental()
+    {
+        return $this->belongsTo(Rental::class, 'rental_id');
+    }
+
+    public function driver()
+    {
+        return $this->belongsTo(Driver::class, 'driver_id');
+    }
+
+    public function vehicle()
+    {
+        return $this->belongsTo(Vehicle::class, 'vehicle_id');
+    }
+
+    public function items()
+    {
+        return $this->hasMany(DeliveryItem::class, 'delivery_id');
+    }
 }

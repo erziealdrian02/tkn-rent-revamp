@@ -14,4 +14,24 @@ class Rental extends Model
     protected $keyType = 'string';
     public $incrementing = false;
     protected $guarded = [];
+
+    public function project()
+    {
+        return $this->belongsTo(Project::class);
+    }
+
+    public function items()
+    {
+        return $this->hasMany(RentalItem::class, 'rental_id');
+    }
+
+    public function deliveries()
+    {
+        return $this->hasMany(Delivery::class, 'rental_id');
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 }
