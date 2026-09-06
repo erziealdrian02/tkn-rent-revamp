@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rental Detail — EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="er-card mb-4">
+          <div class="detail-header" id="detailHeader"></div>
+          <div class="er-tabs" id="detailTabs"></div>
+          <div id="tabContents"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Create Delivery Modal -->
+  <div class="modal fade" id="deliveryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title"><i class="bi bi-truck me-2"></i>Create Delivery</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <div class="row g-3 mb-3">
+            <div class="col-md-4"><label class="form-label form-label-er">Delivery Date</label><input type="date" class="form-control" id="dlvDate"></div>
+            <div class="col-md-4"><label class="form-label form-label-er">Driver</label>
+              <select class="form-select" id="dlvDriver"><option value="">Select Driver</option></select>
+            </div>
+            <div class="col-md-4"><label class="form-label form-label-er">Vehicle</label>
+              <select class="form-select" id="dlvVehicle"><option value="">Select Vehicle</option></select>
+            </div>
+          </div>
+          <div class="mb-3"><label class="form-label form-label-er">Destination</label><input type="text" class="form-control" id="dlvDest"></div>
+          <h6 class="fw-600 mb-2">Equipment to Deliver</h6>
+          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Equipment</th><th>Rental Qty</th><th>Already Delivered</th><th>Remaining</th><th>Deliver Qty</th></tr></thead>
+          <tbody id="dlvItemsBody"></tbody></table></div>
+          <div class="mb-3 mt-3"><label class="form-label form-label-er">Notes</label><textarea class="form-control" rows="2" id="dlvNotes"></textarea></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-primary" onclick="createDelivery()"><i class="bi bi-check-lg me-1"></i>Create Delivery</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/business-logic.js"></script>
+  <script>
+    const rentalId = getUrlParam('id') || 'RNT-001';
+    const rental = MockData.rentals.find(r => r.id === rentalId) || MockData.rentals[0];
+    const user = initApp('rentals.html', [{label:'Rental',href:'#'},{label:'Rentals',href:'rentals.html'},{label:rental.id}], rental.id);
+
+    // Populate delivery modal dropdowns
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('dlvDate').value = today;
+    MockData.drivers.filter(d => d.status === 'Available').forEach(d => {
+      document.getElementById('dlvDriver').innerHTML += `<option value="${d.id}" data-name="${d.name}">${d.name}</option>`;
+    });
+    MockData.vehicles.filter(v => v.status === 'Available').forEach(v => {
+      document.getElementById('dlvVehicle').innerHTML += `<option value="${v.id}" data-plate="${v.plate}">${v.plate} — ${v.brand}</option>`;
+    });
+
+    function renderPage() {
+      const deliveries = MockData.deliveries.filter(d => d.rentalId === rental.id);
+      const returns = MockData.returns.filter(r => r.rentalId === rental.id);
+      const invoices = MockData.invoices.filter(i => i.reference && i.reference.includes(rental.id));
+      const isOverdue = BizLogic.Rental.isOverdue(rental);
+      const overdueDays = BizLogic.Rental.getOverdueDays(rental);
+      const completedDeliveries = deliveries.filter(d => d.status === 'Completed');
+
+      // Header with action buttons
+      let actionBtns = '';
+      const s = rental.status;
+
+      if (s === 'Pending Approval' || s === 'Waiting Approval') {
+        actionBtns += '<button class="btn btn-success btn-sm" onclick="approveRental()"><i class="bi bi-check-lg me-1"></i>Approve</button>';
+        actionBtns += '<button class="btn btn-outline-danger btn-sm" onclick="rejectRental()"><i class="bi bi-x-lg me-1"></i>Reject</button>';
+      }
+      if (s === 'Rejected') {
+        actionBtns += '<button class="btn btn-primary btn-sm" onclick="resubmitRental()"><i class="bi bi-arrow-repeat me-1"></i>Resubmit</button>';
+      }
+      if (['Approved', 'Preparing', 'Partially Delivered', 'On Rental'].includes(s)) {
+        actionBtns += '<button class="btn btn-primary btn-sm" onclick="openDeliveryModal()"><i class="bi bi-truck me-1"></i>Create Delivery</button>';
+      }
+      if (['On Rental', 'Partially Returned', 'Overdue', 'Partially Delivered'].includes(s)) {
+        actionBtns += '<button class="btn btn-outline-primary btn-sm" onclick="createReturn()"><i class="bi bi-box-arrow-in-left me-1"></i>Create Return</button>';
+      }
+      if (['Draft', 'Pending Approval', 'Waiting Approval', 'Approved'].includes(s)) {
+        actionBtns += '<button class="btn btn-outline-danger btn-sm" onclick="cancelRental()"><i class="bi bi-x-circle me-1"></i>Cancel</button>';
+      }
+      actionBtns += '<button class="btn btn-outline-secondary btn-sm" onclick="showToast(\'Print initiated\',\'info\')"><i class="bi bi-printer me-1"></i>Print</button>';
+
+      document.getElementById('detailHeader').innerHTML = `
+        <div class="detail-header-left">
+          <div class="detail-header-icon"><i class="bi bi-file-earmark-text"></i></div>
+          <div class="detail-header-info">
+            <h2>${rental.id} ${statusBadge(isOverdue ? 'Overdue' : rental.status)}</h2>
+            <div class="detail-meta">
+              <span class="detail-meta-item"><i class="bi bi-people"></i><a href="customer-detail.html?id=${rental.customerId}">${rental.customerName}</a></span>
+              <span class="detail-meta-item"><i class="bi bi-folder"></i><a href="project-detail.html?id=${rental.projectId}">${rental.projectName}</a></span>
+              <span class="detail-meta-item"><i class="bi bi-calendar"></i>${formatDate(rental.rentalDate)} — ${formatDate(rental.returnDate)}</span>
+              <span class="detail-meta-item"><i class="bi bi-building"></i>${rental.branch}</span>
+            </div>
+          </div>
+        </div>
+        <div class="detail-header-actions">${actionBtns}</div>`;
+
+      // Tabs
+      const tabs = ['Overview','Equipment','Delivery','Return','Invoice','Activity'];
+      document.getElementById('detailTabs').innerHTML = tabs.map((t,i) => {
+        let count = '';
+        if (t === 'Equipment') count = `<span class="er-tab-count">${rental.items.length}</span>`;
+        if (t === 'Delivery') count = `<span class="er-tab-count">${deliveries.length}</span>`;
+        if (t === 'Return') count = `<span class="er-tab-count">${returns.length}</span>`;
+        if (t === 'Invoice') count = `<span class="er-tab-count">${invoices.length}</span>`;
+        return `<button class="er-tab ${i===0?'active':''}" data-tab="${t.toLowerCase()}" onclick="switchTab('${t.toLowerCase()}')">${t}${count}</button>`;
+      }).join('');
+
+      let tc = '';
+
+      // ──── OVERVIEW TAB ────
+      let overdueBanner = '';
+      if (isOverdue) {
+        overdueBanner = `<div class="alert alert-danger mb-3"><i class="bi bi-exclamation-triangle me-2"></i><strong>OVERDUE</strong> — This rental is ${overdueDays} day(s) past the expected return date (${formatDate(rental.returnDate)}).</div>`;
+      }
+
+      let rejectionInfo = '';
+      if (rental.status === 'Rejected' && rental.rejectionReason) {
+        rejectionInfo = `<div class="alert alert-danger mb-3"><i class="bi bi-x-circle me-2"></i><strong>Rejected</strong> by ${rental.rejectedBy || 'Manager'} on ${rental.rejectedDate || '-'}<br><strong>Reason:</strong> ${rental.rejectionReason}</div>`;
+      }
+
+      let cancellationInfo = '';
+      if (rental.status === 'Cancelled' && rental.cancellationReason) {
+        cancellationInfo = `<div class="alert alert-secondary mb-3"><i class="bi bi-x-circle me-2"></i><strong>Cancelled</strong> by ${rental.cancelledBy || 'Admin'} on ${rental.cancelledDate || '-'}<br><strong>Reason:</strong> ${rental.cancellationReason}</div>`;
+      }
+
+      let approvalInfo = '';
+      if (rental.approvedBy) {
+        approvalInfo = `<div class="info-item"><span class="info-label">Approved By</span><span class="info-value">${rental.approvedBy} (${rental.approvedDate || '-'})</span></div>`;
+      }
+
+      // Stock reservation summary
+      let stockInfo = '';
+      if (rental.status === 'Approved' || rental.status === 'Preparing') {
+        const branch = rental.branch ? rental.branch.replace(' Warehouse', '') : 'Jakarta';
+        stockInfo = `<h6 class="fw-600 mb-2 mt-3"><i class="bi bi-boxes me-1"></i>Stock Reservation</h6><div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Equipment</th><th>Reserved</th><th>Available in ${branch}</th></tr></thead><tbody>`;
+        rental.items.forEach(item => {
+          const avail = BizLogic.Stock.getAvailable(item.name, branch);
+          stockInfo += `<tr><td>${item.name}</td><td><strong>${item.quantity}</strong></td><td>${avail}</td></tr>`;
+        });
+        stockInfo += '</tbody></table></div>';
+      }
+
+      tc += `<div class="er-tab-content active" id="tab-overview">
+        ${overdueBanner}${rejectionInfo}${cancellationInfo}
+        <div class="info-grid mb-4">
+          <div class="info-item"><span class="info-label">Rental Number</span><span class="info-value text-mono">${rental.id}</span></div>
+          <div class="info-item"><span class="info-label">Customer</span><span class="info-value"><a href="customer-detail.html?id=${rental.customerId}">${rental.customerName}</a></span></div>
+          <div class="info-item"><span class="info-label">Project</span><span class="info-value"><a href="project-detail.html?id=${rental.projectId}">${rental.projectName}</a></span></div>
+          <div class="info-item"><span class="info-label">Rental Date</span><span class="info-value">${formatDate(rental.rentalDate)}</span></div>
+          <div class="info-item"><span class="info-label">Return Date</span><span class="info-value">${formatDate(rental.returnDate)}${isOverdue ? ' <span class="badge bg-danger ms-1">OVERDUE ' + overdueDays + ' days</span>' : ''}</span></div>
+          <div class="info-item"><span class="info-label">Branch</span><span class="info-value">${rental.branch}</span></div>
+          <div class="info-item"><span class="info-label">Status</span><span class="info-value">${statusBadge(isOverdue ? 'Overdue' : rental.status)}</span></div>
+          <div class="info-item"><span class="info-label">Delivery Status</span><span class="info-value">${statusBadge(rental.deliveryStatus)}</span></div>
+          <div class="info-item"><span class="info-label">Invoice Status</span><span class="info-value">${statusBadge(rental.invoiceStatus)}</span></div>
+          <div class="info-item"><span class="info-label">Created By</span><span class="info-value">${rental.createdBy}</span></div>
+          <div class="info-item"><span class="info-label">Created At</span><span class="info-value">${rental.createdAt}</span></div>
+          ${approvalInfo}
+          <div class="info-item"><span class="info-label">Notes</span><span class="info-value">${rental.notes || '-'}</span></div>
+        </div>
+        <h6 class="fw-600 mb-2">Financial Summary</h6>
+        <div class="row"><div class="col-md-4">
+          <table class="w-100"><tr><td class="text-muted py-1">Subtotal</td><td class="text-end py-1">${formatRupiah(rental.subtotal)}</td></tr>
+          <tr><td class="text-muted py-1">Discount</td><td class="text-end py-1">${formatRupiah(rental.discount)}</td></tr>
+          <tr class="border-top"><td class="fw-600 py-1">Total</td><td class="text-end fw-600 py-1" style="color:var(--primary)">${formatRupiah(rental.total)}</td></tr></table>
+        </div></div>
+        ${stockInfo}
+      </div>`;
+
+      // ──── EQUIPMENT TAB ────
+      tc += `<div class="er-tab-content" id="tab-equipment">
+        <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Equipment</th><th>Qty</th><th>Delivered</th><th>Returned</th><th>Rate/Month</th><th>Duration</th><th>Subtotal</th></tr></thead><tbody>
+        ${rental.items.map(item => `<tr><td>${item.name}</td><td>${item.quantity}</td><td>${item.delivered || 0}</td><td>${item.returned || 0}</td><td>${formatRupiah(item.rate)}</td><td>${item.duration} months</td><td class="fw-600">${formatRupiah(item.subtotal)}</td></tr>`).join('')}
+        </tbody></table></div>
+      </div>`;
+
+      // ──── DELIVERY TAB ────
+      tc += `<div class="er-tab-content" id="tab-delivery">
+        ${deliveries.length ? `<div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Delivery #</th><th>Date</th><th>Driver</th><th>Vehicle</th><th>Items</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+        ${deliveries.map(d => `<tr>
+          <td><a href="delivery-detail.html?id=${d.id}" class="cell-link text-mono">${d.id}</a></td>
+          <td>${formatDate(d.deliveryDate)}</td><td>${d.driverName||'<span class=\"text-muted\">Unassigned</span>'}</td><td>${d.vehiclePlate||'-'}</td>
+          <td class="fs-12">${d.items.map(i=>i.name+' ×'+i.qty).join(', ')}</td>
+          <td>${statusBadge(d.status)}</td><td><a href="delivery-detail.html?id=${d.id}" class="btn-action"><i class="bi bi-eye"></i></a></td>
+        </tr>`).join('')}</tbody></table></div>` : '<div class="empty-state"><i class="bi bi-truck"></i><h5>No Deliveries</h5><p>No delivery has been created for this rental yet.</p>' + (['Approved','Preparing','Partially Delivered','On Rental'].includes(s) ? '<button class="btn btn-primary btn-sm" onclick="openDeliveryModal()"><i class="bi bi-plus-lg me-1"></i>Create Delivery</button>' : '') + '</div>'}
+      </div>`;
+
+      // ──── RETURN TAB ────
+      tc += `<div class="er-tab-content" id="tab-return">
+        ${returns.length ? `<div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Return #</th><th>Date</th><th>Items</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+        ${returns.map(r => `<tr>
+          <td><a href="return-detail.html?id=${r.id}" class="cell-link text-mono">${r.id}</a></td>
+          <td>${formatDate(r.returnDate)}</td><td>${r.items.length} types</td>
+          <td>${statusBadge(r.status)}</td><td><a href="return-detail.html?id=${r.id}" class="btn-action"><i class="bi bi-eye"></i></a></td>
+        </tr>`).join('')}</tbody></table></div>` : '<div class="empty-state"><i class="bi bi-box-arrow-in-left"></i><h5>No Returns</h5><p>No return has been recorded yet.</p></div>'}
+      </div>`;
+
+      // ──── INVOICE TAB ────
+      tc += `<div class="er-tab-content" id="tab-invoice">
+        ${invoices.length ? `<div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Invoice #</th><th>Type</th><th>Date</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+        ${invoices.map(i => `<tr>
+          <td><a href="invoice-detail.html?id=${i.id}" class="cell-link text-mono">${i.id}</a></td>
+          <td>${i.type}</td><td>${formatDate(i.invoiceDate)}</td><td class="fw-600">${formatRupiah(i.amount)}</td>
+          <td>${statusBadge(i.status)}</td><td><a href="invoice-detail.html?id=${i.id}" class="btn-action"><i class="bi bi-eye"></i></a></td>
+        </tr>`).join('')}</tbody></table></div>` : '<div class="empty-state"><i class="bi bi-receipt"></i><h5>No Invoices</h5><p>No invoice has been generated yet.</p></div>'}
+      </div>`;
+
+      // ──── ACTIVITY TAB ────
+      const rentalActivities = [
+        { time: (rental.createdAt||'').split(' ')[1] || '09:00', date: (rental.createdAt||'').split(' ')[0], action: 'Rental ' + rental.id + ' created', user: rental.createdBy, type: 'info' },
+      ];
+      if (rental.approvedBy) {
+        rentalActivities.push({ time: (rental.approvedDate||'').split(' ')[1] || '09:30', date: (rental.approvedDate||'').split(' ')[0], action: 'Rental approved', user: rental.approvedBy, type: 'success' });
+      }
+      if (rental.rejectedBy) {
+        rentalActivities.push({ time: (rental.rejectedDate||'').split(' ')[1] || '09:30', date: (rental.rejectedDate||'').split(' ')[0], action: 'Rental rejected: ' + (rental.rejectionReason||''), user: rental.rejectedBy, type: 'danger' });
+      }
+      if (rental.cancelledBy) {
+        rentalActivities.push({ time: (rental.cancelledDate||'').split(' ')[1] || '10:00', date: (rental.cancelledDate||'').split(' ')[0], action: 'Rental cancelled: ' + (rental.cancellationReason||''), user: rental.cancelledBy, type: 'danger' });
+      }
+      deliveries.forEach(d => {
+        rentalActivities.push({ time: '10:00', date: d.deliveryDate, action: 'Delivery ' + d.id + ' created (' + d.status + ')', user: d.driverName || 'Admin', type: 'info' });
+        if (d.status === 'Completed') {
+          rentalActivities.push({ time: '14:30', date: d.deliveryDate, action: 'Delivery ' + d.id + ' completed', user: d.driverName, type: 'success' });
+        }
+      });
+      returns.forEach(r => {
+        rentalActivities.push({ time: '09:00', date: r.returnDate, action: 'Return ' + r.id + ' (' + r.status + ')', user: r.inspectedBy || 'Warehouse Staff', type: r.status === 'Completed' ? 'success' : 'warning' });
+      });
+
+      tc += `<div class="er-tab-content" id="tab-activity">${renderActivityTimeline(rentalActivities)}</div>`;
+
+      document.getElementById('tabContents').innerHTML = tc;
+
+      // Populate delivery modal items
+      const dlvItemsBody = document.getElementById('dlvItemsBody');
+      if (dlvItemsBody) {
+        const existingDlvs = MockData.deliveries.filter(d => d.rentalId === rental.id && d.status !== 'Failed');
+        dlvItemsBody.innerHTML = rental.items.map((item, idx) => {
+          const delivered = existingDlvs.reduce((sum, d) => {
+            const di = d.items.find(i => i.name === item.name);
+            return sum + (di ? di.qty : 0);
+          }, 0);
+          const remaining = item.quantity - delivered;
+          return `<tr>
+            <td>${item.name}</td><td>${item.quantity}</td><td>${delivered}</td>
+            <td><strong>${remaining}</strong></td>
+            <td><input type="number" class="form-control form-control-sm" style="width:80px" value="${remaining}" min="0" max="${remaining}" data-name="${item.name}" data-max="${remaining}"></td>
+          </tr>`;
+        }).join('');
+      }
+
+      // Set destination
+      const customer = MockData.customers.find(c => c.id === rental.customerId);
+      if (customer) document.getElementById('dlvDest').value = customer.address;
+    }
+
+    // ──── ACTION FUNCTIONS ────
+
+    function approveRental() {
+      BizLogic.showConfirmModal(
+        'Approve Rental',
+        'Approve rental <strong>' + rental.id + '</strong>? This will reserve stock for all equipment items.',
+        '<i class="bi bi-check-lg me-1"></i>Approve', 'btn-success',
+        function(fields) {
+          const result = BizLogic.Rental.approve(rental.id, fields.notes);
+          if (result.success) {
+            showToast('Rental approved and stock reserved', 'success');
+            setTimeout(() => location.reload(), 600);
+          } else {
+            showToast(result.error, 'error');
+          }
+        },
+        [{ id: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Approval notes...' }]
+      );
+    }
+
+    function rejectRental() {
+      BizLogic.showConfirmModal(
+        'Reject Rental',
+        'Reject rental <strong>' + rental.id + '</strong>?',
+        '<i class="bi bi-x-lg me-1"></i>Reject', 'btn-danger',
+        function(fields) {
+          const result = BizLogic.Rental.reject(rental.id, fields.reason);
+          if (result.success) {
+            showToast('Rental rejected', 'error');
+            setTimeout(() => location.reload(), 600);
+          } else {
+            showToast(result.error, 'error');
+          }
+        },
+        [{ id: 'reason', label: 'Rejection Reason', type: 'textarea', placeholder: 'Explain why this rental is rejected...', required: true }]
+      );
+    }
+
+    function cancelRental() {
+      BizLogic.showConfirmModal(
+        'Cancel Rental',
+        'Cancel rental <strong>' + rental.id + '</strong>?' + (rental.status === 'Approved' ? ' Stock reservations will be released.' : ''),
+        '<i class="bi bi-x-circle me-1"></i>Cancel Rental', 'btn-danger',
+        function(fields) {
+          const result = BizLogic.Rental.cancel(rental.id, fields.reason);
+          if (result.success) {
+            showToast('Rental cancelled' + (rental.status === 'Approved' ? ' and stock released' : ''), 'error');
+            setTimeout(() => location.reload(), 600);
+          } else {
+            showToast(result.error, 'error');
+          }
+        },
+        [{ id: 'reason', label: 'Cancellation Reason', type: 'textarea', placeholder: 'Reason for cancellation...', required: true }]
+      );
+    }
+
+    function resubmitRental() {
+      const result = BizLogic.Rental.resubmit(rental.id);
+      if (result.success) {
+        showToast('Rental resubmitted for approval', 'success');
+        setTimeout(() => location.reload(), 600);
+      } else {
+        showToast(result.error, 'error');
+      }
+    }
+
+    function openDeliveryModal() {
+      renderPage(); // refresh delivery items
+      new bootstrap.Modal(document.getElementById('deliveryModal')).show();
+    }
+
+    function createDelivery() {
+      const items = [];
+      document.querySelectorAll('#dlvItemsBody input[type="number"]').forEach(input => {
+        const qty = parseInt(input.value) || 0;
+        const max = parseInt(input.dataset.max) || 0;
+        if (qty > 0) {
+          if (qty > max) {
+            showToast(input.dataset.name + ': cannot deliver more than ' + max, 'error');
+            return;
+          }
+          items.push({ name: input.dataset.name, qty: qty });
+        }
+      });
+
+      if (items.length === 0) {
+        showToast('Please specify at least one item to deliver', 'error');
+        return;
+      }
+
+      const driverSel = document.getElementById('dlvDriver');
+      const vehicleSel = document.getElementById('dlvVehicle');
+      const driverOpt = driverSel.options[driverSel.selectedIndex];
+      const vehicleOpt = vehicleSel.options[vehicleSel.selectedIndex];
+
+      const result = BizLogic.Delivery.create(rental.id, items, {
+        deliveryDate: document.getElementById('dlvDate').value,
+        driverId: driverSel.value || null,
+        driverName: driverSel.value ? driverOpt.dataset.name : null,
+        vehicleId: vehicleSel.value || null,
+        vehiclePlate: vehicleSel.value ? vehicleOpt.dataset.plate : null,
+        destination: document.getElementById('dlvDest').value,
+        notes: document.getElementById('dlvNotes').value
+      });
+
+      bootstrap.Modal.getInstance(document.getElementById('deliveryModal')).hide();
+
+      if (result.success) {
+        showToast('Delivery ' + result.delivery.id + ' created successfully', 'success');
+        setTimeout(() => location.reload(), 600);
+      } else {
+        showToast(result.error, 'error');
+      }
+    }
+
+    function createReturn() {
+      // Calculate remaining items on rental
+      const completedDlvs = MockData.deliveries.filter(d => d.rentalId === rental.id && d.status === 'Completed');
+      const existingReturns = MockData.returns.filter(r => r.rentalId === rental.id);
+
+      const items = [];
+      rental.items.forEach(item => {
+        const totalDelivered = completedDlvs.reduce((s, d) => {
+          const di = d.items.find(i => i.name === item.name);
+          return s + (di ? di.qty : 0);
+        }, 0);
+        const totalReturned = existingReturns.reduce((s, r) => {
+          return s + r.items.reduce((is, ri) => ri.name === item.name ? is + ri.sent : is, 0);
+        }, 0);
+        const remaining = totalDelivered - totalReturned;
+        if (remaining > 0) {
+          items.push({ name: item.name, sent: remaining, good: remaining, damaged: 0, lost: 0, missing: 0 });
+        }
+      });
+
+      if (items.length === 0) {
+        showToast('No items remaining for return', 'warning');
+        return;
+      }
+
+      const ret = {
+        id: MockData.generateId('RET', 'returns'),
+        rentalId: rental.id,
+        projectId: rental.projectId,
+        projectName: rental.projectName,
+        customerId: rental.customerId,
+        customerName: rental.customerName,
+        returnDate: new Date().toISOString().split('T')[0],
+        status: 'Inspection',
+        inspectedBy: null,
+        items: items
+      };
+
+      MockData.returns.push(ret);
+      MockData.save('returns');
+
+      BizLogic.Activity.log('Return ' + ret.id + ' created for ' + rental.id, 'info');
+      BizLogic.Notification.add(
+        'Return <strong>' + ret.id + '</strong> is waiting for inspection',
+        'warning', 'bi-box-arrow-in-left',
+        'return-detail.html?id=' + ret.id
+      );
+
+      showToast('Return ' + ret.id + ' created — redirecting to inspection', 'success');
+      setTimeout(() => window.location.href = 'return-detail.html?id=' + ret.id, 800);
+    }
+
+    // Initial render
+    renderPage();
+  </script>
+</body>
+</html>

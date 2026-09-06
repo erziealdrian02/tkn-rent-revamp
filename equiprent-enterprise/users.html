@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Users — EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header"><div class="page-header-left"><h2 class="page-header-title">System Users</h2><p class="page-header-subtitle">Manage user access and accounts</p></div>
+        <div class="page-header-actions"><button class="btn btn-primary btn-sm" onclick="showToast('Add user','info')"><i class="bi bi-plus-lg me-1"></i>Add User</button></div></div>
+        <div class="er-card"><div class="er-card-body">
+          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="tableBody"></tbody></table></div>
+        </div></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add User Modal -->
+  <div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="userForm" class="needs-validation" novalidate>
+          <div class="modal-header">
+            <h5 class="modal-title">Add New User</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-12">
+                <label class="form-label form-label-er">Full Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="usrName" required placeholder="e.g. John Doe">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label form-label-er">Username <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="usrUsername" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label form-label-er">Password <span class="text-danger">*</span></label>
+                <input type="password" class="form-control" id="usrPassword" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label form-label-er">Role <span class="text-danger">*</span></label>
+                <select class="form-select" id="usrRole" required></select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label form-label-er">Branch</label>
+                <select class="form-select" id="usrBranch">
+                  <option value="All">All Branches</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label form-label-er">Status</label>
+                <select class="form-select" id="usrStatus">
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save User</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    initApp('users.html',[{label:'Settings',href:'#'},{label:'Users'}],'Users');
+
+    document.querySelector('.page-header-actions .btn-primary').setAttribute('data-bs-toggle', 'modal');
+    document.querySelector('.page-header-actions .btn-primary').setAttribute('data-bs-target', '#addUserModal');
+    document.querySelector('.page-header-actions .btn-primary').removeAttribute('onclick');
+
+    const roleSel = document.getElementById('usrRole');
+    MockData.roles.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = r.name;
+      opt.textContent = r.name;
+      roleSel.appendChild(opt);
+    });
+
+    const branchSel = document.getElementById('usrBranch');
+    MockData.branches.forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b.name.replace(' Warehouse', '');
+      opt.textContent = b.name;
+      branchSel.appendChild(opt);
+    });
+
+    document.getElementById('userForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (!this.checkValidity()) {
+        e.stopPropagation();
+        this.classList.add('was-validated');
+        return;
+      }
+
+      const name = document.getElementById('usrName').value;
+      const initials = name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+
+      const newUsr = {
+        name: name,
+        username: document.getElementById('usrUsername').value,
+        password: document.getElementById('usrPassword').value,
+        role: document.getElementById('usrRole').value,
+        branch: document.getElementById('usrBranch').value,
+        initials: initials
+      };
+
+      MockData.demoUsers.push(newUsr);
+      MockData.save('demoUsers');
+
+      bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
+      showToast('User successfully added.', 'success');
+      
+      this.reset();
+      this.classList.remove('was-validated');
+      
+      renderTable();
+    });
+
+    function renderTable() {
+      document.getElementById('tableBody').innerHTML=MockData.demoUsers.map(u=>`<tr>
+        <td class="fw-600">${u.name}</td><td>${u.username}</td><td><span class="badge bg-light text-dark border">${u.role}</span></td>
+        <td><span class="badge-status good">Active</span></td>
+        <td><button class="btn-action" onclick="showToast('Edit user','info')"><i class="bi bi-pencil"></i></button></td>
+      </tr>`).join('');
+    }
+    renderTable();
+  </script>
+</body>
+</html>

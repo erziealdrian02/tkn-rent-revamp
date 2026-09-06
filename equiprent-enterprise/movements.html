@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Movements — EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header"><div class="page-header-left"><h2 class="page-header-title">Asset Movements</h2><p class="page-header-subtitle">Track equipment movements across locations</p></div></div>
+        <div class="er-card"><div class="er-card-body">
+          <div class="table-toolbar"><div class="table-toolbar-left">
+            <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Search movements..." id="searchInput" oninput="filterData()"></div>
+            <select class="filter-select" id="typeFilter" onchange="filterData()"><option value="">All Types</option><option>Purchase</option><option>Rental Out</option><option>Return</option><option>Transfer</option><option>Maintenance</option><option>Lost</option></select>
+          </div></div>
+          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Movement ID</th><th>Date</th><th>Equipment</th><th>Asset ID</th><th>From</th><th>To</th><th>Type</th><th>Reference</th><th>User</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="tableBody"></tbody></table></div>
+        </div></div>
+      </div>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    initApp('movements.html',[{label:'Inventory',href:'#'},{label:'Movements'}],'Asset Movements');
+    function filterData(){
+      const q=document.getElementById('searchInput').value.toLowerCase();
+      const t=document.getElementById('typeFilter').value;
+      const data=MockData.movements.filter(m=>{
+        if(q&&!m.id.toLowerCase().includes(q)&&!m.equipment.toLowerCase().includes(q)&&!m.assetId.toLowerCase().includes(q))return false;
+        if(t&&m.type!==t)return false;return true;
+      });
+      document.getElementById('tableBody').innerHTML=data.map(m=>`<tr>
+        <td><a href="movement-detail.html?id=${m.id}" class="cell-link text-mono">${m.id}</a></td>
+        <td>${formatDate(m.date)}</td><td>${m.equipment}</td><td class="text-mono">${m.assetId}</td>
+        <td>${m.from}</td><td>${m.to}</td><td>${statusBadge(m.type)}</td>
+        <td class="text-mono fs-12">${m.reference}</td><td>${m.user}</td><td>${statusBadge(m.status)}</td>
+        <td><a href="movement-detail.html?id=${m.id}" class="btn-action"><i class="bi bi-eye"></i></a></td>
+      </tr>`).join('')||'<tr><td colspan="11" class="text-center text-muted py-4">No movements found</td></tr>';
+    }
+    filterData();
+  </script>
+</body>
+</html>

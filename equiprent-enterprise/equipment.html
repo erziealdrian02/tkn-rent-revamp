@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Equipment — EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header">
+          <div class="page-header-left"><h2 class="page-header-title">Equipment</h2><p class="page-header-subtitle">Manage equipment assets</p></div>
+          <div class="page-header-actions">
+            <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-upload me-1"></i>Import</button>
+            <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>Export</button>
+            <button class="btn btn-primary btn-sm" onclick="showToast('Add equipment form','info')"><i class="bi bi-plus-lg me-1"></i>Add Equipment</button>
+          </div>
+        </div>
+        <div class="er-card"><div class="er-card-body">
+          <div class="table-toolbar"><div class="table-toolbar-left">
+            <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Search equipment..." id="searchInput" oninput="filterData()"></div>
+            <select class="filter-select" id="categoryFilter" onchange="filterData()"><option value="">All Categories</option></select>
+            <select class="filter-select" id="branchFilter" onchange="filterData()"><option value="">All Branches</option><option>Jakarta</option><option>Bekasi</option></select>
+            <select class="filter-select" id="statusFilter" onchange="filterData()"><option value="">All Status</option><option>Available</option><option>Reserved</option><option>On Rental</option><option>Maintenance</option><option>Damaged</option><option>Lost</option></select>
+          </div></div>
+          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Asset ID</th><th>Equipment Name</th><th>Category</th><th>Serial #</th><th>Condition</th><th>Branch</th><th>Availability</th><th>Project</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="tableBody"></tbody></table></div>
+          <div class="er-card-footer" id="pagination"></div>
+        </div></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Equipment Modal -->
+  <div class="modal fade" id="addEquipmentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <form id="equipmentForm" class="needs-validation" novalidate>
+          <div class="modal-header">
+            <h5 class="modal-title">Add New Equipment</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label form-label-er">Equipment Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="eqName" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label form-label-er">Category <span class="text-danger">*</span></label>
+                <select class="form-select" id="eqCategory" required></select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label form-label-er">Tracking Type <span class="text-danger">*</span></label>
+                <select class="form-select" id="eqTrackingType" onchange="toggleTrackingType()">
+                  <option value="Serialized">Serialized (Asset Tracking)</option>
+                  <option value="Quantity">Quantity Based</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label form-label-er">Asset ID</label>
+                <input type="text" class="form-control bg-light text-mono" id="eqAssetId" readonly>
+              </div>
+              <div class="col-md-6" id="fieldSerial">
+                <label class="form-label form-label-er">Serial Number</label>
+                <input type="text" class="form-control text-mono" id="eqSerial">
+              </div>
+              <div class="col-md-6" id="fieldQty" style="display:none;">
+                <label class="form-label form-label-er">Initial Quantity</label>
+                <input type="number" class="form-control" id="eqQty" value="1" min="1">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label form-label-er">Model / Brand</label>
+                <input type="text" class="form-control" id="eqBrand">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label form-label-er">Purchase Date</label>
+                <input type="date" class="form-control" id="eqDate">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label form-label-er">Purchase Price (Rp)</label>
+                <input type="number" class="form-control" id="eqPrice" value="0">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label form-label-er">Current Branch <span class="text-danger">*</span></label>
+                <select class="form-select" id="eqBranch" required></select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label form-label-er">Condition</label>
+                <select class="form-select" id="eqCondition">
+                  <option value="Good">Good</option>
+                  <option value="Fair">Fair</option>
+                  <option value="Damaged">Damaged</option>
+                  <option value="Maintenance">Maintenance</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label form-label-er">Status</label>
+                <select class="form-select" id="eqStatus">
+                  <option value="Available">Available</option>
+                  <option value="Reserved">Reserved</option>
+                  <option value="Maintenance">Maintenance</option>
+                  <option value="Lost">Lost</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Equipment</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    initApp('equipment.html',[{label:'Inventory',href:'#'},{label:'Equipment'}],'Equipment');
+    // Update main buttons
+    document.querySelector('.page-header-actions .btn-primary').setAttribute('data-bs-toggle', 'modal');
+    document.querySelector('.page-header-actions .btn-primary').setAttribute('data-bs-target', '#addEquipmentModal');
+    document.querySelector('.page-header-actions .btn-primary').removeAttribute('onclick');
+
+    // Populate category filters & form
+    const cf = document.getElementById('categoryFilter');
+    const formCat = document.getElementById('eqCategory');
+    formCat.innerHTML = '<option value="">Select category...</option>';
+    MockData.equipmentCategories.forEach(c=>{
+      cf.innerHTML += `<option value="${c}">${c}</option>`;
+      formCat.innerHTML += `<option value="${c}">${c}</option>`;
+    });
+
+    const formBranch = document.getElementById('eqBranch');
+    formBranch.innerHTML = '<option value="">Select branch...</option>';
+    MockData.branches.forEach(b => {
+      formBranch.innerHTML += `<option value="${b.id}">${b.name}</option>`;
+    });
+
+    document.getElementById('eqAssetId').value = MockData.generateId('EQP', 'equipment');
+
+    function toggleTrackingType() {
+      const isQty = document.getElementById('eqTrackingType').value === 'Quantity';
+      document.getElementById('fieldSerial').style.display = isQty ? 'none' : 'block';
+      document.getElementById('fieldQty').style.display = isQty ? 'block' : 'none';
+      if(isQty) document.getElementById('eqSerial').removeAttribute('required');
+    }
+
+    document.getElementById('equipmentForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (!this.checkValidity()) {
+        e.stopPropagation();
+        this.classList.add('was-validated');
+        return;
+      }
+
+      const branchId = document.getElementById('eqBranch').value;
+      const branchName = MockData.branches.find(b => b.id === branchId)?.name.replace(' Warehouse','') || branchId;
+
+      const newEq = {
+        id: document.getElementById('eqAssetId').value,
+        name: document.getElementById('eqName').value,
+        category: document.getElementById('eqCategory').value,
+        serial: document.getElementById('eqSerial').value || '-',
+        condition: document.getElementById('eqCondition').value,
+        branch: branchName,
+        branchId: branchId,
+        availability: document.getElementById('eqStatus').value,
+        project: null,
+        status: document.getElementById('eqStatus').value,
+        rate: document.getElementById('eqPrice').value || 0
+      };
+
+      MockData.equipment.push(newEq);
+      MockData.save('equipment');
+
+      // Update Stock
+      const isQty = document.getElementById('eqTrackingType').value === 'Quantity';
+      const addedQty = isQty ? parseInt(document.getElementById('eqQty').value) : 1;
+      
+      let stockItem = MockData.stock.find(s => s.equipment === newEq.name && s.branch === newEq.branch);
+      if(stockItem) {
+        stockItem.total += addedQty;
+        stockItem.available += addedQty;
+      } else {
+        MockData.stock.push({
+          equipment: newEq.name, branch: newEq.branch, total: addedQty, available: addedQty, reserved: 0, onRental: 0, damaged: 0, maintenance: 0, lost: 0
+        });
+      }
+      MockData.save('stock');
+
+      bootstrap.Modal.getInstance(document.getElementById('addEquipmentModal')).hide();
+      showToast('Equipment successfully added.', 'success');
+      
+      // Reset form and UI
+      this.reset();
+      this.classList.remove('was-validated');
+      document.getElementById('eqAssetId').value = MockData.generateId('EQP', 'equipment');
+      
+      filterData();
+    });
+
+    let currentPage=1; const pageSize=15;
+    function filterData(){currentPage=1;renderTable();}
+    function changePage(p){currentPage=p;renderTable();}
+    function renderTable(){
+      const q=document.getElementById('searchInput').value.toLowerCase();
+      const cat=document.getElementById('categoryFilter').value;
+      const br=document.getElementById('branchFilter').value;
+      const st=document.getElementById('statusFilter').value;
+      let data=MockData.equipment.filter(e=>{
+        if(q&&!e.id.toLowerCase().includes(q)&&!e.name.toLowerCase().includes(q)&&!e.serial.toLowerCase().includes(q))return false;
+        if(cat&&e.category!==cat)return false;if(br&&e.branch!==br)return false;if(st&&e.status!==st)return false;return true;
+      });
+      const total=data.length;
+      const paged=data.slice((currentPage-1)*pageSize,currentPage*pageSize);
+      document.getElementById('tableBody').innerHTML=paged.map(e=>`<tr>
+        <td class="text-mono"><a href="equipment-detail.html?id=${e.id}" class="cell-link">${e.id}</a></td>
+        <td>${e.name}</td><td>${e.category}</td><td class="text-mono fs-12">${e.serial}</td>
+        <td>${statusBadge(e.condition)}</td><td>${e.branch}</td><td>${statusBadge(e.availability)}</td>
+        <td>${e.project?`<a href="project-detail.html?id=${e.project}" class="cell-link fs-12">${e.project}</a>`:'-'}</td>
+        <td>${statusBadge(e.status)}</td>
+        <td><a href="equipment-detail.html?id=${e.id}" class="btn-action"><i class="bi bi-eye"></i></a><button class="btn-action"><i class="bi bi-pencil"></i></button></td>
+      </tr>`).join('')||'<tr><td colspan="10" class="text-center text-muted py-4">No equipment found</td></tr>';
+      document.getElementById('pagination').innerHTML=renderPagination(total,currentPage,pageSize,'changePage');
+    }
+    renderTable();
+  </script>
+</body>
+</html>

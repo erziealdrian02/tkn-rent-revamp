@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delivery Detail — Driver Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar driver-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="er-card mb-4">
+          <div class="detail-header" id="detailHeader"></div>
+          <div class="er-card-body" id="detailBody"></div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex gap-2 justify-content-center mb-4" id="actionButtons"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Arrival Modal -->
+  <div class="modal fade" id="arrivalModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title"><i class="bi bi-geo-alt me-2"></i>Confirm Arrival</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <div class="mb-3"><label class="form-label form-label-er">Arrival Date & Time</label><input type="datetime-local" class="form-control" id="arrivalTime"></div>
+          <div class="mb-3">
+            <label class="form-label form-label-er">Upload Photo</label>
+            <input type="file" class="form-control" accept="image/*" id="photoUpload" onchange="previewPhoto(this)">
+            <div class="mt-2" id="photoPreview"></div>
+          </div>
+          <div class="mb-3"><label class="form-label form-label-er">Notes</label><textarea class="form-control" rows="2" placeholder="Arrival notes..."></textarea></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-success" onclick="confirmArrival()"><i class="bi bi-check-lg me-1"></i>Confirm Arrival</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    const did = getUrlParam('id') || 'DLV-001';
+    const dlv = MockData.deliveries.find(d => d.id === did) || MockData.deliveries[0];
+    initApp('driver-deliveries.html',[{label:'My Deliveries',href:'driver-deliveries.html'},{label:dlv.id}],dlv.id);
+
+    // Set default arrival time
+    const now = new Date();
+    document.getElementById('arrivalTime').value = now.toISOString().slice(0,16);
+
+    let currentStatus = dlv.status;
+
+    function renderPage() {
+      document.getElementById('detailHeader').innerHTML = `
+        <div class="detail-header-left">
+          <div class="detail-header-icon"><i class="bi bi-truck"></i></div>
+          <div class="detail-header-info">
+            <h2>${dlv.id} ${statusBadge(currentStatus)}</h2>
+            <div class="detail-meta">
+              <span class="detail-meta-item"><i class="bi bi-people"></i>${dlv.customerName}</span>
+              <span class="detail-meta-item"><i class="bi bi-folder"></i>${dlv.projectName}</span>
+              <span class="detail-meta-item"><i class="bi bi-calendar"></i>${formatDate(dlv.deliveryDate)}</span>
+            </div>
+          </div>
+        </div>`;
+
+      document.getElementById('detailBody').innerHTML = `
+        <div class="row g-4">
+          <div class="col-md-6">
+            <h6 class="fw-600 mb-3">Delivery Information</h6>
+            <div class="info-grid">
+              <div class="info-item"><span class="info-label">Customer</span><span class="info-value">${dlv.customerName}</span></div>
+              <div class="info-item"><span class="info-label">Project</span><span class="info-value">${dlv.projectName}</span></div>
+              <div class="info-item"><span class="info-label">Destination</span><span class="info-value">${dlv.destination}</span></div>
+              <div class="info-item"><span class="info-label">Date</span><span class="info-value">${formatDate(dlv.deliveryDate)}</span></div>
+              <div class="info-item"><span class="info-label">Notes</span><span class="info-value">${dlv.notes||'-'}</span></div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <h6 class="fw-600 mb-3">Equipment to Deliver</h6>
+            <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Equipment</th><th>Qty</th></tr></thead><tbody>
+            ${dlv.items.map(i=>`<tr><td>${i.name}</td><td>${i.qty}</td></tr>`).join('')}
+            </tbody></table></div>
+          </div>
+        </div>
+        <div id="arrivalPhotoSection" class="mt-4" style="display:none">
+          <h6 class="fw-600 mb-2">Arrival Photo</h6>
+          <div class="p-3 border rounded" style="background:var(--bg-table-stripe)">
+            <img id="arrivalPhotoImg" src="" alt="Arrival photo" style="max-width:300px;border-radius:var(--border-radius)">
+            <p class="fs-12 text-muted mt-2 mb-0">Photo uploaded at arrival</p>
+          </div>
+        </div>`;
+
+      // Action buttons
+      let btns = '';
+      if (currentStatus === 'Assigned' || currentStatus === 'Preparing') {
+        btns = `<button class="btn btn-primary btn-lg" onclick="depart()"><i class="bi bi-truck me-2"></i>BERANGKAT</button>`;
+      } else if (currentStatus === 'Departed') {
+        btns = `<button class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#arrivalModal"><i class="bi bi-geo-alt me-2"></i>SAMPAI</button>`;
+      } else if (currentStatus === 'Arrived' || currentStatus === 'Completed') {
+        btns = `<div class="alert alert-success"><i class="bi bi-check-circle me-2"></i>Delivery completed successfully</div>`;
+      }
+      document.getElementById('actionButtons').innerHTML = btns;
+    }
+
+    function depart() {
+      dlv.status = 'Departed';
+      MockData.save('deliveries');
+      currentStatus = dlv.status;
+      showToast('Status updated: Departed', 'success');
+      renderPage();
+    }
+
+    function previewPhoto(input) {
+      const preview = document.getElementById('photoPreview');
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          preview.innerHTML = `<img src="${e.target.result}" style="max-width:200px;border-radius:var(--border-radius);border:1px solid var(--border-color)" alt="Preview">`;
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function confirmArrival() {
+      const photoInput = document.getElementById('photoUpload');
+      bootstrap.Modal.getInstance(document.getElementById('arrivalModal')).hide();
+      dlv.status = 'Arrived';
+      dlv.arrivalTime = document.getElementById('arrivalTime').value;
+      MockData.save('deliveries');
+      currentStatus = dlv.status;
+      showToast('Arrival confirmed successfully', 'success');
+      renderPage();
+
+      // Show photo in detail
+      if (photoInput.files && photoInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const section = document.getElementById('arrivalPhotoSection');
+          const img = document.getElementById('arrivalPhotoImg');
+          if (section && img) {
+            img.src = e.target.result;
+            section.style.display = 'block';
+          }
+        };
+        reader.readAsDataURL(photoInput.files[0]);
+      }
+    }
+
+    renderPage();
+  </script>
+</body>
+</html>
