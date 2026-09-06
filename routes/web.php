@@ -1,21 +1,21 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\ProjectController;
-use App\Http\Controllers\DriverController;
-use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\BranchController;
-use App\Http\Controllers\EquipmentController;
-use App\Http\Controllers\StockController;
-use App\Http\Controllers\RentalController;
-use App\Http\Controllers\DeliveryController;
-use App\Http\Controllers\DriverPortalController;
-use App\Http\Controllers\ReturnController;
-use App\Http\Controllers\RepairController;
-use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\ClaimController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DeliveryController;
+use App\Http\Controllers\DriverController;
+use App\Http\Controllers\DriverPortalController;
+use App\Http\Controllers\EquipmentController;
+use App\Http\Controllers\MaintenanceController;
+use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\RentalController;
+use App\Http\Controllers\RepairController;
+use App\Http\Controllers\ReturnController;
+use App\Http\Controllers\StockController;
+use App\Http\Controllers\VehicleController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -120,6 +120,7 @@ Route::middleware('auth')->group(function () {
 
     // ── MAINTENANCE ──
     Route::resource('maintenance', MaintenanceController::class)->except(['edit', 'update', 'destroy']);
+    Route::post('/maintenance/{maintenance}/complete', [MaintenanceController::class, 'complete'])->name('maintenance.complete');
 
     // ── CUSTOMERS ──
     Route::resource('customers', CustomerController::class);

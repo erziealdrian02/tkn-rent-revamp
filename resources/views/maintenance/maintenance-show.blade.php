@@ -4,81 +4,94 @@
 
 @section('content')
 <div class="er-card mb-4">
-          <div class="detail-header" id="detailHeader"></div>
-          <div class="er-card-body" id="detailBody"></div>
+    <div class="detail-header">
+        <div class="detail-header-left">
+            <div class="detail-header-icon" style="background:var(--info-bg,#e0f2fe);color:var(--info,#0284c7)">
+                <i class="bi bi-tools"></i>
+            </div>
+            <div class="detail-header-info">
+                <h2>{{ substr($maintenance->id, 0, 8) }}
+                    @if($maintenance->status === 'COMPLETED')
+                        <span class="badge bg-success-subtle text-success">Completed</span>
+                    @elseif($maintenance->status === 'IN_PROGRESS')
+                        <span class="badge bg-warning-subtle text-warning">In Progress</span>
+                    @else
+                        <span class="badge bg-secondary-subtle text-secondary">{{ $maintenance->status }}</span>
+                    @endif
+                </h2>
+                <div class="detail-meta">
+                    <span class="detail-meta-item"><i class="bi bi-gear"></i>{{ $maintenance->equipment->name ?? '-' }}</span>
+                    <span class="detail-meta-item"><i class="bi bi-building"></i>{{ $maintenance->branch->name ?? '-' }}</span>
+                    <span class="detail-meta-item"><i class="bi bi-calendar"></i>{{ \Carbon\Carbon::parse($maintenance->start_date)->format('d M Y') }}</span>
+                </div>
+            </div>
         </div>
+        <div class="detail-header-actions d-flex gap-2">
+            @if($maintenance->status === 'IN_PROGRESS')
+                <form action="{{ route('maintenance.complete', $maintenance->id) }}" method="POST">
+                    @csrf
+                    <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-circle me-1"></i>Complete Maintenance</button>
+                </form>
+            @endif
+        </div>
+    </div>
+
+    <div class="p-4">
+        @if(session('success'))
+            <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
+        @if(session('error'))
+            <div class="alert alert-danger">{{ session('error') }}</div>
+        @endif
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="info-group">
+                    <h5 class="info-group-title"><i class="bi bi-info-circle me-2"></i>Maintenance Details</h5>
+                    <div class="info-row mt-3">
+                        <span class="info-label">Equipment</span>
+                        <span class="info-value fw-600">{{ $maintenance->equipment->name ?? '-' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Quantity</span>
+                        <span class="info-value">{{ $maintenance->quantity }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Branch</span>
+                        <span class="info-value">{{ $maintenance->branch->name ?? '-' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Type</span>
+                        <span class="info-value">{{ $maintenance->type }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Start Date</span>
+                        <span class="info-value">{{ \Carbon\Carbon::parse($maintenance->start_date)->format('d M Y') }}</span>
+                    </div>
+                    @if($maintenance->end_date)
+                        <div class="info-row">
+                            <span class="info-label">Completion Date</span>
+                            <span class="info-value">{{ \Carbon\Carbon::parse($maintenance->end_date)->format('d M Y') }}</span>
+                        </div>
+                    @endif
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-group">
+                    <h5 class="info-group-title"><i class="bi bi-chat-text me-2"></i>Notes & Resolution</h5>
+                    <div class="alert alert-secondary mt-3">
+                        <h6 class="fw-600 mb-2"><i class="bi bi-info-circle me-1"></i>Initial Notes</h6>
+                        <p class="mb-0 fs-14">{{ $maintenance->notes ?? 'No notes provided.' }}</p>
+                    </div>
+                    @if($maintenance->resolution_notes)
+                        <div class="alert alert-success">
+                            <h6 class="fw-600 mb-2"><i class="bi bi-check-circle me-1"></i>Resolution</h6>
+                            <p class="mb-0 fs-14">{{ $maintenance->resolution_notes }}</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
-
-@push('scripts')
-<script>
-const mtid = getUrlParam('id') || 'MT-001';
-    let mt = (MockData.maintenance||[]).find(m => m.id === mtid);
-    if (!mt) {
-        mt = {
-            id: mtid, equipment: 'Excavator PC200', branch: 'Jakarta Warehouse', quantity: 1, type: 'Routine Check', status: 'In Progress', startDate: '2023-11-01', notes: 'Routine check', technician: 'Budi'
-        };
-    }
-
-    initApp('maintenance',[{label:'Equipment',href:'#'},{label:'Maintenance',href:'maintenance'},{label:mt.id}],mt.id);
-
-    document.getElementById('detailHeader').innerHTML = `
-      <div class="detail-header-left">
-        <div class="detail-header-icon" style="background:var(--info-bg);color:var(--info)"><i class="bi bi-tools"></i></div>
-        <div class="detail-header-info">
-          <h2>${mt.id} ${statusBadge(mt.status)}</h2>
-          <div class="detail-meta">
-            <span class="detail-meta-item"><i class="bi bi-truck"></i>${mt.equipment}</span>
-            <span class="detail-meta-item"><i class="bi bi-geo-alt"></i>${mt.branch}</span>
-            <span class="detail-meta-item"><i class="bi bi-person"></i>${mt.technician}</span>
-          </div>
-        </div>
-      </div>
-      <div class="detail-header-actions">
-        ${mt.status === 'In Progress' ? `<button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#completeModal"><i class="bi bi-check-circle me-1"></i>Complete Maintenance</button>` : ''}
-        <button class="btn btn-outline-secondary btn-sm" onclick="showToast('Print initiated','info')"><i class="bi bi-printer me-1"></i>Print Form</button>
-      </div>`;
-
-    document.getElementById('detailBody').innerHTML = `
-      <div class="row g-4 mb-4">
-        <div class="col-md-6">
-          <h6 class="fw-600 mb-3">Maintenance Details</h6>
-          <div class="info-grid">
-            <div class="info-item"><span class="info-label">Maintenance ID</span><span class="info-value text-mono">${mt.id}</span></div>
-            <div class="info-item"><span class="info-label">Equipment</span><span class="info-value fw-600">${mt.equipment}</span></div>
-            <div class="info-item"><span class="info-label">Quantity</span><span class="info-value">${mt.quantity}</span></div>
-            <div class="info-item"><span class="info-label">Branch</span><span class="info-value">${mt.branch}</span></div>
-            <div class="info-item"><span class="info-label">Type</span><span class="info-value">${mt.type}</span></div>
-            <div class="info-item"><span class="info-label">Technician</span><span class="info-value">${mt.technician}</span></div>
-            <div class="info-item"><span class="info-label">Start Date</span><span class="info-value">${formatDate(mt.startDate)}</span></div>
-            <div class="info-item"><span class="info-label">Completion Date</span><span class="info-value">${mt.completionDate ? formatDate(mt.completionDate) : '-'}</span></div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <h6 class="fw-600 mb-3">Notes & Resolution</h6>
-          <div class="alert alert-secondary mb-3">
-            <h6 class="fw-600 mb-2"><i class="bi bi-info-circle me-1"></i>Initial Notes</h6>
-            <p class="mb-0 fs-13">${mt.notes || 'No notes provided.'}</p>
-          </div>
-          ${mt.resolution ? `
-          <div class="alert alert-success">
-            <h6 class="fw-600 mb-2"><i class="bi bi-check-circle me-1"></i>Resolution</h6>
-            <p class="mb-0 fs-13">${mt.resolution}</p>
-          </div>
-          ` : ''}
-        </div>
-      </div>
-    `;
-
-    function completeMaintenance() {
-        const resNotes = document.getElementById('mtResolution').value;
-        const res = BizLogic.Maintenance.complete(mt.id, resNotes);
-        if(res.success) {
-            bootstrap.Modal.getInstance(document.getElementById('completeModal')).hide();
-            showToast('Maintenance completed, stock returned to available', 'success');
-            setTimeout(() => location.reload(), 800);
-        } else {
-            showToast(res.error, 'danger');
-        }
-    }
-</script>
-@endpush

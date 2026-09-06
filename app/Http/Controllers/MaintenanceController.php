@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Maintenance;
-use App\Models\Equipment;
 use App\Models\Branch;
+use App\Models\Equipment;
+use App\Models\Maintenance;
 use App\Services\StockService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class MaintenanceController extends Controller
@@ -21,6 +21,7 @@ class MaintenanceController extends Controller
     public function index()
     {
         $maintenance = Maintenance::with(['equipment', 'branch'])->orderBy('created_at', 'desc')->get();
+
         return view('maintenance.maintenance-index', compact('maintenance'));
     }
 
@@ -28,6 +29,7 @@ class MaintenanceController extends Controller
     {
         $equipment = Equipment::where('status', 'ACTIVE')->get();
         $branches = Branch::where('status', 'ACTIVE')->get();
+
         return view('maintenance.maintenance-create', compact('equipment', 'branches'));
     }
 
@@ -39,7 +41,7 @@ class MaintenanceController extends Controller
             'quantity' => 'required|integer|min:1',
             'type' => 'required|string',
             'start_date' => 'required|date',
-            'notes' => 'nullable|string'
+            'notes' => 'nullable|string',
         ]);
 
         // Note: Full implementation would move stock from available to maintenance
@@ -62,6 +64,22 @@ class MaintenanceController extends Controller
     public function show(Maintenance $maintenance)
     {
         $maintenance->load(['equipment', 'branch']);
+
         return view('maintenance.maintenance-show', compact('maintenance'));
+    }
+
+    public function complete(Request $request, Maintenance $maintenance)
+    {
+        if ($maintenance->status !== 'IN_PROGRESS') {
+            return back()->with('error', 'Only in-progress maintenance can be completed.');
+        }
+
+        $maintenance->update([
+            'status' => 'COMPLETED',
+            'end_date' => now()->toDateString(),
+            'resolution_notes' => $request->input('resolution_notes'),
+        ]);
+
+        return back()->with('success', 'Maintenance marked as completed.');
     }
 }
