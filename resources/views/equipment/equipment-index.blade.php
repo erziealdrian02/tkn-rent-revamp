@@ -18,8 +18,33 @@
             <select class="filter-select" id="branchFilter" onchange="filterData()"><option value="">All Branches</option><option>Jakarta</option><option>Bekasi</option></select>
             <select class="filter-select" id="statusFilter" onchange="filterData()"><option value="">All Status</option><option>Available</option><option>Reserved</option><option>On Rental</option><option>Maintenance</option><option>Damaged</option><option>Lost</option></select>
           </div></div>
-          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Asset ID</th><th>Equipment Name</th><th>Category</th><th>Serial #</th><th>Condition</th><th>Branch</th><th>Availability</th><th>Project</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="tableBody"></tbody></table></div>
+          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Asset ID</th><th>Equipment Name</th><th>Category</th><th>Rate</th><th>Replacement Value</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="tableBody">
+            @forelse($equipment as $eq)
+            <tr>
+              <td><a href="{{ route('equipment.show', $eq->id) }}" class="cell-link text-mono">{{ substr($eq->id, 0, 8) }}</a></td>
+              <td class="fw-500">{{ $eq->name }}</td>
+              <td><span class="badge bg-light text-dark border">{{ $eq->category ?? '-' }}</span></td>
+              <td>Rp {{ number_format($eq->daily_rate, 0, ',', '.') }} / day</td>
+              <td>Rp {{ number_format($eq->replacement_value, 0, ',', '.') }}</td>
+              <td>
+                    @if($eq->status === 'ACTIVE')
+                        <span class="badge bg-success-subtle text-success">Active</span>
+                    @elseif($eq->status === 'MAINTENANCE')
+                        <span class="badge bg-warning-subtle text-warning">Maintenance</span>
+                    @else
+                        <span class="badge bg-secondary-subtle text-secondary">Inactive</span>
+                    @endif
+              </td>
+              <td>
+                <a href="{{ route('equipment.show', $eq->id) }}" class="btn-action"><i class="bi bi-eye"></i></a>
+                <a href="{{ route('equipment.edit', $eq->id) }}" class="btn-action"><i class="bi bi-pencil"></i></a>
+              </td>
+            </tr>
+            @empty
+              <tr><td colspan="7" class="text-center text-muted py-4">No equipment found</td></tr>
+            @endforelse
+          </tbody></table></div>
           <div class="er-card-footer" id="pagination"></div>
         </div></div>
 @endsection
@@ -27,113 +52,15 @@
 @push('scripts')
 <script>
 initApp('equipment',[{label:'Inventory',href:'#'},{label:'Equipment'}],'Equipment');
-    // Update main buttons
-    document.querySelector('.page-header-actions .btn-primary').setAttribute('data-bs-toggle', 'modal');
-    document.querySelector('.page-header-actions .btn-primary').setAttribute('data-bs-target', '#addEquipmentModal');
-    document.querySelector('.page-header-actions .btn-primary').removeAttribute('onclick');
-
-    // Populate category filters & form
-    const cf = document.getElementById('categoryFilter');
-    const formCat = document.getElementById('eqCategory');
-    formCat.innerHTML = '<option value="">Select category...</option>';
-    MockData.equipmentCategories.forEach(c=>{
-      cf.innerHTML += `<option value="${c}">${c}</option>`;
-      formCat.innerHTML += `<option value="${c}">${c}</option>`;
+function filterData() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const rows = document.querySelectorAll('#tableBody tr');
+    
+    rows.forEach(row => {
+        if (row.cells.length < 5) return;
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
     });
-
-    const formBranch = document.getElementById('eqBranch');
-    formBranch.innerHTML = '<option value="">Select branch...</option>';
-    MockData.branches.forEach(b => {
-      formBranch.innerHTML += `<option value="${b.id}">${b.name}</option>`;
-    });
-
-    document.getElementById('eqAssetId').value = MockData.generateId('EQP', 'equipment');
-
-    function toggleTrackingType() {
-      const isQty = document.getElementById('eqTrackingType').value === 'Quantity';
-      document.getElementById('fieldSerial').style.display = isQty ? 'none' : 'block';
-      document.getElementById('fieldQty').style.display = isQty ? 'block' : 'none';
-      if(isQty) document.getElementById('eqSerial').removeAttribute('required');
-    }
-
-    document.getElementById('equipmentForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      if (!this.checkValidity()) {
-        e.stopPropagation();
-        this.classList.add('was-validated');
-        return;
-      }
-
-      const branchId = document.getElementById('eqBranch').value;
-      const branchName = MockData.branches.find(b => b.id === branchId)?.name.replace(' Warehouse','') || branchId;
-
-      const newEq = {
-        id: document.getElementById('eqAssetId').value,
-        name: document.getElementById('eqName').value,
-        category: document.getElementById('eqCategory').value,
-        serial: document.getElementById('eqSerial').value || '-',
-        condition: document.getElementById('eqCondition').value,
-        branch: branchName,
-        branchId: branchId,
-        availability: document.getElementById('eqStatus').value,
-        project: null,
-        status: document.getElementById('eqStatus').value,
-        rate: document.getElementById('eqPrice').value || 0
-      };
-
-      MockData.equipment.push(newEq);
-      MockData.save('equipment');
-
-      // Update Stock
-      const isQty = document.getElementById('eqTrackingType').value === 'Quantity';
-      const addedQty = isQty ? parseInt(document.getElementById('eqQty').value) : 1;
-      
-      let stockItem = MockData.stock.find(s => s.equipment === newEq.name && s.branch === newEq.branch);
-      if(stockItem) {
-        stockItem.total += addedQty;
-        stockItem.available += addedQty;
-      } else {
-        MockData.stock.push({
-          equipment: newEq.name, branch: newEq.branch, total: addedQty, available: addedQty, reserved: 0, onRental: 0, damaged: 0, maintenance: 0, lost: 0
-        });
-      }
-      MockData.save('stock');
-
-      bootstrap.Modal.getInstance(document.getElementById('addEquipmentModal')).hide();
-      showToast('Equipment successfully added.', 'success');
-      
-      // Reset form and UI
-      this.reset();
-      this.classList.remove('was-validated');
-      document.getElementById('eqAssetId').value = MockData.generateId('EQP', 'equipment');
-      
-      filterData();
-    });
-
-    let currentPage=1; const pageSize=15;
-    function filterData(){currentPage=1;renderTable();}
-    function changePage(p){currentPage=p;renderTable();}
-    function renderTable(){
-      const q=document.getElementById('searchInput').value.toLowerCase();
-      const cat=document.getElementById('categoryFilter').value;
-      const br=document.getElementById('branchFilter').value;
-      const st=document.getElementById('statusFilter').value;
-      let data=MockData.equipment.filter(e=>{
-        if(q&&!e.id.toLowerCase().includes(q)&&!e.name.toLowerCase().includes(q)&&!e.serial.toLowerCase().includes(q))return false;
-        if(cat&&e.category!==cat)return false;if(br&&e.branch!==br)return false;if(st&&e.status!==st)return false;return true;
-      });
-      const total=data.length;
-      const paged=data.slice((currentPage-1)*pageSize,currentPage*pageSize);
-      document.getElementById('tableBody').innerHTML=paged.map(e=>`<tr>
-        <td class="text-mono"><a href="equipment-detail?id=${e.id}" class="cell-link">${e.id}</a></td>
-        <td>${e.name}</td><td>${e.category}</td><td class="text-mono fs-12">${e.serial}</td>
-        <td>${statusBadge(e.condition)}</td><td>${e.branch}</td><td>${statusBadge(e.availability)}</td>
-        <td>${e.project?`<a href="project-detail?id=${e.project}" class="cell-link fs-12">${e.project}</a>`:'-'}</td>
-        <td>${statusBadge(e.status)}</td>
-        <td><a href="equipment-detail?id=${e.id}" class="btn-action"><i class="bi bi-eye"></i></a><button class="btn-action"><i class="bi bi-pencil"></i></button></td>
-      </tr>`).join('')||'<tr><td colspan="10" class="text-center text-muted py-4">No equipment found</td></tr>';
-      document.getElementById('pagination').innerHTML=renderPagination(total,currentPage,pageSize,'changePage');
-    }
-    renderTable();
+}
 </script>
 @endpush

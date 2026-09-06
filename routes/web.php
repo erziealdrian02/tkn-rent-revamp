@@ -2,6 +2,13 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\DriverController;
+use App\Http\Controllers\VehicleController;
+use App\Http\Controllers\BranchController;
+use App\Http\Controllers\EquipmentController;
+use App\Http\Controllers\StockController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,181 +43,137 @@ Route::middleware('auth')->group(function () {
 
     // Dashboard
     Route::get('/dashboard', function () {
-        return view('dashboard.index');
+        return view('dashboard.dashboard-index');
     })->name('dashboard');
 
     // ── RENTAL MODULE ──
     Route::get('/rentals', function () {
-        return view('rentals.index');
+        return view('rentals.rentals-index');
     })->name('rentals.index');
 
     Route::get('/rental-create', function () {
-        return view('rentals.create');
+        return view('rentals.rentals-create');
     })->name('rentals.create');
 
     Route::get('/rental-detail', function () {
-        return view('rentals.show');
+        return view('rentals.rentals-show');
     })->name('rentals.show');
 
     // ── PROJECTS ──
-    Route::get('/projects', function () {
-        return view('projects.index');
-    })->name('projects.index');
-
-    Route::get('/project-create', function () {
-        return view('projects.create');
-    })->name('projects.create');
-
-    Route::get('/project-detail', function () {
-        return view('projects.show');
-    })->name('projects.show');
+    Route::resource('projects', ProjectController::class);
 
     // ── DELIVERIES ──
     Route::get('/deliveries', function () {
-        return view('deliveries.index');
+        return view('deliveries.deliveries-index');
     })->name('deliveries.index');
 
     Route::get('/delivery-detail', function () {
-        return view('deliveries.show');
+        return view('deliveries.deliveries-show');
     })->name('deliveries.show');
 
     // ── RETURNS ──
     Route::get('/returns', function () {
-        return view('returns.index');
+        return view('returns.returns-index');
     })->name('returns.index');
 
     Route::get('/return-detail', function () {
-        return view('returns.show');
+        return view('returns.returns-show');
     })->name('returns.show');
 
     // ── CLAIMS ──
     Route::get('/claims', function () {
-        return view('claims.index');
+        return view('claims.claims-index');
     })->name('claims.index');
 
     Route::get('/claim-detail', function () {
-        return view('claims.show');
+        return view('claims.claims-show');
     })->name('claims.show');
 
     // ── EQUIPMENT ──
-    Route::get('/equipment', function () {
-        return view('equipment.index');
-    })->name('equipment.index');
-
-    Route::get('/equipment-detail', function () {
-        return view('equipment.show');
-    })->name('equipment.show');
+    Route::resource('equipment', EquipmentController::class);
 
     // ── BRANCHES ──
-    Route::get('/branches', function () {
-        return view('branches.index');
-    })->name('branches.index');
-
-    Route::get('/branch-detail', function () {
-        return view('branches.show');
-    })->name('branches.show');
+    Route::resource('branches', BranchController::class);
 
     // ── STOCK & MOVEMENTS ──
-    Route::get('/stock', function () {
-        return view('stock.index');
-    })->name('stock.index');
-
-    Route::get('/stock-transfer', function () {
-        return view('stock.transfer');
-    })->name('stock.transfer');
+    Route::get('/stock', [StockController::class, 'index'])->name('stock.index');
+    Route::get('/stock-transfer', [StockController::class, 'transferForm'])->name('stock.transfer');
+    Route::post('/stock-transfer', [StockController::class, 'transfer'])->name('stock.transfer.submit');
 
     Route::get('/movements', function () {
-        return view('movements.index');
+        return view('movements.movements-index');
     })->name('movements.index');
 
     Route::get('/movement-detail', function () {
-        return view('movements.show');
+        return view('movements.movements-show');
     })->name('movements.show');
 
     // ── PURCHASES ──
     Route::get('/purchases', function () {
-        return view('purchases.index');
+        return view('purchases.purchases-index');
     })->name('purchases.index');
 
     Route::get('/purchase-create', function () {
-        return view('purchases.create');
+        return view('purchases.purchases-create');
     })->name('purchases.create');
 
     Route::get('/purchase-detail', function () {
-        return view('purchases.show');
+        return view('purchases.purchases-show');
     })->name('purchases.show');
 
     // ── GOODS RECEIPTS ──
     Route::get('/goods-receipts', function () {
-        return view('goods-receipts.index');
+        return view('goods-receipts.goods-receipts-index');
     })->name('goods-receipts.index');
 
     Route::get('/goods-receipt-detail', function () {
-        return view('goods-receipts.show');
+        return view('goods-receipts.goods-receipts-show');
     })->name('goods-receipts.show');
 
     // ── REPAIRS ──
     Route::get('/repairs', function () {
-        return view('repairs.index');
+        return view('repairs.repairs-index');
     })->name('repairs.index');
 
     Route::get('/repair-detail', function () {
-        return view('repairs.show');
+        return view('repairs.repairs-show');
     })->name('repairs.show');
 
     // ── MAINTENANCE ──
     Route::get('/maintenance', function () {
-        return view('maintenance.index');
+        return view('maintenance.maintenance-index');
     })->name('maintenance.index');
 
     Route::get('/maintenance-detail', function () {
-        return view('maintenance.show');
+        return view('maintenance.maintenance-show');
     })->name('maintenance.show');
 
     // ── CUSTOMERS ──
-    Route::get('/customers', function () {
-        return view('customers.index');
-    })->name('customers.index');
-
-    Route::get('/customer-detail', function () {
-        return view('customers.show');
-    })->name('customers.show');
+    Route::resource('customers', CustomerController::class);
 
     // ── DRIVERS ──
-    Route::get('/drivers', function () {
-        return view('drivers.index');
-    })->name('drivers.index');
-
-    Route::get('/driver-detail', function () {
-        return view('drivers.show');
-    })->name('drivers.show');
+    Route::resource('drivers', DriverController::class);
 
     // ── VEHICLES ──
-    Route::get('/vehicles', function () {
-        return view('vehicles.index');
-    })->name('vehicles.index');
-
-    Route::get('/vehicle-detail', function () {
-        return view('vehicles.show');
-    })->name('vehicles.show');
+    Route::resource('vehicles', VehicleController::class);
 
     // ── COMPANY ACCOUNTS ──
     Route::get('/accounts', function () {
-        return view('accounts.index');
+        return view('accounts.accounts-index');
     })->name('accounts.index');
 
     // ── INVOICES ──
     Route::get('/invoices', function () {
-        return view('invoices.index');
+        return view('invoices.invoices-index');
     })->name('invoices.index');
 
     Route::get('/invoice-detail', function () {
-        return view('invoices.show');
+        return view('invoices.invoices-show');
     })->name('invoices.show');
 
     // ── FINANCE LEDGER ──
     Route::get('/finance-ledger', function () {
-        return view('finance.ledger');
+        return view('finance.finance-ledger');
     })->name('finance.ledger');
 
     // ── ADMIN ──
