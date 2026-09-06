@@ -11,7 +11,27 @@
             <select class="filter-select" id="statusFilter" onchange="filterData()"><option value="">All Status</option><option>Active</option><option>Inactive</option></select>
           </div></div>
           <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Customer ID</th><th>Company Code</th><th>Company Name</th><th>PIC</th><th>Contact</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="tableBody"></tbody></table></div>
+          <tbody>
+            @forelse($customers as $customer)
+            <tr>
+              <td><a href="{{ route('customers.show', $customer->id) }}" class="cell-link text-mono">{{ explode('-', $customer->id)[0] ?? $customer->id }}</a></td>
+              <td><span class="badge bg-light text-dark border">-</span></td>
+              <td class="fw-500">{{ $customer->name }}</td>
+              <td>{{ $customer->pic_name }}</td>
+              <td><div class="fs-13"><i class="bi bi-telephone text-muted me-1"></i>{{ $customer->contact }}<br><i class="bi bi-envelope text-muted me-1"></i>{{ $customer->email }}</div></td>
+              <td>
+                @if($customer->status == 'ACTIVE')
+                  <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+                @else
+                  <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">{{ $customer->status }}</span>
+                @endif
+              </td>
+              <td><a href="{{ route('customers.show', $customer->id) }}" class="btn-action"><i class="bi bi-eye"></i></a><button class="btn-action"><i class="bi bi-pencil"></i></button></td>
+            </tr>
+            @empty
+            <tr><td colspan="7" class="text-center text-muted py-4">No customers found</td></tr>
+            @endforelse
+          </tbody></table></div>
         </div></div>
 @endsection
 
@@ -19,60 +39,14 @@
 <script>
 initApp('customers',[{label:'Master Data',href:'#'},{label:'Customers'}],'Customers');
 
-    document.querySelector('.page-header-actions .btn-primary').setAttribute('data-bs-toggle', 'modal');
-    document.querySelector('.page-header-actions .btn-primary').setAttribute('data-bs-target', '#addCustomerModal');
-    document.querySelector('.page-header-actions .btn-primary').removeAttribute('onclick');
-
-    document.getElementById('cusId').value = MockData.generateId('CUS', 'customers');
-
-    document.getElementById('customerForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      if (!this.checkValidity()) {
-        e.stopPropagation();
-        this.classList.add('was-validated');
-        return;
-      }
-
-      const newCus = {
-        id: document.getElementById('cusId').value,
-        code: document.getElementById('cusCode').value.toUpperCase(),
-        name: document.getElementById('cusName').value,
-        pic: document.getElementById('cusPic').value,
-        phone: document.getElementById('cusPhone').value,
-        email: document.getElementById('cusEmail').value,
-        address: document.getElementById('cusAddress').value,
-        status: document.getElementById('cusStatus').value
-      };
-
-      MockData.customers.push(newCus);
-      MockData.save('customers');
-
-      bootstrap.Modal.getInstance(document.getElementById('addCustomerModal')).hide();
-      showToast('Customer successfully added.', 'success');
-      
-      this.reset();
-      this.classList.remove('was-validated');
-      document.getElementById('cusId').value = MockData.generateId('CUS', 'customers');
-      
-      filterData();
-    });
-
-    function filterData(){
-      const q=document.getElementById('searchInput').value.toLowerCase();
-      const s=document.getElementById('statusFilter').value;
-      const data=MockData.customers.filter(c=>{
-        if(q&&!c.id.toLowerCase().includes(q)&&!c.name.toLowerCase().includes(q)&&!c.code.toLowerCase().includes(q)&&!c.pic.toLowerCase().includes(q))return false;
-        if(s&&c.status!==s)return false;return true;
-      });
-      document.getElementById('tableBody').innerHTML=data.map(c=>`<tr>
-        <td><a href="customer-detail?id=${c.id}" class="cell-link text-mono">${c.id}</a></td>
-        <td><span class="badge bg-light text-dark border">${c.code}</span></td>
-        <td class="fw-500">${c.name}</td><td>${c.pic}</td>
-        <td><div class="fs-13"><i class="bi bi-telephone text-muted me-1"></i>${c.phone}<br><i class="bi bi-envelope text-muted me-1"></i>${c.email}</div></td>
-        <td>${statusBadge(c.status)}</td>
-        <td><a href="customer-detail?id=${c.id}" class="btn-action"><i class="bi bi-eye"></i></a><button class="btn-action"><i class="bi bi-pencil"></i></button></td>
-      </tr>`).join('')||'<tr><td colspan="7" class="text-center text-muted py-4">No customers found</td></tr>';
+    // Make sure add customer modal shows correctly
+    const btnPrimary = document.querySelector('.page-header-actions .btn-primary');
+    if (btnPrimary) {
+        btnPrimary.setAttribute('data-bs-toggle', 'modal');
+        btnPrimary.setAttribute('data-bs-target', '#addCustomerModal');
+        btnPrimary.removeAttribute('onclick');
     }
-    filterData();
+
+    // JS filtering can be re-implemented later or handled via backend
 </script>
 @endpush
