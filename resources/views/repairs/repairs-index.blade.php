@@ -18,7 +18,36 @@
           <div class="er-table-wrapper">
             <table class="er-table">
               <thead><tr><th>Repair #</th><th>Equipment</th><th>Qty</th><th>Source Return</th><th>Branch</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
-              <tbody id="tableBody"></tbody>
+              <tbody id="tableBody">
+                @forelse($repairs as $repair)
+                <tr>
+                    <td><a href="{{ route('repairs.show', $repair->id) }}" class="cell-link text-mono">{{ substr($repair->id, 0, 8) }}</a></td>
+                    <td class="fw-500">{{ $repair->equipment->name ?? '-' }}</td>
+                    <td>{{ $repair->quantity }}</td>
+                    <td>
+                        @if($repair->returnItem)
+                            <a href="{{ route('returns.show', $repair->returnItem->returnRecord->id) }}">{{ substr($repair->returnItem->returnRecord->id, 0, 8) }}</a>
+                        @else
+                            -
+                        @endif
+                    </td>
+                    <td>{{ $repair->branch->name ?? '-' }}</td>
+                    <td>{{ \Carbon\Carbon::parse($repair->created_at)->format('d M Y') }}</td>
+                    <td>
+                        @if($repair->status === 'FIXED')
+                            <span class="badge bg-success-subtle text-success">Fixed</span>
+                        @elseif($repair->status === 'PENDING')
+                            <span class="badge bg-warning-subtle text-warning">Pending</span>
+                        @else
+                            <span class="badge bg-secondary-subtle text-secondary">{{ $repair->status }}</span>
+                        @endif
+                    </td>
+                    <td><a href="{{ route('repairs.show', $repair->id) }}" class="btn-action"><i class="bi bi-eye"></i></a></td>
+                </tr>
+                @empty
+                <tr><td colspan="8" class="text-center text-muted py-4">No repair records found</td></tr>
+                @endforelse
+              </tbody>
             </table>
           </div>
         </div></div>
@@ -27,22 +56,15 @@
 @push('scripts')
 <script>
 initApp('repairs',[{label:'Equipment',href:'#'},{label:'Repairs'}],'Repairs');
-    function filterData(){
-      const q=document.getElementById('searchInput').value.toLowerCase();
-      const s=document.getElementById('statusFilter').value;
-      const data=(MockData.repairs||[]).filter(r=>{
-        if(q&&!r.id.toLowerCase().includes(q)&&!r.equipmentName.toLowerCase().includes(q))return false;
-        if(s&&r.status!==s)return false;return true;
-      });
-      document.getElementById('tableBody').innerHTML=data.map(r=>`<tr>
-        <td><a href="repair-detail?id=${r.id}" class="cell-link text-mono">${r.id}</a></td>
-        <td class="fw-500">${r.equipmentName}</td><td>${r.quantity}</td>
-        <td>${r.sourceReturn?`<a href="return-detail?id=${r.sourceReturn}">${r.sourceReturn}</a>`:'-'}</td>
-        <td>${r.branch}</td><td>${formatDate(r.createdDate)}</td>
-        <td>${statusBadge(r.status)}</td>
-        <td><a href="repair-detail?id=${r.id}" class="btn-action"><i class="bi bi-eye"></i></a></td>
-      </tr>`).join('')||'<tr><td colspan="8" class="text-center text-muted py-4">No repair records found</td></tr>';
-    }
-    filterData();
+function filterData(){
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const rows = document.querySelectorAll('#tableBody tr');
+    
+    rows.forEach(row => {
+        if(row.cells.length < 5) return;
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(search) ? '' : 'none';
+    });
+}
 </script>
 @endpush

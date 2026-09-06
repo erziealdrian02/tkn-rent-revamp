@@ -233,4 +233,124 @@ class StockService
             'updated_at' => now(),
         ]);
     }
+
+    /**
+     * Mark stock as returned (good condition)
+     * Subtracts from on_rental_qty and adds to available_qty
+     */
+    public function returnGoodStock(string $equipmentId, string $branchId, int $quantity, string $reference = null)
+    {
+        return DB::transaction(function () use ($equipmentId, $branchId, $quantity, $reference) {
+            $stock = $this->getOrCreateStock($equipmentId, $branchId);
+
+            if ($stock->on_rental_qty < $quantity) {
+                throw new \Exception("Insufficient on-rental stock to return. Current on-rental: {$stock->on_rental_qty}, Returning: {$quantity}");
+            }
+
+            $stock->on_rental_qty -= $quantity;
+            $stock->available_qty += $quantity;
+            $stock->save();
+
+            $this->logMovement(
+                $stock->id,
+                $equipmentId,
+                $branchId,
+                'RETURN_GOOD',
+                $quantity,
+                "Returned in good condition. Reference: {$reference}"
+            );
+
+            return $stock;
+        });
+    }
+
+    /**
+     * Mark returned stock as damaged
+     * Subtracts from on_rental_qty and adds to damaged_qty
+     */
+    public function markAsDamaged(string $equipmentId, string $branchId, int $quantity, string $reference = null)
+    {
+        return DB::transaction(function () use ($equipmentId, $branchId, $quantity, $reference) {
+            $stock = $this->getOrCreateStock($equipmentId, $branchId);
+
+            if ($stock->on_rental_qty < $quantity) {
+                throw new \Exception("Insufficient on-rental stock to mark as damaged. Current on-rental: {$stock->on_rental_qty}, Damaged: {$quantity}");
+            }
+
+            $stock->on_rental_qty -= $quantity;
+            $stock->damaged_qty += $quantity;
+            $stock->save();
+
+            $this->logMovement(
+                $stock->id,
+                $equipmentId,
+                $branchId,
+                'RETURN_DAMAGED',
+                $quantity,
+                "Returned damaged. Reference: {$reference}"
+            );
+
+            return $stock;
+        });
+    }
+
+    /**
+     * Mark returned stock as lost or missing
+     * Subtracts from on_rental_qty and adds to lost_qty
+     */
+    public function markAsLost(string $equipmentId, string $branchId, int $quantity, string $reference = null)
+    {
+        return DB::transaction(function () use ($equipmentId, $branchId, $quantity, $reference) {
+            $stock = $this->getOrCreateStock($equipmentId, $branchId);
+
+            if ($stock->on_rental_qty < $quantity) {
+                throw new \Exception("Insufficient on-rental stock to mark as lost. Current on-rental: {$stock->on_rental_qty}, Lost: {$quantity}");
+            }
+
+            $stock->on_rental_qty -= $quantity;
+            $stock->lost_qty += $quantity;
+            $stock->save();
+
+            $this->logMovement(
+                $stock->id,
+                $equipmentId,
+                $branchId,
+                'RETURN_LOST',
+                $quantity,
+                "Returned lost/missing. Reference: {$reference}"
+            );
+
+            return $stock;
+        });
+    }
+
+    /**
+     * Mark repaired stock as fixed
+     * Subtracts from damaged_qty and adds to available_qty
+     */
+    public function repairFixed(string $equipmentId, string $branchId, int $quantity, string $reference = null)
+    {
+        return DB::transaction(function () use ($equipmentId, $branchId, $quantity, $reference) {
+            $stock = $this->getOrCreateStock($equipmentId, $branchId);
+
+            if ($stock->damaged_qty < $quantity) {
+                throw new \Exception("Insufficient damaged stock to fix. Current damaged: {$stock->damaged_qty}, Fixing: {$quantity}");
+            }
+
+            $stock->damaged_qty -= $quantity;
+            $stock->available_qty += $quantity;
+            $stock->save();
+
+            $this->logMovement(
+                $stock->id,
+                $equipmentId,
+                $branchId,
+                'REPAIR_FIXED',
+                $quantity,
+                "Repaired and moved to available. Reference: {$reference}"
+            );
+
+            return $stock;
+        });
+    }
 }

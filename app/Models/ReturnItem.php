@@ -14,4 +14,14 @@ class ReturnItem extends Model
     protected $keyType = 'string';
     public $incrementing = false;
     protected $guarded = [];
+
+    public function returnRecord()
+    {
+        return $this->belongsTo(ReturnRecord::class, 'return_id');
+    }
+
+    public function equipment()
+    {
+        return $this->belongsTo(Equipment::class, 'equipment_id');
+    }
 }

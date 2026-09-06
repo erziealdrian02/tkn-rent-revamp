@@ -12,6 +12,10 @@ use App\Http\Controllers\StockController;
 use App\Http\Controllers\RentalController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DriverPortalController;
+use App\Http\Controllers\ReturnController;
+use App\Http\Controllers\RepairController;
+use App\Http\Controllers\MaintenanceController;
+use App\Http\Controllers\ClaimController;
 
 /*
 |--------------------------------------------------------------------------
@@ -62,22 +66,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/deliveries/{delivery}/dispatch', [DeliveryController::class, 'dispatchDelivery'])->name('deliveries.dispatch');
 
     // ── RETURNS ──
-    Route::get('/returns', function () {
-        return view('returns.returns-index');
-    })->name('returns.index');
-
-    Route::get('/return-detail', function () {
-        return view('returns.returns-show');
-    })->name('returns.show');
+    Route::resource('returns', ReturnController::class)->except(['edit', 'update', 'destroy']);
 
     // ── CLAIMS ──
-    Route::get('/claims', function () {
-        return view('claims.claims-index');
-    })->name('claims.index');
-
-    Route::get('/claim-detail', function () {
-        return view('claims.claims-show');
-    })->name('claims.show');
+    Route::resource('claims', ClaimController::class)->except(['edit', 'update', 'destroy']);
+    Route::post('/claims/{claim}/approve', [ClaimController::class, 'approve'])->name('claims.approve');
+    Route::post('/claims/{claim}/reject', [ClaimController::class, 'reject'])->name('claims.reject');
 
     // ── EQUIPMENT ──
     Route::resource('equipment', EquipmentController::class);
@@ -121,22 +115,11 @@ Route::middleware('auth')->group(function () {
     })->name('goods-receipts.show');
 
     // ── REPAIRS ──
-    Route::get('/repairs', function () {
-        return view('repairs.repairs-index');
-    })->name('repairs.index');
-
-    Route::get('/repair-detail', function () {
-        return view('repairs.repairs-show');
-    })->name('repairs.show');
+    Route::resource('repairs', RepairController::class)->except(['create', 'store', 'edit', 'update', 'destroy']);
+    Route::post('/repairs/{repair}/mark-fixed', [RepairController::class, 'markAsFixed'])->name('repairs.fixed');
 
     // ── MAINTENANCE ──
-    Route::get('/maintenance', function () {
-        return view('maintenance.maintenance-index');
-    })->name('maintenance.index');
-
-    Route::get('/maintenance-detail', function () {
-        return view('maintenance.maintenance-show');
-    })->name('maintenance.show');
+    Route::resource('maintenance', MaintenanceController::class)->except(['edit', 'update', 'destroy']);
 
     // ── CUSTOMERS ──
     Route::resource('customers', CustomerController::class);
