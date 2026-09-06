@@ -1,0 +1,95 @@
+@extends('layouts.app')
+
+@section('title', 'Equipment Detail — EquipRent Enterprise')
+
+@section('content')
+<div class="er-card">
+          <div class="detail-header" id="detailHeader"></div>
+          <div class="er-tabs" id="detailTabs"></div>
+          <div id="tabContents"></div>
+        </div>
+@endsection
+
+@push('scripts')
+<script>
+const eid = getUrlParam('id') || 'GEN-001';
+    const equip = MockData.equipment.find(e => e.id === eid) || MockData.equipment[0];
+    initApp('equipment',[{label:'Inventory',href:'#'},{label:'Equipment',href:'equipment'},{label:equip.id}],`${equip.name} (${equip.id})`);
+
+    const movements = MockData.movements.filter(m => m.assetId === equip.id);
+
+    document.getElementById('detailHeader').innerHTML = `
+      <div class="detail-header-left">
+        <div class="detail-header-icon"><i class="bi bi-tools"></i></div>
+        <div class="detail-header-info">
+          <h2>${equip.name} ${statusBadge(equip.status)}</h2>
+          <div class="detail-meta">
+            <span class="detail-meta-item"><i class="bi bi-hash"></i>${equip.id}</span>
+            <span class="detail-meta-item"><i class="bi bi-upc-scan"></i>${equip.serial}</span>
+            <span class="detail-meta-item"><i class="bi bi-tag"></i>${equip.category}</span>
+            <span class="detail-meta-item"><i class="bi bi-building"></i>${equip.branch}</span>
+          </div>
+        </div>
+      </div>
+      <div class="detail-header-actions">
+        <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Edit</button>
+      </div>`;
+
+    const tabs = ['General','Stock','Condition','Rental History','Movements','Maintenance','Timeline'];
+    document.getElementById('detailTabs').innerHTML = tabs.map((t,i) =>
+      `<button class="er-tab ${i===0?'active':''}" data-tab="${t.toLowerCase().replace(/\s/g,'-')}" onclick="switchTab('${t.toLowerCase().replace(/\s/g,'-')}')">${t}${t==='Movements'?`<span class="er-tab-count">${movements.length}</span>`:''}</button>`
+    ).join('');
+
+    let tc = '';
+
+    tc += `<div class="er-tab-content active" id="tab-general">
+      <div class="info-grid">
+        <div class="info-item"><span class="info-label">Asset ID</span><span class="info-value text-mono">${equip.id}</span></div>
+        <div class="info-item"><span class="info-label">Equipment Name</span><span class="info-value">${equip.name}</span></div>
+        <div class="info-item"><span class="info-label">Category</span><span class="info-value">${equip.category}</span></div>
+        <div class="info-item"><span class="info-label">Serial Number</span><span class="info-value text-mono">${equip.serial}</span></div>
+        <div class="info-item"><span class="info-label">Condition</span><span class="info-value">${statusBadge(equip.condition)}</span></div>
+        <div class="info-item"><span class="info-label">Current Branch</span><span class="info-value">${equip.branch}</span></div>
+        <div class="info-item"><span class="info-label">Availability</span><span class="info-value">${statusBadge(equip.availability)}</span></div>
+        <div class="info-item"><span class="info-label">Rental Rate</span><span class="info-value">${formatRupiah(equip.rate)} / month</span></div>
+        <div class="info-item"><span class="info-label">Current Project</span><span class="info-value">${equip.project?`<a href="project-detail?id=${equip.project}">${equip.project}</a>`:'-'}</span></div>
+      </div>
+    </div>`;
+
+    // Stock per branch
+    const stockData = MockData.stock.filter(s => s.equipment === equip.name);
+    tc += `<div class="er-tab-content" id="tab-stock">
+      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Branch</th><th>Total</th><th>Available</th><th>Reserved</th><th>On Rental</th><th>Damaged</th><th>Maintenance</th><th>Lost</th></tr></thead><tbody>
+      ${stockData.map(s=>`<tr><td>${s.branch}</td><td class="fw-600">${s.total}</td><td><span class="badge-status available">${s.available}</span></td><td>${s.reserved}</td><td><span class="badge-status on-rental">${s.onRental}</span></td><td>${s.damaged}</td><td>${s.maintenance}</td><td>${s.lost}</td></tr>`).join('')}
+      </tbody></table></div>
+    </div>`;
+
+    tc += `<div class="er-tab-content" id="tab-condition"><div class="info-grid"><div class="info-item"><span class="info-label">Current Condition</span><span class="info-value">${statusBadge(equip.condition)}</span></div><div class="info-item"><span class="info-label">Last Inspection</span><span class="info-value">01 Sep 2026</span></div></div></div>`;
+
+    // Rental history
+    const eqRentals = MockData.rentals.filter(r => r.items.some(i => i.name === equip.name));
+    tc += `<div class="er-tab-content" id="tab-rental-history">
+      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Rental #</th><th>Customer</th><th>Project</th><th>Date</th><th>Status</th></tr></thead><tbody>
+      ${eqRentals.map(r=>`<tr><td><a href="rental-detail?id=${r.id}" class="cell-link text-mono">${r.id}</a></td><td>${r.customerName}</td><td>${r.projectName}</td><td>${formatDate(r.rentalDate)}</td><td>${statusBadge(r.status)}</td></tr>`).join('')||'<tr><td colspan="5" class="text-center text-muted py-3">No rental history</td></tr>'}
+      </tbody></table></div>
+    </div>`;
+
+    // Movements
+    tc += `<div class="er-tab-content" id="tab-movements">
+      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Movement ID</th><th>Date</th><th>From</th><th>To</th><th>Type</th><th>Reference</th><th>Status</th></tr></thead><tbody>
+      ${movements.map(m=>`<tr><td class="text-mono">${m.id}</td><td>${formatDate(m.date)}</td><td>${m.from}</td><td>${m.to}</td><td>${statusBadge(m.type)}</td><td class="text-mono">${m.reference}</td><td>${statusBadge(m.status)}</td></tr>`).join('')||'<tr><td colspan="7" class="text-center text-muted py-3">No movements</td></tr>'}
+      </tbody></table></div>
+    </div>`;
+
+    tc += `<div class="er-tab-content" id="tab-maintenance"><div class="empty-state"><i class="bi bi-wrench"></i><h5>No Maintenance Records</h5><p>This equipment has no maintenance history.</p></div></div>`;
+
+    // Timeline
+    tc += `<div class="er-tab-content" id="tab-timeline">
+      <div class="movement-timeline">
+      ${movements.map(m=>`<div class="movement-step"><div class="movement-step-dot"></div><div class="movement-step-date">${formatDate(m.date)}</div><div class="movement-step-title">${m.type}: ${m.from} → ${m.to}</div><div class="movement-step-desc">Ref: ${m.reference} · By: ${m.user}</div></div>`).join('')||'<p class="text-muted">No timeline data</p>'}
+      </div>
+    </div>`;
+
+    document.getElementById('tabContents').innerHTML = tc;
+</script>
+@endpush

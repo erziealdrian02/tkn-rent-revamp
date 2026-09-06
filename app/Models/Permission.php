@@ -14,4 +14,9 @@ class Permission extends Model
     protected $keyType = 'string';
     public $incrementing = false;
     protected $guarded = [];
+
+    public function roles(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Role::class, 'rl_role_permissions', 'permission_id', 'role_id');
+    }
 }

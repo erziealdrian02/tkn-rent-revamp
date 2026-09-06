@@ -1,0 +1,105 @@
+@extends('layouts.app')
+
+@section('title', 'Repair Detail — EquipRent Enterprise')
+
+@section('content')
+<div class="er-card mb-4">
+          <div class="detail-header" id="detailHeader"></div>
+          <div class="er-card-body" id="detailBody"></div>
+        </div>
+@endsection
+
+@push('scripts')
+<script>
+const rid = getUrlParam('id') || 'REP-001';
+    let rep = (MockData.repairs||[]).find(r => r.id === rid);
+    if (!rep) {
+        rep = {
+            id: rid, equipmentName: 'Excavator PC200', quantity: 1, sourceReturn: 'RET-001', sourceRental: 'RNT-001', branch: 'Jakarta', problem: 'Hydraulic leak', status: 'Pending', createdDate: '2023-11-01'
+        };
+    }
+
+    initApp('repairs',[{label:'Equipment',href:'#'},{label:'Repairs',href:'repairs'},{label:rep.id}],rep.id);
+
+    document.getElementById('detailHeader').innerHTML = `
+      <div class="detail-header-left">
+        <div class="detail-header-icon" style="background:var(--danger-bg);color:var(--danger)"><i class="bi bi-tools"></i></div>
+        <div class="detail-header-info">
+          <h2>${rep.id} ${statusBadge(rep.status)}</h2>
+          <div class="detail-meta">
+            <span class="detail-meta-item"><i class="bi bi-truck"></i>${rep.equipmentName}</span>
+            <span class="detail-meta-item"><i class="bi bi-geo-alt"></i>${rep.branch}</span>
+            <span class="detail-meta-item"><i class="bi bi-calendar"></i>${formatDate(rep.createdDate)}</span>
+          </div>
+        </div>
+      </div>
+      <div class="detail-header-actions">
+        ${rep.status === 'Pending' ? `<button class="btn btn-primary btn-sm" onclick="startRepair()"><i class="bi bi-play-circle me-1"></i>Start Repair</button>` : ''}
+        ${rep.status === 'In Repair' ? `
+            <button class="btn btn-success btn-sm" onclick="completeRepair()"><i class="bi bi-check-circle me-1"></i>Complete Repair</button>
+            <button class="btn btn-danger btn-sm" onclick="markUnrepairable()"><i class="bi bi-x-circle me-1"></i>Mark Unrepairable</button>
+        ` : ''}
+        <button class="btn btn-outline-secondary btn-sm" onclick="showToast('Print initiated','info')"><i class="bi bi-printer me-1"></i>Print</button>
+      </div>`;
+
+    document.getElementById('detailBody').innerHTML = `
+      <div class="row g-4">
+        <div class="col-md-6">
+          <h6 class="fw-600 mb-3">Repair Details</h6>
+          <div class="info-grid">
+            <div class="info-item"><span class="info-label">Repair Number</span><span class="info-value text-mono">${rep.id}</span></div>
+            <div class="info-item"><span class="info-label">Equipment</span><span class="info-value fw-600">${rep.equipmentName}</span></div>
+            <div class="info-item"><span class="info-label">Quantity</span><span class="info-value">${rep.quantity}</span></div>
+            <div class="info-item"><span class="info-label">Branch</span><span class="info-value">${rep.branch}</span></div>
+            <div class="info-item"><span class="info-label">Created Date</span><span class="info-value">${formatDate(rep.createdDate)}</span></div>
+            <div class="info-item"><span class="info-label">Source Return</span><span class="info-value">${rep.sourceReturn?`<a href="return-detail?id=${rep.sourceReturn}">${rep.sourceReturn}</a>`:'-'}</span></div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <h6 class="fw-600 mb-3">Diagnosis & Status</h6>
+          <div class="info-grid">
+            <div class="info-item" style="grid-column: span 2;"><span class="info-label">Reported Problem</span><span class="info-value text-danger">${rep.problem || '-'}</span></div>
+            <div class="info-item"><span class="info-label">Start Date</span><span class="info-value">${rep.startDate ? formatDate(rep.startDate) : '-'}</span></div>
+            <div class="info-item"><span class="info-label">Completion Date</span><span class="info-value">${rep.completionDate ? formatDate(rep.completionDate) : '-'}</span></div>
+            <div class="info-item" style="grid-column: span 2;"><span class="info-label">Technician Notes</span><span class="info-value">${rep.notes || '-'}</span></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    function startRepair() {
+        if (!BizLogic.Repair) return alert('BizLogic.Repair not implemented yet');
+        const res = BizLogic.Repair.updateStatus(rep.id, 'In Repair');
+        if(res.success) {
+            showToast('Repair started', 'success');
+            setTimeout(() => location.reload(), 600);
+        } else {
+            showToast(res.error, 'error');
+        }
+    }
+
+    function completeRepair() {
+        const notes = prompt("Enter completion notes/actions taken:", "");
+        if (notes === null) return;
+        const res = BizLogic.Repair.updateStatus(rep.id, 'Completed', { notes: notes });
+        if(res.success) {
+            showToast('Repair completed, stock updated', 'success');
+            setTimeout(() => location.reload(), 600);
+        } else {
+            showToast(res.error, 'error');
+        }
+    }
+
+    function markUnrepairable() {
+        const notes = prompt("Reason for unrepairable status:", "");
+        if (notes === null) return;
+        const res = BizLogic.Repair.updateStatus(rep.id, 'Unrepairable', { notes: notes });
+        if(res.success) {
+            showToast('Equipment marked as unrepairable', 'warning');
+            setTimeout(() => location.reload(), 600);
+        } else {
+            showToast(res.error, 'error');
+        }
+    }
+</script>
+@endpush

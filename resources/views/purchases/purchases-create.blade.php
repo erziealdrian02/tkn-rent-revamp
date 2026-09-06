@@ -1,0 +1,302 @@
+@extends('layouts.app')
+
+@section('title', 'Create New Purchase — EquipRent Enterprise')
+
+@section('content')
+<div class="page-header">
+          <div class="page-header-left">
+            <h2 class="page-header-title">Create New Purchase</h2>
+            <p class="page-header-subtitle">Create a purchase order for new equipment and inventory.</p>
+          </div>
+        </div>
+        
+        <form id="purchaseForm" class="needs-validation" novalidate>
+          <!-- Workflow Diagram -->
+          <div class="er-card mb-4">
+            <div class="er-card-body pb-2">
+              <div class="workflow-timeline">
+                <div class="workflow-step active"><div class="workflow-icon"><i class="bi bi-file-earmark-plus"></i></div><div class="workflow-label">Purchase<br>Created</div></div>
+                <div class="workflow-step"><div class="workflow-icon"><i class="bi bi-person-check"></i></div><div class="workflow-label">Approval</div></div>
+                <div class="workflow-step"><div class="workflow-icon"><i class="bi bi-cart-check"></i></div><div class="workflow-label">Ordered</div></div>
+                <div class="workflow-step"><div class="workflow-icon"><i class="bi bi-truck"></i></div><div class="workflow-label">In Transit</div></div>
+                <div class="workflow-step"><div class="workflow-icon"><i class="bi bi-box-seam"></i></div><div class="workflow-label">Goods<br>Arrived</div></div>
+                <div class="workflow-step"><div class="workflow-icon"><i class="bi bi-graph-up"></i></div><div class="workflow-label">Stock<br>Increased</div></div>
+                <div class="workflow-step"><div class="workflow-icon"><i class="bi bi-check-circle"></i></div><div class="workflow-label">Completed</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-4">
+            <div class="col-lg-8">
+              <div class="er-card mb-4">
+                <div class="er-card-header"><h5 class="er-card-title">1. Purchase Information</h5></div>
+                <div class="er-card-body">
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <label class="form-label form-label-er">Purchase Number</label>
+                      <input type="text" class="form-control bg-light text-mono" id="poId" readonly>
+                    </div>
+                    <div class="col-md-8">
+                      <label class="form-label form-label-er">Supplier Name <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="supplierName" required placeholder="e.g. PT Sumber Generator">
+                      <div class="invalid-feedback">Supplier name is required.</div>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label form-label-er">Supplier Contact</label>
+                      <input type="text" class="form-control" id="supplierContact">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label form-label-er">Destination Branch <span class="text-danger">*</span></label>
+                      <select class="form-select" id="destBranch" required>
+                        <option value="">Select branch...</option>
+                      </select>
+                      <div class="invalid-feedback">Destination branch is required.</div>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label form-label-er">Purchase Date <span class="text-danger">*</span></label>
+                      <input type="date" class="form-control" id="poDate" required>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label form-label-er">Expected Arrival Date</label>
+                      <input type="date" class="form-control" id="expectedDate">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="er-card mb-4">
+                <div class="er-card-header d-flex justify-content-between align-items-center">
+                  <h5 class="er-card-title mb-0">2. Purchase Items</h5>
+                  <button type="button" class="btn btn-outline-primary btn-sm" onclick="addItem()"><i class="bi bi-plus-lg me-1"></i>Add Item</button>
+                </div>
+                <div class="er-card-body p-0">
+                  <div class="er-table-wrapper">
+                    <table class="er-table" id="itemsTable">
+                      <thead>
+                        <tr>
+                          <th>Equipment / Description</th>
+                          <th style="width:100px">Qty</th>
+                          <th style="width:200px">Unit Price (Rp)</th>
+                          <th style="width:200px">Subtotal (Rp)</th>
+                          <th style="width:50px"></th>
+                        </tr>
+                      </thead>
+                      <tbody id="itemsBody">
+                        <!-- Items injected here -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-4">
+              <div class="er-card mb-4" style="position: sticky; top: 80px;">
+                <div class="er-card-header"><h5 class="er-card-title">3. Financial Summary</h5></div>
+                <div class="er-card-body">
+                  <div class="row g-3 mb-4">
+                    <div class="col-12">
+                      <label class="form-label form-label-er">Payment Account <span class="text-danger">*</span></label>
+                      <select class="form-select" id="payAccount" required>
+                        <option value="">Select company account...</option>
+                      </select>
+                      <div class="invalid-feedback">Payment account is required.</div>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label form-label-er">Purchase Status</label>
+                      <select class="form-select" id="poStatus">
+                        <option value="Draft">Draft</option>
+                        <option value="Requested">Requested</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Ordered">Ordered</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div class="info-grid mb-4" style="grid-template-columns: 1fr;">
+                    <div class="info-item d-flex justify-content-between align-items-center">
+                      <span class="info-label mb-0">Subtotal</span>
+                      <span class="info-value text-end" id="sumSubtotal">Rp 0</span>
+                    </div>
+                    <div class="info-item">
+                      <label class="info-label w-100 mb-1">Discount</label>
+                      <input type="number" class="form-control form-control-sm text-end" id="discount" value="0" oninput="calculateTotals()">
+                    </div>
+                    <div class="info-item">
+                      <label class="info-label w-100 mb-1">Tax</label>
+                      <input type="number" class="form-control form-control-sm text-end" id="tax" value="0" oninput="calculateTotals()">
+                    </div>
+                    <div class="info-item">
+                      <label class="info-label w-100 mb-1">Shipping Cost</label>
+                      <input type="number" class="form-control form-control-sm text-end" id="shipping" value="0" oninput="calculateTotals()">
+                    </div>
+                    <hr class="my-2">
+                    <div class="info-item d-flex justify-content-between align-items-center">
+                      <span class="info-label mb-0 fw-600 text-dark">Grand Total</span>
+                      <span class="info-value text-end fs-18 fw-700 text-primary" id="sumGrandTotal">Rp 0</span>
+                    </div>
+                  </div>
+                  
+                  <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" onclick="cancelCreate()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Purchase</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+@endsection
+
+@push('scripts')
+<script>
+initApp('purchase-create', [{label:'Inventory',href:'#'},{label:'Purchases',href:'purchases'},{label:'New Purchase'}], 'Create New Purchase');
+    
+    // Auto generate ID
+    const newId = MockData.generateId('PO', 'purchases');
+    document.getElementById('poId').value = newId;
+    
+    // Set default date
+    document.getElementById('poDate').value = new Date().toISOString().split('T')[0];
+
+    // Load branches
+    const branchSelect = document.getElementById('destBranch');
+    MockData.branches.forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b.id;
+      opt.textContent = `${b.name} (${b.code})`;
+      branchSelect.appendChild(opt);
+    });
+
+    // Load company accounts
+    const accountSelect = document.getElementById('payAccount');
+    MockData.accounts.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = `${a.name} - ${a.bank} (${a.accountNumber})`;
+      accountSelect.appendChild(opt);
+    });
+
+    let formDirty = false;
+    document.getElementById('purchaseForm').addEventListener('input', () => formDirty = true);
+
+    let items = [];
+    let itemCounter = 0;
+
+    function addItem() {
+      const id = itemCounter++;
+      items.push({ id, name: '', qty: 1, price: 0 });
+      renderItems();
+      formDirty = true;
+    }
+
+    function removeItem(id) {
+      items = items.filter(i => i.id !== id);
+      renderItems();
+      calculateTotals();
+    }
+
+    function updateItem(id, field, value) {
+      const item = items.find(i => i.id === id);
+      if(item) {
+        if(field==='qty' || field==='price') {
+          item[field] = parseFloat(value) || 0;
+        } else {
+          item[field] = value;
+        }
+        calculateTotals();
+      }
+    }
+
+    function renderItems() {
+      const tbody = document.getElementById('itemsBody');
+      if(items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No items added. Click "Add Item" to begin.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = items.map(item => `
+        <tr>
+          <td><input type="text" class="form-control form-control-sm" placeholder="Equipment Name" value="${item.name}" oninput="updateItem(${item.id}, 'name', this.value)" required></td>
+          <td><input type="number" class="form-control form-control-sm text-center" value="${item.qty}" min="1" oninput="updateItem(${item.id}, 'qty', this.value)" required></td>
+          <td><input type="number" class="form-control form-control-sm text-end" value="${item.price}" min="0" oninput="updateItem(${item.id}, 'price', this.value)" required></td>
+          <td class="text-end fw-600 align-middle">${formatRupiah(item.qty * item.price)}</td>
+          <td class="text-center align-middle"><button type="button" class="btn-action text-danger" onclick="removeItem(${item.id})"><i class="bi bi-trash"></i></button></td>
+        </tr>
+      `).join('');
+    }
+
+    function calculateTotals() {
+      const subtotal = items.reduce((sum, item) => sum + (item.qty * item.price), 0);
+      const discount = parseFloat(document.getElementById('discount').value) || 0;
+      const tax = parseFloat(document.getElementById('tax').value) || 0;
+      const shipping = parseFloat(document.getElementById('shipping').value) || 0;
+      
+      const grandTotal = subtotal - discount + tax + shipping;
+      
+      document.getElementById('sumSubtotal').textContent = formatRupiah(subtotal);
+      document.getElementById('sumGrandTotal').textContent = formatRupiah(grandTotal);
+    }
+
+    function cancelCreate() {
+      if (formDirty && !confirm("Are you sure you want to leave? Your unsaved changes will be lost.")) {
+        return;
+      }
+      window.location.href = 'purchases';
+    }
+
+    document.getElementById('purchaseForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (!this.checkValidity() || items.length === 0) {
+        e.stopPropagation();
+        this.classList.add('was-validated');
+        if(items.length === 0) showToast('Please add at least one item.', 'danger');
+        return;
+      }
+
+      const branchId = document.getElementById('destBranch').value;
+      const branchName = MockData.branches.find(b => b.id === branchId)?.name || '';
+      const accountId = document.getElementById('payAccount').value;
+      const accountName = MockData.accounts.find(a => a.id === accountId)?.name || '';
+
+      const subtotal = items.reduce((sum, item) => sum + (item.qty * item.price), 0);
+      const discount = parseFloat(document.getElementById('discount').value) || 0;
+      const tax = parseFloat(document.getElementById('tax').value) || 0;
+      const shipping = parseFloat(document.getElementById('shipping').value) || 0;
+      const grandTotal = subtotal - discount + tax + shipping;
+
+      const newPurchase = {
+        id: document.getElementById('poId').value,
+        supplier: document.getElementById('supplierName').value,
+        supplierContact: document.getElementById('supplierContact').value,
+        purchaseDate: document.getElementById('poDate').value,
+        expectedDate: document.getElementById('expectedDate').value,
+        branchId: branchId,
+        branch: branchName,
+        accountId: accountId,
+        accountName: accountName,
+        status: document.getElementById('poStatus').value,
+        totalItems: items.length,
+        totalAmount: grandTotal,
+        items: items.map(i => ({ name: i.name, qty: i.qty, received: 0, price: i.price })),
+        createdBy: 'Admin'
+      };
+
+      MockData.purchases.push(newPurchase);
+      MockData.save('purchases');
+
+      formDirty = false;
+      showToast(`Purchase Order ${newPurchase.id} successfully created.`, 'success');
+      setTimeout(() => window.location.href = 'purchases', 1500);
+    });
+
+    window.addEventListener('beforeunload', function (e) {
+      if (formDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+
+    // Initialize one empty item
+    addItem();
+</script>
+@endpush

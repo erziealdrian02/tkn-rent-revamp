@@ -1,0 +1,220 @@
+@extends('layouts.app')
+
+@section('title', 'Create New Project — EquipRent Enterprise')
+
+@section('content')
+<div class="page-header">
+          <div class="page-header-left">
+            <h2 class="page-header-title">Create New Project</h2>
+            <p class="page-header-subtitle">Create a new project and assign it to a customer.</p>
+          </div>
+        </div>
+        
+        <form id="projectForm" class="needs-validation" novalidate>
+          <div class="row g-4">
+            <div class="col-lg-8">
+              <div class="er-card mb-4">
+                <div class="er-card-header"><h5 class="er-card-title">1. Project Information</h5></div>
+                <div class="er-card-body">
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <label class="form-label form-label-er">Project Number</label>
+                      <input type="text" class="form-control bg-light text-mono" id="projectId" readonly>
+                    </div>
+                    <div class="col-md-8">
+                      <label class="form-label form-label-er">Project Name <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="projectName" required placeholder="e.g. Pembangunan Pabrik Baja">
+                      <div class="invalid-feedback">Project name is required.</div>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label form-label-er">Customer <span class="text-danger">*</span></label>
+                      <select class="form-select" id="projectCustomer" required onchange="updateSummary()">
+                        <option value="">Select a customer...</option>
+                      </select>
+                      <div class="invalid-feedback">Please select a customer.</div>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label form-label-er">Project Description</label>
+                      <textarea class="form-control" id="projectDesc" rows="3"></textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="er-card mb-4">
+                <div class="er-card-header"><h5 class="er-card-title">2. Project Schedule</h5></div>
+                <div class="er-card-body">
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <label class="form-label form-label-er">Start Date <span class="text-danger">*</span></label>
+                      <input type="date" class="form-control" id="startDate" required onchange="updateSummary()">
+                      <div class="invalid-feedback">Start date is required.</div>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label form-label-er">Target Completion</label>
+                      <input type="date" class="form-control" id="endDate" onchange="updateSummary()">
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label form-label-er">Project Status</label>
+                      <select class="form-select" id="projectStatus" onchange="updateSummary()">
+                        <option value="Planning">Planning</option>
+                        <option value="Active">Active</option>
+                        <option value="On Hold">On Hold</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="er-card mb-4">
+                <div class="er-card-header"><h5 class="er-card-title">3. Optional Information</h5></div>
+                <div class="er-card-body">
+                  <div class="row g-3">
+                    <div class="col-12">
+                      <label class="form-label form-label-er">Project Location</label>
+                      <input type="text" class="form-control" id="projectLocation">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label form-label-er">PIC / Project Contact</label>
+                      <input type="text" class="form-control" id="projectPic">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label form-label-er">Phone / Email</label>
+                      <input type="text" class="form-control" id="projectContact">
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label form-label-er">Notes</label>
+                      <textarea class="form-control" id="projectNotes" rows="2"></textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-4">
+              <div class="er-card mb-4" style="position: sticky; top: 80px;">
+                <div class="er-card-header"><h5 class="er-card-title">Summary</h5></div>
+                <div class="er-card-body">
+                  <div class="info-grid" style="grid-template-columns: 1fr;">
+                    <div class="info-item">
+                      <span class="info-label">Customer</span>
+                      <span class="info-value" id="sumCustomer">-</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Project Period</span>
+                      <span class="info-value" id="sumPeriod">-</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Status</span>
+                      <span class="info-value" id="sumStatus"><span class="badge-status planning">Planning</span></span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Rentals</span>
+                      <span class="info-value">0</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Equipment</span>
+                      <span class="info-value">0</span>
+                    </div>
+                  </div>
+                  <hr>
+                  <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" onclick="cancelCreate()">Cancel</button>
+                    <div>
+                      <button type="button" class="btn btn-outline-primary me-2">Save Draft</button>
+                      <button type="submit" class="btn btn-primary">Create Project</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+@endsection
+
+@push('scripts')
+<script>
+initApp('project-create', [{label:'Rental',href:'#'},{label:'Projects',href:'projects'},{label:'New Project'}], 'Create New Project');
+    
+    // Auto generate ID
+    const newId = MockData.generateId('PRJ', 'projects');
+    document.getElementById('projectId').value = newId;
+
+    // Load customers
+    const custSelect = document.getElementById('projectCustomer');
+    MockData.customers.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = `${c.name} (${c.code})`;
+      custSelect.appendChild(opt);
+    });
+
+    let formDirty = false;
+    document.getElementById('projectForm').addEventListener('input', () => formDirty = true);
+
+    function updateSummary() {
+      const cust = custSelect.options[custSelect.selectedIndex].text;
+      document.getElementById('sumCustomer').textContent = custSelect.value ? cust : '-';
+      
+      const sd = document.getElementById('startDate').value;
+      const ed = document.getElementById('endDate').value;
+      if(sd) {
+        document.getElementById('sumPeriod').textContent = `${formatDate(sd)} → ${ed ? formatDate(ed) : 'TBD'}`;
+      }
+      
+      const st = document.getElementById('projectStatus').value;
+      document.getElementById('sumStatus').innerHTML = statusBadge(st);
+    }
+
+    function cancelCreate() {
+      if (formDirty && !confirm("Are you sure you want to leave? Your unsaved changes will be lost.")) {
+        return;
+      }
+      window.location.href = 'projects';
+    }
+
+    document.getElementById('projectForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (!this.checkValidity()) {
+        e.stopPropagation();
+        this.classList.add('was-validated');
+        return;
+      }
+
+      // Create new project object
+      const custId = custSelect.value;
+      const custName = MockData.customers.find(c => c.id === custId)?.name || '';
+
+      const newProject = {
+        id: document.getElementById('projectId').value,
+        name: document.getElementById('projectName').value,
+        customerId: custId,
+        customerName: custName,
+        startDate: document.getElementById('startDate').value,
+        endDate: document.getElementById('endDate').value,
+        totalRentals: 0,
+        activeEquipment: 0,
+        status: document.getElementById('projectStatus').value
+      };
+
+      // Add to mock state
+      MockData.projects.push(newProject);
+      MockData.save('projects');
+
+      formDirty = false;
+      showToast(`Project ${newProject.id} successfully created.`, 'success');
+      setTimeout(() => {
+        window.location.href = 'projects';
+      }, 1500);
+    });
+
+    window.addEventListener('beforeunload', function (e) {
+      if (formDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+</script>
+@endpush

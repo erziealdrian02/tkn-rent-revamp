@@ -1,0 +1,126 @@
+@extends('layouts.app')
+
+@section('title', 'Project Detail — EquipRent Enterprise')
+
+@section('content')
+<div class="er-card">
+          <div class="detail-header" id="detailHeader"></div>
+          <div class="er-tabs" id="detailTabs"></div>
+          <div id="tabContents"></div>
+        </div>
+@endsection
+
+@push('scripts')
+<script>
+const pid = getUrlParam('id') || 'PRJ-001';
+    const project = MockData.projects.find(p => p.id === pid) || MockData.projects[0];
+    initApp('projects',[{label:'Rental',href:'#'},{label:'Projects',href:'projects'},{label:project.id}],project.name);
+
+    const rentals = MockData.rentals.filter(r => r.projectId === project.id);
+    const deliveries = MockData.deliveries.filter(d => d.projectId === project.id);
+    const returns = MockData.returns.filter(r => r.projectId === project.id);
+    const invoices = MockData.invoices.filter(i => i.projectId === project.id);
+    const customer = MockData.customers.find(c => c.id === project.customerId);
+
+    document.getElementById('detailHeader').innerHTML = `
+      <div class="detail-header-left">
+        <div class="detail-header-icon"><i class="bi bi-folder"></i></div>
+        <div class="detail-header-info">
+          <h2>${project.name} ${statusBadge(project.status)}</h2>
+          <div class="detail-meta">
+            <span class="detail-meta-item"><i class="bi bi-hash"></i>${project.id}</span>
+            <span class="detail-meta-item"><i class="bi bi-people"></i>${project.customerName}</span>
+            <span class="detail-meta-item"><i class="bi bi-calendar"></i>${formatDate(project.startDate)} — ${formatDate(project.endDate)}</span>
+          </div>
+        </div>
+      </div>
+      <div class="detail-header-actions">
+        <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Edit</button>
+      </div>`;
+
+    const tabs = ['Overview','Rentals','Customers','Equipment','Deliveries','Returns','Invoices','Activity'];
+    document.getElementById('detailTabs').innerHTML = tabs.map((t,i) => {
+      let count = '';
+      if(t==='Rentals')count=`<span class="er-tab-count">${rentals.length}</span>`;
+      if(t==='Deliveries')count=`<span class="er-tab-count">${deliveries.length}</span>`;
+      if(t==='Returns')count=`<span class="er-tab-count">${returns.length}</span>`;
+      if(t==='Invoices')count=`<span class="er-tab-count">${invoices.length}</span>`;
+      return `<button class="er-tab ${i===0?'active':''}" data-tab="${t.toLowerCase()}" onclick="switchTab('${t.toLowerCase()}')">${t}${count}</button>`;
+    }).join('');
+
+    let tc = '';
+
+    // Overview
+    tc += `<div class="er-tab-content active" id="tab-overview">
+      <div class="info-grid mb-4">
+        <div class="info-item"><span class="info-label">Project Number</span><span class="info-value text-mono">${project.id}</span></div>
+        <div class="info-item"><span class="info-label">Project Name</span><span class="info-value">${project.name}</span></div>
+        <div class="info-item"><span class="info-label">Customer</span><span class="info-value"><a href="customer-detail?id=${project.customerId}">${project.customerName}</a></span></div>
+        <div class="info-item"><span class="info-label">Start Date</span><span class="info-value">${formatDate(project.startDate)}</span></div>
+        <div class="info-item"><span class="info-label">End Date</span><span class="info-value">${formatDate(project.endDate)}</span></div>
+        <div class="info-item"><span class="info-label">Status</span><span class="info-value">${statusBadge(project.status)}</span></div>
+        <div class="info-item"><span class="info-label">Total Rentals</span><span class="info-value">${project.totalRentals}</span></div>
+        <div class="info-item"><span class="info-label">Active Equipment</span><span class="info-value">${project.activeEquipment}</span></div>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-3"><div class="kpi-card"><div class="kpi-icon blue"><i class="bi bi-file-earmark-text"></i></div><div class="kpi-content"><div class="kpi-value">${rentals.length}</div><div class="kpi-label">Total Rentals</div></div></div></div>
+        <div class="col-md-3"><div class="kpi-card"><div class="kpi-icon teal"><i class="bi bi-truck"></i></div><div class="kpi-content"><div class="kpi-value">${deliveries.length}</div><div class="kpi-label">Deliveries</div></div></div></div>
+        <div class="col-md-3"><div class="kpi-card"><div class="kpi-icon orange"><i class="bi bi-box-arrow-in-left"></i></div><div class="kpi-content"><div class="kpi-value">${returns.length}</div><div class="kpi-label">Returns</div></div></div></div>
+        <div class="col-md-3"><div class="kpi-card"><div class="kpi-icon green"><i class="bi bi-receipt"></i></div><div class="kpi-content"><div class="kpi-value">${formatRupiah(invoices.reduce((s,i)=>s+i.amount,0))}</div><div class="kpi-label">Total Invoiced</div></div></div></div>
+      </div>
+    </div>`;
+
+    // Rentals
+    tc += `<div class="er-tab-content" id="tab-rentals">
+      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Rental #</th><th>Date</th><th>Return Date</th><th>Items</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+      ${rentals.map(r=>`<tr><td><a href="rental-detail?id=${r.id}" class="cell-link text-mono">${r.id}</a></td><td>${formatDate(r.rentalDate)}</td><td>${formatDate(r.returnDate)}</td><td>${r.totalItems}</td><td class="fw-600">${formatRupiah(r.total)}</td><td>${statusBadge(r.status)}</td><td><a href="rental-detail?id=${r.id}" class="btn-action"><i class="bi bi-eye"></i></a></td></tr>`).join('')}
+      </tbody></table></div>
+    </div>`;
+
+    // Customers
+    tc += `<div class="er-tab-content" id="tab-customers">
+      ${customer ? `<div class="info-grid">
+        <div class="info-item"><span class="info-label">Company Name</span><span class="info-value"><a href="customer-detail?id=${customer.id}">${customer.name}</a></span></div>
+        <div class="info-item"><span class="info-label">PIC</span><span class="info-value">${customer.pic}</span></div>
+        <div class="info-item"><span class="info-label">Phone</span><span class="info-value">${customer.phone}</span></div>
+        <div class="info-item"><span class="info-label">Email</span><span class="info-value">${customer.email}</span></div>
+        <div class="info-item"><span class="info-label">Address</span><span class="info-value">${customer.address}</span></div>
+      </div>` : '<p class="text-muted">No customer data</p>'}
+    </div>`;
+
+    // Equipment
+    const equipItems = [];
+    rentals.forEach(r => r.items.forEach(it => { if(!equipItems.find(e=>e.name===it.name)) equipItems.push(it); }));
+    tc += `<div class="er-tab-content" id="tab-equipment">
+      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Equipment</th><th>Qty</th><th>Rate/Month</th></tr></thead><tbody>
+      ${equipItems.map(e=>`<tr><td>${e.name}</td><td>${e.quantity}</td><td>${formatRupiah(e.rate)}</td></tr>`).join('')}
+      </tbody></table></div>
+    </div>`;
+
+    // Deliveries
+    tc += `<div class="er-tab-content" id="tab-deliveries">
+      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Delivery #</th><th>Rental</th><th>Date</th><th>Driver</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+      ${deliveries.map(d=>`<tr><td><a href="delivery-detail?id=${d.id}" class="cell-link text-mono">${d.id}</a></td><td><a href="rental-detail?id=${d.rentalId}" class="cell-link">${d.rentalId}</a></td><td>${formatDate(d.deliveryDate)}</td><td>${d.driverName||'-'}</td><td>${statusBadge(d.status)}</td><td><a href="delivery-detail?id=${d.id}" class="btn-action"><i class="bi bi-eye"></i></a></td></tr>`).join('')}
+      </tbody></table></div>
+    </div>`;
+
+    // Returns
+    tc += `<div class="er-tab-content" id="tab-returns">
+      ${returns.length ? `<div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Return #</th><th>Date</th><th>Items</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+      ${returns.map(r=>`<tr><td><a href="return-detail?id=${r.id}" class="cell-link text-mono">${r.id}</a></td><td>${formatDate(r.returnDate)}</td><td>${r.items.length} types</td><td>${statusBadge(r.status)}</td><td><a href="return-detail?id=${r.id}" class="btn-action"><i class="bi bi-eye"></i></a></td></tr>`).join('')}
+      </tbody></table></div>` : '<div class="empty-state"><i class="bi bi-box-arrow-in-left"></i><p>No returns yet</p></div>'}
+    </div>`;
+
+    // Invoices
+    tc += `<div class="er-tab-content" id="tab-invoices">
+      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Invoice #</th><th>Type</th><th>Date</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+      ${invoices.map(i=>`<tr><td><a href="invoice-detail?id=${i.id}" class="cell-link text-mono">${i.id}</a></td><td>${i.type}</td><td>${formatDate(i.invoiceDate)}</td><td class="fw-600">${formatRupiah(i.amount)}</td><td>${statusBadge(i.status)}</td><td><a href="invoice-detail?id=${i.id}" class="btn-action"><i class="bi bi-eye"></i></a></td></tr>`).join('')}
+      </tbody></table></div>
+    </div>`;
+
+    // Activity
+    tc += `<div class="er-tab-content" id="tab-activity">${renderActivityTimeline(MockData.activityLog.slice(0,6))}</div>`;
+
+    document.getElementById('tabContents').innerHTML = tc;
+</script>
+@endpush
