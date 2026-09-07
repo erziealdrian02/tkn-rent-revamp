@@ -14,4 +14,14 @@ class ClaimItem extends Model
     protected $keyType = 'string';
     public $incrementing = false;
     protected $guarded = [];
+
+    public function claim()
+    {
+        return $this->belongsTo(Claim::class, 'claim_id');
+    }
+
+    public function returnItem()
+    {
+        return $this->belongsTo(ReturnItem::class, 'return_item_id');
+    }
 }

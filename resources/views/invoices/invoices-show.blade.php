@@ -3,135 +3,186 @@
 @section('title', 'Invoice Detail — EquipRent Enterprise')
 
 @section('content')
-<div class="d-flex justify-content-end gap-2 mb-3 no-print">
-          <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print</button>
-          <button class="btn btn-outline-secondary btn-sm" onclick="showToast('PDF downloaded','success')"><i class="bi bi-file-pdf me-1"></i>Download PDF</button>
-          <span id="markPaidBtn"></span>
-        </div>
-        <div class="invoice-paper" id="invoiceContent"></div>
-@endsection
-
-@push('scripts')
-<script>
-const invId = getUrlParam('id') || 'INV-001';
-    const inv = MockData.invoices.find(i => i.id === invId) || MockData.invoices[0];
-    initApp('invoices',[{label:'Billing',href:'#'},{label:'Invoices',href:'invoices'},{label:inv.id}],inv.id);
-
-    // Populate account select
-    const accSel = document.getElementById('payAccount');
-    if (!MockData.companyBanks) {
-      MockData.companyBanks = [
-        { id: 'BA-001', name: 'BCA Perusahaan', accountNumber: '1234567890' },
-        { id: 'BA-002', name: 'Mandiri Perusahaan', accountNumber: '0987654321' }
-      ];
-    }
-    MockData.companyBanks.forEach(a => { accSel.innerHTML += `<option value="${a.id}">${a.name} — ${a.accountNumber}</option>`; });
-
-    const company = MockData.company;
-    const customer = MockData.customers.find(c => c.id === inv.customerId);
-    
-    // Fallback amount logic based on original design
-    const tax = Math.round(inv.amount * 0.11);
-    const grandTotal = (inv.totalAmount || inv.amount + tax);
-    const totalPaid = inv.paidAmount || 0;
-    const remainingBalance = grandTotal - totalPaid;
-
-    // Set default payment amount to remaining balance
-    document.getElementById('payAmount').value = remainingBalance;
-
-    // Mark as paid button
-    if (remainingBalance > 0 && inv.status !== 'Paid') {
-      document.getElementById('markPaidBtn').innerHTML = `<button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#paidModal"><i class="bi bi-cash me-1"></i>Record Payment</button>`;
-    }
-
-    document.getElementById('invoiceContent').innerHTML = `
-      <div class="invoice-header">
-        <div class="invoice-company">
-          <h3><i class="bi bi-gear-wide-connected me-2"></i>${company.name}</h3>
-          <p>${company.address}</p>
-          <p>Tel: ${company.phone} | Email: ${company.email}</p>
-          <p>Tax ID: ${company.taxId}</p>
-        </div>
-        <div class="invoice-title-section">
-          <h2>INVOICE</h2>
-          <p class="text-mono" style="font-size:18px;font-weight:600">${inv.id}</p>
-          <p>${statusBadge(inv.status)}</p>
-        </div>
-      </div>
-
-      <div class="invoice-info-grid">
-        <div>
-          <h6 class="fw-600 mb-2">Bill To</h6>
-          <p class="fw-600 mb-1">${inv.customerName}</p>
-          <p class="text-muted fs-12 mb-1">${customer?.address || '-'}</p>
-          <p class="text-muted fs-12 mb-1">${customer?.phone || '-'}</p>
-          <p class="text-muted fs-12">${customer?.email || '-'}</p>
-        </div>
-        <div>
-          <table class="w-100 fs-13">
-            <tr><td class="text-muted py-1">Invoice Number</td><td class="text-end py-1 fw-600 text-mono">${inv.id}</td></tr>
-            <tr><td class="text-muted py-1">Invoice Type</td><td class="text-end py-1">${inv.type}</td></tr>
-            <tr><td class="text-muted py-1">Invoice Date</td><td class="text-end py-1">${formatDate(inv.invoiceDate)}</td></tr>
-            <tr><td class="text-muted py-1">Due Date</td><td class="text-end py-1">${formatDate(inv.dueDate)}</td></tr>
-            <tr><td class="text-muted py-1">Project</td><td class="text-end py-1">${inv.projectName}</td></tr>
-            <tr><td class="text-muted py-1">Reference</td><td class="text-end py-1 text-mono">${inv.reference}</td></tr>
-            <tr><td class="text-muted py-1">Payment Account</td><td class="text-end py-1">${inv.accountName}</td></tr>
-            ${inv.paidDate ? `<tr><td class="text-muted py-1">Paid Date</td><td class="text-end py-1">${formatDate(inv.paidDate)}</td></tr>` : ''}
-          </table>
-        </div>
-      </div>
-
-      <table class="w-100 invoice-items-table mb-0">
-        <thead><tr><th style="width:50%">Description</th><th class="text-center">Qty</th><th class="text-end">Unit Price</th><th class="text-end">Amount</th></tr></thead>
-        <tbody>
-        ${inv.items.map(item => `<tr>
-          <td>${item.desc}</td>
-          <td class="text-center">${item.qty}</td>
-          <td class="text-end">${formatRupiah(Math.abs(item.price))}</td>
-          <td class="text-end ${item.price<0?'text-danger':''}">${item.price<0?'(':''}${formatRupiah(Math.abs(item.price))}${item.price<0?')':''}</td>
-        </tr>`).join('')}
-        </tbody>
-      </table>
-
-      <div class="invoice-summary mt-4">
-        <table style="width: 100%; max-width: 300px; margin-left: auto;">
-          <tr><td class="text-muted pb-1">Total Due</td><td class="text-end fw-600">${formatRupiah(grandTotal)}</td></tr>
-          <tr><td class="text-muted pb-1 border-bottom">Amount Paid</td><td class="text-end text-success border-bottom pb-1">- ${formatRupiah(totalPaid)}</td></tr>
-          <tr class="total-row"><td class="pt-2">Balance Due</td><td class="text-end pt-2" style="color:var(--primary)">${formatRupiah(remainingBalance)}</td></tr>
-        </table>
-      </div>
-
-      <div class="mt-4 pt-3 border-top">
-        <div class="row">
-          <div class="col-md-6">
-            <h6 class="fw-600 fs-12">Payment Information</h6>
-            <p class="fs-12 text-muted mb-1">Bank: ${MockData.companyBanks[0].name}</p>
-            <p class="fs-12 text-muted mb-1">Account: ${MockData.companyBanks[0].accountNumber}</p>
-            <p class="fs-12 text-muted">Holder: ${company.name}</p>
-          </div>
-          <div class="col-md-6 text-end">
-            <p class="fs-12 text-muted mt-4">Authorized Signature</p>
-            <div class="mt-4 pt-3 border-top d-inline-block" style="width:200px">
-              <p class="fs-12 fw-600 mb-0">${company.name}</p>
+<div class="er-card mb-4">
+    <div class="detail-header">
+        <div class="detail-header-left">
+            <div class="detail-header-icon" style="background:var(--primary-bg,#eff6ff);color:var(--primary,#2563eb)">
+                <i class="bi bi-receipt"></i>
             </div>
-          </div>
+            <div class="detail-header-info">
+                <h2>{{ $invoice->invoice_number }} 
+                    @if($invoice->status === 'PAID')
+                        <span class="badge bg-success-subtle text-success">Paid</span>
+                    @elseif($invoice->status === 'PARTIAL')
+                        <span class="badge bg-warning-subtle text-warning">Partial</span>
+                    @else
+                        <span class="badge bg-secondary-subtle text-secondary">{{ $invoice->status }}</span>
+                    @endif
+                </h2>
+                <div class="detail-meta">
+                    <span class="detail-meta-item"><i class="bi bi-building"></i>Customer: {{ $invoice->customer->name ?? '-' }}</span>
+                    <span class="detail-meta-item"><i class="bi bi-calendar"></i>Issue: {{ \Carbon\Carbon::parse($invoice->issue_date)->format('d M Y') }}</span>
+                    <span class="detail-meta-item"><i class="bi bi-calendar-x"></i>Due: {{ \Carbon\Carbon::parse($invoice->due_date)->format('d M Y') }}</span>
+                </div>
+            </div>
         </div>
-      </div>`;
+        <div class="detail-header-actions d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print</button>
+        </div>
+    </div>
+    
+    <div class="p-4">
+        @if(session('success'))
+            <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
+        @if(session('error'))
+            <div class="alert alert-danger">{{ session('error') }}</div>
+        @endif
 
-    function markAsPaid() {
-      const amt = document.getElementById('payAmount').value;
-      const bankId = document.getElementById('payAccount').value;
-      const notes = document.getElementById('payNotes').value;
-      
-      const res = BizLogic.Invoice.recordPayment(inv.id, amt, 'Transfer', bankId, notes);
-      
-      if(res.success) {
-        bootstrap.Modal.getInstance(document.getElementById('paidModal')).hide();
-        showToast('Payment recorded successfully', 'success');
-        setTimeout(() => location.reload(), 800);
-      } else {
-        showToast(res.error, 'danger');
-      }
-    }
-</script>
-@endpush
+        <div class="row g-4">
+            <div class="col-md-8">
+                <div class="info-group">
+                    <h5 class="info-group-title"><i class="bi bi-list-ul me-2"></i>Invoice Items</h5>
+                    <table class="er-table border mt-3">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Description</th>
+                                <th>Qty</th>
+                                <th>Unit Price</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($invoice->items as $item)
+                            <tr>
+                                <td class="fw-500">{{ $item->description }}</td>
+                                <td>{{ $item->quantity }}</td>
+                                <td>Rp {{ number_format($item->unit_price, 0, ',', '.') }}</td>
+                                <td>Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="3" class="text-end fw-500">Subtotal:</td>
+                                <td class="fw-600">Rp {{ number_format($invoice->subtotal, 0, ',', '.') }}</td>
+                            </tr>
+                            @if($invoice->discount > 0)
+                            <tr>
+                                <td colspan="3" class="text-end fw-500 text-success">Discount:</td>
+                                <td class="fw-600 text-success">- Rp {{ number_format($invoice->discount, 0, ',', '.') }}</td>
+                            </tr>
+                            @endif
+                            @if($invoice->tax > 0)
+                            <tr>
+                                <td colspan="3" class="text-end fw-500">Tax:</td>
+                                <td class="fw-600">Rp {{ number_format($invoice->tax, 0, ',', '.') }}</td>
+                            </tr>
+                            @endif
+                            <tr>
+                                <td colspan="3" class="text-end fw-bold fs-5">Total Amount:</td>
+                                <td class="fw-bold fs-5 text-primary">Rp {{ number_format($invoice->total_amount, 0, ',', '.') }}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="text-end fw-500 text-success">Total Paid:</td>
+                                <td class="fw-600 text-success">Rp {{ number_format($invoice->paid_amount, 0, ',', '.') }}</td>
+                            </tr>
+                            <tr class="table-warning">
+                                <td colspan="3" class="text-end fw-bold text-danger">Balance Due:</td>
+                                <td class="fw-bold text-danger">Rp {{ number_format($invoice->total_amount - $invoice->paid_amount, 0, ',', '.') }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                @if($invoice->payments->count() > 0)
+                <div class="info-group mt-4">
+                    <h5 class="info-group-title"><i class="bi bi-wallet2 me-2"></i>Payment History</h5>
+                    <table class="er-table border mt-3">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Method</th>
+                                <th>Reference</th>
+                                <th>Account</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($invoice->payments as $payment)
+                            <tr>
+                                <td>{{ \Carbon\Carbon::parse($payment->payment_date)->format('d M Y') }}</td>
+                                <td>{{ $payment->payment_method }}</td>
+                                <td>{{ $payment->reference_number ?? '-' }}</td>
+                                <td>{{ $payment->companyAccount->bank_name ?? '-' }}</td>
+                                <td class="fw-600 text-success">Rp {{ number_format($payment->amount, 0, ',', '.') }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @endif
+            </div>
+
+            <div class="col-md-4">
+                @if(!in_array($invoice->status, ['PAID', 'CANCELLED']))
+                <div class="card border-primary mb-4">
+                    <div class="card-header bg-primary text-white fw-bold">
+                        <i class="bi bi-credit-card me-2"></i>Record Payment
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ route('payments.store') }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="invoice_id" value="{{ $invoice->id }}">
+                            
+                            <div class="mb-3">
+                                <label class="form-label form-label-er">Payment Amount (Rp)</label>
+                                <input type="number" name="amount" class="form-control fw-bold text-primary" min="1" max="{{ $invoice->total_amount - $invoice->paid_amount }}" value="{{ $invoice->total_amount - $invoice->paid_amount }}" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label form-label-er">Payment Method</label>
+                                <select name="payment_method" class="form-select" required>
+                                    <option value="BANK_TRANSFER">Bank Transfer</option>
+                                    <option value="CASH">Cash</option>
+                                    <option value="CHEQUE">Cheque</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label form-label-er">Company Bank Account</label>
+                                <select name="company_account_id" class="form-select" required>
+                                    <option value="">Select Account...</option>
+                                    @foreach($companyAccounts as $account)
+                                        <option value="{{ $account->id }}">{{ $account->bank_name }} ({{ $account->account_number }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label form-label-er">Reference No.</label>
+                                <input type="text" name="reference_number" class="form-control" placeholder="e.g. TRF-12345">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label form-label-er">Notes</label>
+                                <textarea name="notes" class="form-control" rows="2"></textarea>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-check-circle me-1"></i>Confirm Payment</button>
+                        </form>
+                    </div>
+                </div>
+                @endif
+                
+                <div class="info-group">
+                    <h5 class="info-group-title"><i class="bi bi-chat-text me-2"></i>Invoice Notes</h5>
+                    <div class="alert alert-secondary mt-3">
+                        <p class="mb-0 fs-14">{{ $invoice->notes ?? 'No notes provided.' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection

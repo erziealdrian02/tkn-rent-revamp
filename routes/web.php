@@ -1,7 +1,26 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BranchController;
+use App\Http\Controllers\ClaimController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DeliveryController;
+use App\Http\Controllers\DriverController;
+use App\Http\Controllers\DriverPortalController;
+use App\Http\Controllers\EquipmentController;
+use App\Http\Controllers\MaintenanceController;
+use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\RentalController;
+use App\Http\Controllers\RepairController;
+use App\Http\Controllers\ReturnController;
+use App\Http\Controllers\StockController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\GoodsReceiptController;
+use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\LedgerController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,183 +54,84 @@ Route::get('/', function () {
 Route::middleware('auth')->group(function () {
 
     // Dashboard
-    Route::get('/dashboard', function () {
-        return view('dashboard.index');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // ── RENTAL MODULE ──
-    Route::get('/rentals', function () {
-        return view('rentals.index');
-    })->name('rentals.index');
-
-    Route::get('/rental-create', function () {
-        return view('rentals.create');
-    })->name('rentals.create');
-
-    Route::get('/rental-detail', function () {
-        return view('rentals.show');
-    })->name('rentals.show');
+    Route::resource('rentals', RentalController::class)->except(['edit', 'update', 'destroy']);
+    Route::post('/rentals/{rental}/approve', [RentalController::class, 'approve'])->name('rentals.approve');
+    Route::post('/rentals/{rental}/cancel', [RentalController::class, 'cancel'])->name('rentals.cancel');
 
     // ── PROJECTS ──
-    Route::get('/projects', function () {
-        return view('projects.index');
-    })->name('projects.index');
-
-    Route::get('/project-create', function () {
-        return view('projects.create');
-    })->name('projects.create');
-
-    Route::get('/project-detail', function () {
-        return view('projects.show');
-    })->name('projects.show');
+    Route::resource('projects', ProjectController::class);
 
     // ── DELIVERIES ──
-    Route::get('/deliveries', function () {
-        return view('deliveries.index');
-    })->name('deliveries.index');
-
-    Route::get('/delivery-detail', function () {
-        return view('deliveries.show');
-    })->name('deliveries.show');
+    Route::resource('deliveries', DeliveryController::class)->except(['edit', 'update', 'destroy']);
+    Route::post('/deliveries/{delivery}/dispatch', [DeliveryController::class, 'dispatchDelivery'])->name('deliveries.dispatch');
 
     // ── RETURNS ──
-    Route::get('/returns', function () {
-        return view('returns.index');
-    })->name('returns.index');
-
-    Route::get('/return-detail', function () {
-        return view('returns.show');
-    })->name('returns.show');
+    Route::resource('returns', ReturnController::class)->except(['edit', 'update', 'destroy']);
 
     // ── CLAIMS ──
-    Route::get('/claims', function () {
-        return view('claims.index');
-    })->name('claims.index');
-
-    Route::get('/claim-detail', function () {
-        return view('claims.show');
-    })->name('claims.show');
+    Route::resource('claims', ClaimController::class)->except(['edit', 'update', 'destroy']);
+    Route::post('/claims/{claim}/approve', [ClaimController::class, 'approve'])->name('claims.approve');
+    Route::post('/claims/{claim}/reject', [ClaimController::class, 'reject'])->name('claims.reject');
 
     // ── EQUIPMENT ──
-    Route::get('/equipment', function () {
-        return view('equipment.index');
-    })->name('equipment.index');
-
-    Route::get('/equipment-detail', function () {
-        return view('equipment.show');
-    })->name('equipment.show');
+    Route::resource('equipment', EquipmentController::class);
 
     // ── BRANCHES ──
-    Route::get('/branches', function () {
-        return view('branches.index');
-    })->name('branches.index');
-
-    Route::get('/branch-detail', function () {
-        return view('branches.show');
-    })->name('branches.show');
+    Route::resource('branches', BranchController::class);
 
     // ── STOCK & MOVEMENTS ──
-    Route::get('/stock', function () {
-        return view('stock.index');
-    })->name('stock.index');
-
-    Route::get('/stock-transfer', function () {
-        return view('stock.transfer');
-    })->name('stock.transfer');
+    Route::get('/stock', [StockController::class, 'index'])->name('stock.index');
+    Route::get('/stock-transfer', [StockController::class, 'transferForm'])->name('stock.transfer');
+    Route::post('/stock-transfer', [StockController::class, 'transfer'])->name('stock.transfer.submit');
 
     Route::get('/movements', function () {
-        return view('movements.index');
+        return view('movements.movements-index');
     })->name('movements.index');
 
     Route::get('/movement-detail', function () {
-        return view('movements.show');
+        return view('movements.movements-show');
     })->name('movements.show');
 
     // ── PURCHASES ──
-    Route::get('/purchases', function () {
-        return view('purchases.index');
-    })->name('purchases.index');
-
-    Route::get('/purchase-create', function () {
-        return view('purchases.create');
-    })->name('purchases.create');
-
-    Route::get('/purchase-detail', function () {
-        return view('purchases.show');
-    })->name('purchases.show');
+    Route::resource('purchases', PurchaseController::class)->except(['edit', 'update', 'destroy']);
+    Route::post('/purchases/{purchase}/approve', [PurchaseController::class, 'approve'])->name('purchases.approve');
 
     // ── GOODS RECEIPTS ──
-    Route::get('/goods-receipts', function () {
-        return view('goods-receipts.index');
-    })->name('goods-receipts.index');
-
-    Route::get('/goods-receipt-detail', function () {
-        return view('goods-receipts.show');
-    })->name('goods-receipts.show');
+    Route::resource('goods-receipts', GoodsReceiptController::class)->except(['edit', 'update', 'destroy']);
 
     // ── REPAIRS ──
-    Route::get('/repairs', function () {
-        return view('repairs.index');
-    })->name('repairs.index');
-
-    Route::get('/repair-detail', function () {
-        return view('repairs.show');
-    })->name('repairs.show');
+    Route::resource('repairs', RepairController::class)->except(['create', 'store', 'edit', 'update', 'destroy']);
+    Route::post('/repairs/{repair}/mark-fixed', [RepairController::class, 'markAsFixed'])->name('repairs.fixed');
 
     // ── MAINTENANCE ──
-    Route::get('/maintenance', function () {
-        return view('maintenance.index');
-    })->name('maintenance.index');
-
-    Route::get('/maintenance-detail', function () {
-        return view('maintenance.show');
-    })->name('maintenance.show');
+    Route::resource('maintenance', MaintenanceController::class)->except(['edit', 'update', 'destroy']);
+    Route::post('/maintenance/{maintenance}/complete', [MaintenanceController::class, 'complete'])->name('maintenance.complete');
 
     // ── CUSTOMERS ──
-    Route::get('/customers', function () {
-        return view('customers.index');
-    })->name('customers.index');
-
-    Route::get('/customer-detail', function () {
-        return view('customers.show');
-    })->name('customers.show');
+    Route::resource('customers', CustomerController::class);
 
     // ── DRIVERS ──
-    Route::get('/drivers', function () {
-        return view('drivers.index');
-    })->name('drivers.index');
-
-    Route::get('/driver-detail', function () {
-        return view('drivers.show');
-    })->name('drivers.show');
+    Route::resource('drivers', DriverController::class);
 
     // ── VEHICLES ──
-    Route::get('/vehicles', function () {
-        return view('vehicles.index');
-    })->name('vehicles.index');
-
-    Route::get('/vehicle-detail', function () {
-        return view('vehicles.show');
-    })->name('vehicles.show');
+    Route::resource('vehicles', VehicleController::class);
 
     // ── COMPANY ACCOUNTS ──
     Route::get('/accounts', function () {
-        return view('accounts.index');
+        return view('accounts.accounts-index');
     })->name('accounts.index');
 
     // ── INVOICES ──
-    Route::get('/invoices', function () {
-        return view('invoices.index');
-    })->name('invoices.index');
+    Route::resource('invoices', InvoiceController::class)->only(['index', 'show']);
 
-    Route::get('/invoice-detail', function () {
-        return view('invoices.show');
-    })->name('invoices.show');
+    // ── PAYMENTS ──
+    Route::post('payments', [PaymentController::class, 'store'])->name('payments.store');
 
     // ── FINANCE LEDGER ──
-    Route::get('/finance-ledger', function () {
-        return view('finance.ledger');
-    })->name('finance.ledger');
+    Route::get('/finance-ledger', [LedgerController::class, 'index'])->name('finance.ledger');
 
     // ── ADMIN ──
     Route::get('/users', function () {
@@ -230,12 +150,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/driver-dashboard', function () {
         return view('driver.dashboard');
     })->name('driver.dashboard');
-
-    Route::get('/driver-deliveries', function () {
-        return view('driver.deliveries');
-    })->name('driver.deliveries');
-
-    Route::get('/driver-delivery-detail', function () {
-        return view('driver.delivery-show');
-    })->name('driver.delivery.show');
+    // ── DRIVER PORTAL ──
+    // Currently relying on auth middleware, role checking can be done in Controller or custom Middleware.
+    Route::prefix('driver')->name('driver.')->group(function () {
+        Route::get('/deliveries', [DriverPortalController::class, 'index'])->name('deliveries.index');
+        Route::get('/deliveries/{delivery}', [DriverPortalController::class, 'show'])->name('deliveries.show');
+        Route::post('/deliveries/{delivery}/capture-pod', [DriverPortalController::class, 'capturePoD'])->name('deliveries.capture_pod');
+    });
 });

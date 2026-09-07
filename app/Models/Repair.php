@@ -14,4 +14,19 @@ class Repair extends Model
     protected $keyType = 'string';
     public $incrementing = false;
     protected $guarded = [];
+
+    public function returnItem()
+    {
+        return $this->belongsTo(ReturnItem::class, 'return_item_id');
+    }
+
+    public function equipment()
+    {
+        return $this->belongsTo(Equipment::class, 'equipment_id');
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
+    }
 }

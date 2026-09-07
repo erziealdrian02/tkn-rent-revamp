@@ -12,28 +12,43 @@
             <select class="filter-select" id="statusFilter" onchange="filterData()"><option value="">All Status</option><option>Pending</option><option>Inspection</option><option>Partially Returned</option><option>Returned</option><option>Completed</option></select>
           </div></div>
           <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Return #</th><th>Rental</th><th>Project</th><th>Customer</th><th>Return Date</th><th>Items</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="tableBody"></tbody></table></div>
+          <tbody id="tableBody">
+            @forelse($returns as $return)
+            <tr>
+                <td><a href="{{ route('returns.show', $return->id) }}" class="cell-link text-mono">{{ substr($return->id, 0, 8) }}</a></td>
+                <td><a href="{{ route('rentals.show', $return->rental_id) }}" class="cell-link">{{ substr($return->rental_id, 0, 8) }}</a></td>
+                <td>{{ $return->rental->project->name ?? '-' }}</td>
+                <td>{{ $return->rental->project->customer->name ?? '-' }}</td>
+                <td>{{ \Carbon\Carbon::parse($return->return_date)->format('d M Y') }}</td>
+                <td>{{ $return->items->count() ?? 0 }} types</td>
+                <td>
+                    @if($return->status === 'INSPECTED')
+                        <span class="badge bg-success-subtle text-success">Inspected</span>
+                    @else
+                        <span class="badge bg-secondary-subtle text-secondary">{{ $return->status }}</span>
+                    @endif
+                </td>
+                <td><a href="{{ route('returns.show', $return->id) }}" class="btn-action"><i class="bi bi-eye"></i></a></td>
+            </tr>
+            @empty
+            <tr><td colspan="8" class="text-center text-muted py-4">No returns found</td></tr>
+            @endforelse
+          </tbody></table></div>
         </div></div>
 @endsection
 
 @push('scripts')
 <script>
 initApp('returns',[{label:'Rental',href:'#'},{label:'Returns'}],'Returns');
-    function filterData(){
-      const q=document.getElementById('searchInput').value.toLowerCase();
-      const s=document.getElementById('statusFilter').value;
-      const data=MockData.returns.filter(r=>{
-        if(q&&!r.id.toLowerCase().includes(q)&&!r.projectName.toLowerCase().includes(q)&&!r.customerName.toLowerCase().includes(q))return false;
-        if(s&&r.status!==s)return false;return true;
-      });
-      document.getElementById('tableBody').innerHTML=data.map(r=>`<tr>
-        <td><a href="return-detail?id=${r.id}" class="cell-link text-mono">${r.id}</a></td>
-        <td><a href="rental-detail?id=${r.rentalId}" class="cell-link">${r.rentalId}</a></td>
-        <td>${r.projectName}</td><td>${r.customerName}</td><td>${formatDate(r.returnDate)}</td>
-        <td>${r.items.length} types</td><td>${statusBadge(r.status)}</td>
-        <td><a href="return-detail?id=${r.id}" class="btn-action"><i class="bi bi-eye"></i></a></td>
-      </tr>`).join('')||'<tr><td colspan="8" class="text-center text-muted py-4">No returns found</td></tr>';
-    }
-    filterData();
+function filterData(){
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const rows = document.querySelectorAll('#tableBody tr');
+    
+    rows.forEach(row => {
+        if(row.cells.length < 5) return;
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(search) ? '' : 'none';
+    });
+}
 </script>
 @endpush

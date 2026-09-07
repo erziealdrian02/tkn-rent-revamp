@@ -15,42 +15,49 @@
             </div>
           </div>
           <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Delivery #</th><th>Rental</th><th>Project</th><th>Customer</th><th>Driver</th><th>Vehicle</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="tableBody"></tbody></table></div>
+          <tbody id="tableBody">
+            @forelse($deliveries as $delivery)
+            <tr>
+                <td><a href="{{ route('deliveries.show', $delivery->id) }}" class="cell-link text-mono">{{ substr($delivery->id, 0, 8) }}</a></td>
+                <td><a href="{{ route('rentals.show', $delivery->rental_id) }}" class="cell-link">{{ substr($delivery->rental_id, 0, 8) }}</a></td>
+                <td>{{ $delivery->rental->project->name ?? '-' }}</td>
+                <td>{{ $delivery->rental->project->customer->name ?? '-' }}</td>
+                <td>{{ $delivery->driver->name ?? '<span class="text-muted">Unassigned</span>' }}</td>
+                <td>{{ $delivery->vehicle->plate_number ?? '-' }}</td>
+                <td>{{ \Carbon\Carbon::parse($delivery->delivery_date)->format('d M Y') }}</td>
+                <td>
+                    @if($delivery->status === 'COMPLETED')
+                        <span class="badge bg-success-subtle text-success">Completed</span>
+                    @elseif($delivery->status === 'ON_DELIVERY')
+                        <span class="badge bg-info-subtle text-info">On Delivery</span>
+                    @elseif($delivery->status === 'PREPARING')
+                        <span class="badge bg-warning-subtle text-warning">Preparing</span>
+                    @else
+                        <span class="badge bg-secondary-subtle text-secondary">{{ $delivery->status }}</span>
+                    @endif
+                </td>
+                <td><a href="{{ route('deliveries.show', $delivery->id) }}" class="btn-action"><i class="bi bi-eye"></i></a></td>
+            </tr>
+            @empty
+            <tr><td colspan="9" class="text-center text-muted py-4">No deliveries found</td></tr>
+            @endforelse
+          </tbody></table></div>
         </div></div>
 @endsection
 
 @push('scripts')
 <script>
 initApp('deliveries',[{label:'Rental',href:'#'},{label:'Deliveries'}],'Deliveries');
-    const df=document.getElementById('driverFilter');
-    [...new Set(MockData.deliveries.filter(d=>d.driverName).map(d=>d.driverName))].forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;df.appendChild(o);});
-    const sessionUser = JSON.parse(sessionStorage.getItem('er_user') || '{}');
-    const isDriver = sessionUser.role === 'Driver';
-    
-    if (isDriver && sessionUser.driverId) {
-      // Force driver filter if logged in as driver
-      df.value = sessionUser.name;
-      df.disabled = true;
-    }
 
-    function filterData(){
-      const q=document.getElementById('searchInput').value.toLowerCase();
-      const s=document.getElementById('statusFilter').value;
-      const d = (isDriver && sessionUser.name) ? sessionUser.name : document.getElementById('driverFilter').value;
-      const data=MockData.deliveries.filter(r=>{
-        if(q&&!r.id.toLowerCase().includes(q)&&!r.customerName.toLowerCase().includes(q)&&!r.projectName.toLowerCase().includes(q))return false;
-        if(s&&r.status!==s)return false;if(d&&r.driverName!==d)return false;return true;
-      });
-      document.getElementById('tableBody').innerHTML=data.map(r=>`<tr>
-        <td><a href="delivery-detail?id=${r.id}" class="cell-link text-mono">${r.id}</a></td>
-        <td><a href="rental-detail?id=${r.rentalId}" class="cell-link">${r.rentalId}</a></td>
-        <td>${r.projectName}</td><td>${r.customerName}</td>
-        <td>${r.driverName||'<span class="text-muted">Unassigned</span>'}</td>
-        <td>${r.vehiclePlate||'-'}</td><td>${formatDate(r.deliveryDate)}</td>
-        <td>${statusBadge(r.status)}</td>
-        <td><a href="delivery-detail?id=${r.id}" class="btn-action"><i class="bi bi-eye"></i></a></td>
-      </tr>`).join('')||'<tr><td colspan="9" class="text-center text-muted py-4">No deliveries found</td></tr>';
-    }
-    filterData();
+function filterData(){
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const rows = document.querySelectorAll('#tableBody tr');
+    
+    rows.forEach(row => {
+        if(row.cells.length < 5) return;
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(search) ? '' : 'none';
+    });
+}
 </script>
 @endpush

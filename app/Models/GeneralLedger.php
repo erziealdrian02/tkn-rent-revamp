@@ -14,4 +14,14 @@ class GeneralLedger extends Model
     protected $keyType = 'string';
     public $incrementing = false;
     protected $guarded = [];
+
+    public function companyAccount()
+    {
+        return $this->belongsTo(CompanyAccount::class);
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 }
