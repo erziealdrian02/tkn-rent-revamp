@@ -10,6 +10,7 @@ class BranchController extends Controller
     public function index()
     {
         $branches = Branch::orderBy('name')->get();
+
         return view('branches.branches-index', compact('branches'));
     }
 
@@ -22,9 +23,12 @@ class BranchController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:100',
+            'capacity' => 'required|integer|min:0',
             'location' => 'nullable|string',
-            'status' => 'required|in:ACTIVE,INACTIVE'
+            'status' => 'required|in:ACTIVE,INACTIVE',
         ]);
+
+        $validated['branches_code'] = Branch::generateBranchCode($validated['name']);
 
         Branch::create($validated);
 
@@ -45,8 +49,9 @@ class BranchController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:100',
+            'capacity' => 'required|integer|min:0',
             'location' => 'nullable|string',
-            'status' => 'required|in:ACTIVE,INACTIVE'
+            'status' => 'required|in:ACTIVE,INACTIVE',
         ]);
 
         $branch->update($validated);
@@ -57,6 +62,7 @@ class BranchController extends Controller
     public function destroy(Branch $branch)
     {
         $branch->delete();
+
         return redirect()->route('branches.index')->with('success', 'Branch deleted successfully.');
     }
 }

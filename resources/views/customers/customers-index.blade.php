@@ -59,8 +59,18 @@
                                 <td>
                                     <a href="{{ route('customers.show', $c->id) }}" class="btn-action"><i
                                             class="bi bi-eye"></i></a>
-                                    <a href="{{ route('customers.edit', $c->id) }}" class="btn-action"><i
-                                            class="bi bi-pencil"></i></a>
+                                    <button type="button" class="btn-action border-0 bg-transparent"
+                                        onclick="openEditCustomerModal({{ json_encode($c) }})"><i
+                                            class="bi bi-pencil"></i></button>
+                                    <form action="{{ route('customers.destroy', $c->id) }}" method="POST"
+                                        style="display:inline;">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn-action border-0 bg-transparent"
+                                            onclick="return confirm('Are you sure you want to delete {{ $c->name }}? This action cannot be undone.')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         @empty
@@ -134,6 +144,70 @@
             </div>
         </div>
     </div>
+    <!-- Edit Customer Modal -->
+    <div class="modal fade" id="editCustomerModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="editCustomerForm" method="POST" action="" class="needs-validation">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Customer</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label form-label-er">Customer ID</label>
+                                <input type="text" class="form-control bg-light text-mono" id="editCusId" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label form-label-er">Status</label>
+                                <select class="form-select" id="editCusStatus" name="status">
+                                    <option value="ACTIVE">Active</option>
+                                    <option value="INACTIVE">Inactive</option>
+                                </select>
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label form-label-er">Company Name <span
+                                        class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editCusName" name="name" required>
+                                <div class="invalid-feedback">Company name is required.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label form-label-er">Company Code</label>
+                                <input type="text" class="form-control text-uppercase" id="editCusCode" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label form-label-er">PIC Name <span
+                                        class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editCusPic" name="pic_name" required>
+                                <div class="invalid-feedback">PIC is required.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label form-label-er">Phone Number <span
+                                        class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editCusPhone" name="contact" required>
+                                <div class="invalid-feedback">Phone is required.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label form-label-er">Email Address</label>
+                                <input type="email" class="form-control" id="editCusEmail" name="email">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label form-label-er">Full Address</label>
+                                <textarea class="form-control" id="editCusAddress" name="address" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
@@ -168,6 +242,20 @@
             document.getElementById('customerForm').classList.remove('was-validated');
             document.getElementById('cusId').value = 'CUS-' + Date.now(); // atau generate dari server
             const modal = new bootstrap.Modal(document.getElementById('addCustomerModal'));
+            modal.show();
+        }
+
+        function openEditCustomerModal(customer) {
+            document.getElementById('editCustomerForm').action = `/customers/${customer.id}`;
+            document.getElementById('editCusId').value = customer.id.substring(0, 8);
+            document.getElementById('editCusStatus').value = customer.status;
+            document.getElementById('editCusName').value = customer.name;
+            document.getElementById('editCusPic').value = customer.pic_name || '';
+            document.getElementById('editCusPhone').value = customer.contact || '';
+            document.getElementById('editCusEmail').value = customer.email || '';
+            document.getElementById('editCusAddress').value = customer.address || '';
+
+            const modal = new bootstrap.Modal(document.getElementById('editCustomerModal'));
             modal.show();
         }
     </script>
