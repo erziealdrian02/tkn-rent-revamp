@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Project;
 use App\Models\Customer;
+use App\Models\Project;
 use Illuminate\Http\Request;
 
 class ProjectController extends Controller
@@ -11,12 +11,14 @@ class ProjectController extends Controller
     public function index()
     {
         $projects = Project::with('customer')->orderBy('name')->get();
+
         return view('projects.projects-index', compact('projects'));
     }
 
     public function create()
     {
         $customers = Customer::orderBy('name')->get();
+
         return view('projects.projects-create', compact('customers'));
     }
 
@@ -26,7 +28,7 @@ class ProjectController extends Controller
             'customer_id' => 'required|exists:ms_customers,id',
             'name' => 'required|string|max:100',
             'location' => 'required|string',
-            'status' => 'required|in:ACTIVE,INACTIVE,COMPLETED'
+            'status' => 'required|in:ACTIVE,INACTIVE,COMPLETED',
         ]);
 
         Project::create($validated);
@@ -37,12 +39,14 @@ class ProjectController extends Controller
     public function show(Project $project)
     {
         $project->load('customer');
+
         return view('projects.projects-show', compact('project'));
     }
 
     public function edit(Project $project)
     {
         $customers = Customer::orderBy('name')->get();
+
         return view('projects.projects-edit', compact('project', 'customers'));
     }
 
@@ -52,7 +56,7 @@ class ProjectController extends Controller
             'customer_id' => 'required|exists:ms_customers,id',
             'name' => 'required|string|max:100',
             'location' => 'required|string',
-            'status' => 'required|in:ACTIVE,INACTIVE,COMPLETED'
+            'status' => 'required|in:ACTIVE,INACTIVE,COMPLETED',
         ]);
 
         $project->update($validated);
@@ -63,6 +67,7 @@ class ProjectController extends Controller
     public function destroy(Project $project)
     {
         $project->delete();
+
         return redirect()->route('projects.index')->with('success', 'Project deleted successfully.');
     }
 }
