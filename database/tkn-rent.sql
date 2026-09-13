@@ -198,10 +198,14 @@ CREATE TABLE `ms_branches` (
 
 CREATE TABLE `ms_company_accounts` (
   `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `account_code` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `account_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `bank_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `account_number` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
   `opening_balance` decimal(15,2) NOT NULL DEFAULT '0.00',
   `status` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'ACTIVE',
+  `created_by` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

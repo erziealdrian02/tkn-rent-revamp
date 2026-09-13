@@ -121,9 +121,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('vehicles', VehicleController::class);
 
     // ── COMPANY ACCOUNTS ──
-    Route::get('/accounts', function () {
-        return view('accounts.accounts-index');
-    })->name('accounts.index');
+    Route::resource('accounts', \App\Http\Controllers\CompanyAccountController::class)->except(['create', 'show', 'edit']);
 
     // ── INVOICES ──
     Route::resource('invoices', InvoiceController::class)->only(['index', 'show']);
