@@ -10,6 +10,8 @@ use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use App\Models\User;
 
 class PurchaseController extends Controller
 {
@@ -26,72 +28,101 @@ class PurchaseController extends Controller
         $branches = Branch::where('status', 'ACTIVE')->get();
         $accounts = CompanyAccount::where('status', 'ACTIVE')->get();
 
-        return view('purchases.purchases-create', compact('equipment', 'branches', 'accounts'));
+        $maxCode = Purchase::max('purchase_code') ?? 0;
+        $nextCodeInt = $maxCode + 1;
+        $nextPurchaseCode = 'PO-' . str_pad($nextCodeInt, 3, '0', STR_PAD_LEFT);
+
+        return view('purchases.purchases-create', compact('equipment', 'branches', 'accounts', 'nextPurchaseCode'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'vendor_name' => 'required|string',
+            'supplier_contact' => 'nullable|string|max:100',
             'branch_id' => 'required|uuid|exists:ms_branches,id',
+            'bank_account_id' => 'required|uuid|exists:ms_company_accounts,id',
             'order_date' => 'required|date',
-            'arrival_date' => 'nullable|date',
+            'expected_arrival_date' => 'nullable|date',
+            'status' => 'nullable|string',
+            'discount' => 'nullable|numeric|min:0',
+            'tax' => 'nullable|numeric|min:0',
+            'shipping_cost' => 'nullable|numeric|min:0',
             'items' => 'required|array|min:1',
             'items.*.equipment_id' => 'required|uuid|exists:ms_equipment,id',
             'items.*.qty_ordered' => 'required|integer|min:1',
             'items.*.unit_price' => 'required|numeric|min:0',
         ]);
 
-        // Calculate total amount
-        $totalAmount = 0;
-        foreach ($request->items as $item) {
-            $totalAmount += $item['qty_ordered'] * $item['unit_price'];
-        }
+        DB::beginTransaction();
+        try {
+            // Calculate subtotal
+            $subtotal = 0;
+            foreach ($request->items as $item) {
+                $subtotal += $item['qty_ordered'] * $item['unit_price'];
+            }
 
-        // Generate numeric purchase_code or let it be auto-increment if handled by DB.
-        // Assuming we need to set it manually if it doesn't have default.
-        $lastPo = Purchase::orderBy('created_at', 'desc')->first();
-        $purchaseCode = $lastPo ? $lastPo->purchase_code + 1 : 1;
+            $discount = $request->discount ?? 0;
+            $tax = $request->tax ?? 0;
+            $shippingCost = $request->shipping_cost ?? 0;
+            
+            $totalAmount = $subtotal - $discount + $tax + $shippingCost;
 
-        $purchase = Purchase::create([
-            'id' => Str::uuid(),
-            'purchase_code' => $purchaseCode,
-            'vendor_name' => $request->vendor_name,
-            'branch_id' => $request->branch_id,
-            'status' => 'DRAFT',
-            'order_date' => $request->order_date,
-            'arrival_date' => $request->arrival_date,
-            'total_amount' => $totalAmount,
-            'created_by' => auth()->id() ?? User::first()->id, // Fallback if no auth
-        ]);
+            $lastPo = Purchase::orderBy('created_at', 'desc')->first();
+            $purchaseCode = $lastPo ? $lastPo->purchase_code + 1 : 1;
 
-        // Create Purchase Items
-        foreach ($request->items as $item) {
-            PurchaseItem::create([
+            $status = $request->status ?: 'DRAFT';
+
+            $purchase = Purchase::create([
                 'id' => Str::uuid(),
-                'purchase_id' => $purchase->id,
-                'equipment_id' => $item['equipment_id'],
-                'qty_ordered' => $item['qty_ordered'],
-                'unit_price' => $item['unit_price'],
+                'purchase_code' => $purchaseCode,
+                'vendor_name' => $request->vendor_name,
+                'supplier_contact' => $request->supplier_contact,
+                'branch_id' => $request->branch_id,
+                'bank_account_id' => $request->bank_account_id,
+                'status' => strtoupper($status),
+                'order_date' => $request->order_date,
+                'expected_arrival_date' => $request->expected_arrival_date,
+                'subtotal' => $subtotal,
+                'discount' => $discount,
+                'tax' => $tax,
+                'shipping_cost' => $shippingCost,
+                'total_amount' => $totalAmount,
+                'created_by' => auth()->id() ?? User::first()->id, 
             ]);
+
+            // Create Purchase Items
+            foreach ($request->items as $item) {
+                PurchaseItem::create([
+                    'id' => Str::uuid(),
+                    'purchase_id' => $purchase->id,
+                    'equipment_id' => $item['equipment_id'],
+                    'qty_ordered' => $item['qty_ordered'],
+                    'unit_price' => $item['unit_price'],
+                ]);
+            }
+
+            // Create Invoice for the purchase
+            Invoice::create([
+                'id' => Str::uuid(),
+                'reference_id' => $purchase->id,
+                'customer_id' => null, 
+                'vendor_name' => $purchase->vendor_name,
+                'type' => 'PURCHASE',
+                'status' => 'UNPAID',
+                'issue_date' => $purchase->order_date,
+                'due_date' => $purchase->order_date, 
+                'amount' => $totalAmount,
+                'paid_amount' => 0,
+                'created_by' => auth()->id() ?? User::first()->id,
+            ]);
+
+            DB::commit();
+            return redirect()->route('purchases.index')->with('success', 'Purchase Order and Invoice created successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Error creating purchase order: ' . $e->getMessage())->withInput();
         }
-
-        // Create Invoice for the purchase (Hutang ke Vendor)
-        Invoice::create([
-            'id' => Str::uuid(),
-            'reference_id' => $purchase->id,
-            'customer_id' => null, // Karena ini vendor, bukan customer
-            'vendor_name' => $purchase->vendor_name,
-            'type' => 'PURCHASE',
-            'status' => 'UNPAID',
-            'issue_date' => $purchase->order_date,
-            'due_date' => $purchase->order_date, // Atau diset H+30 sesuai kebijakan
-            'amount' => $totalAmount,
-            'paid_amount' => 0,
-            'created_by' => auth()->id() ?? User::first()->id,
-        ]);
-
-        return redirect()->route('purchases.index')->with('success', 'Purchase Order and Invoice created successfully.');
     }
 
     public function show(Purchase $purchase)

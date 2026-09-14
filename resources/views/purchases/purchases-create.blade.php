@@ -2,6 +2,18 @@
 
 @section('title', 'Create Purchase Order — EquipRent Enterprise')
 
+@push('styles')
+<style>
+    .workflow-timeline { display: flex; justify-content: space-between; position: relative; margin-bottom: 2rem; }
+    .workflow-timeline::before { content: ''; position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: #e2e8f0; z-index: 1; }
+    .workflow-step { position: relative; z-index: 2; text-align: center; width: 14%; }
+    .workflow-icon { width: 32px; height: 32px; border-radius: 50%; background: #f8fafc; border: 2px solid #e2e8f0; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #64748b; }
+    .workflow-step.active .workflow-icon { background: var(--primary); border-color: var(--primary); color: white; }
+    .workflow-label { font-size: 11px; font-weight: 500; color: #64748b; }
+    .workflow-step.active .workflow-label { color: var(--navy); }
+</style>
+@endpush
+
 @section('content')
     <div class="page-header">
         <div class="page-header-left">
@@ -21,6 +33,7 @@
     @endif
 
     <form id="purchaseForm" class="needs-validation" method="POST" action="{{ route('purchases.store') }}" novalidate>
+        @csrf
         <!-- Workflow Diagram -->
         <div class="er-card mb-4">
             <div class="er-card-body pb-2">
@@ -67,7 +80,7 @@
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label form-label-er">Purchase Number</label>
-                                <input type="text" class="form-control bg-light text-mono" id="poId" readonly>
+                                <input type="text" class="form-control bg-light text-mono" id="poId" value="{{ $nextPurchaseCode }}" readonly>
                             </div>
                             <div class="col-md-8">
                                 <label class="form-label form-label-er">Supplier Name <span
@@ -78,7 +91,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label form-label-er">Supplier Contact</label>
-                                <input type="text" class="form-control" id="supplierContact">
+                                <input type="text" name="supplier_contact" class="form-control" id="supplierContact">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label form-label-er">Destination Branch <span
@@ -141,14 +154,17 @@
                             <div class="col-12">
                                 <label class="form-label form-label-er">Payment Account <span
                                         class="text-danger">*</span></label>
-                                <select class="form-select" id="payAccount" required>
+                                <select class="form-select" name="bank_account_id" id="payAccount" required>
                                     <option value="">Select company account...</option>
+                                    @foreach ($accounts as $account)
+                                        <option value="{{ $account->id }}">{{ $account->name }} - {{ $account->bank_name }} ({{ $account->account_number }})</option>
+                                    @endforeach
                                 </select>
                                 <div class="invalid-feedback">Payment account is required.</div>
                             </div>
                             <div class="col-12">
                                 <label class="form-label form-label-er">Purchase Status</label>
-                                <select class="form-select" id="poStatus">
+                                <select class="form-select" name="status" id="poStatus">
                                     <option value="Draft">Draft</option>
                                     <option value="Requested">Requested</option>
                                     <option value="Approved">Approved</option>
@@ -164,17 +180,17 @@
                             </div>
                             <div class="info-item">
                                 <label class="info-label w-100 mb-1">Discount</label>
-                                <input type="number" class="form-control form-control-sm text-end" id="discount"
+                                <input type="number" name="discount" class="form-control form-control-sm text-end" id="discount"
                                     value="0" oninput="calculateTotals()">
                             </div>
                             <div class="info-item">
                                 <label class="info-label w-100 mb-1">Tax</label>
-                                <input type="number" class="form-control form-control-sm text-end" id="tax"
+                                <input type="number" name="tax" class="form-control form-control-sm text-end" id="tax"
                                     value="0" oninput="calculateTotals()">
                             </div>
                             <div class="info-item">
                                 <label class="info-label w-100 mb-1">Shipping Cost</label>
-                                <input type="number" class="form-control form-control-sm text-end" id="shipping"
+                                <input type="number" name="shipping_cost" class="form-control form-control-sm text-end" id="shipping"
                                     value="0" oninput="calculateTotals()">
                             </div>
                             <hr class="my-2">
@@ -249,25 +265,31 @@
 
 @push('scripts')
     <script>
-        initApp('purchase-create', [{
-            label: 'Inventory',
-            href: '#'
-        }, {
-            label: 'Purchases',
-            href: "{{ route('purchases.index') }}"
-        }, {
-            label: 'New Purchase'
-        }], 'Create New Purchase');
+        var equipmentList = @json($equipment);
+        var items = [];
+        var itemCounter = 0;
+        var formDirty = false;
 
-        // Set default date
-        document.getElementById('poDate').value = new Date().toISOString().split('T')[0];
+        try {
+            initApp('purchase-create.html', [{
+                label: 'Inventory',
+                href: '#'
+            }, {
+                label: 'Purchases',
+                href: "{{ route('purchases.index') }}"
+            }, {
+                label: 'New Purchase'
+            }], 'Create New Purchase');
+        } catch (e) {
+            console.error('Error initializing app:', e);
+        }
 
-        let formDirty = false;
-        document.getElementById('purchaseForm').addEventListener('input', () => formDirty = true);
-
-        const equipmentList = @json($equipment);
-        let items = [];
-        let itemCounter = 0;
+        try {
+            document.getElementById('poDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('purchaseForm').addEventListener('input', () => formDirty = true);
+        } catch (e) {
+            console.error('Error setting up form listeners:', e);
+        }
 
         function addItem() {
             const id = itemCounter++;
@@ -322,7 +344,7 @@
           </td>
           <td><input type="number" name="items[${index}][qty_ordered]" class="form-control form-control-sm text-center" value="${item.qty}" min="1" oninput="updateItem(${item.id}, 'qty', this.value)" required></td>
           <td><input type="number" name="items[${index}][unit_price]" class="form-control form-control-sm text-end" value="${item.price}" min="0" oninput="updateItem(${item.id}, 'price', this.value)" required></td>
-          <td class="text-end fw-600 align-middle">Rp ${(item.qty * item.price).toLocaleString('id-ID')}</td>
+          <td class="text-end fw-600 align-middle">${formatRupiah(item.qty * item.price)}</td>
           <td class="text-center align-middle"><button type="button" class="btn-action text-danger" onclick="removeItem(${item.id})"><i class="bi bi-trash"></i></button></td>
         </tr>
       `
@@ -337,8 +359,8 @@
 
             const grandTotal = subtotal - discount + tax + shipping;
 
-            document.getElementById('sumSubtotal').textContent = 'Rp ' + subtotal.toLocaleString('id-ID');
-            document.getElementById('sumGrandTotal').textContent = 'Rp ' + grandTotal.toLocaleString('id-ID');
+            document.getElementById('sumSubtotal').textContent = formatRupiah(subtotal);
+            document.getElementById('sumGrandTotal').textContent = formatRupiah(grandTotal);
         }
 
         function cancelCreate() {
