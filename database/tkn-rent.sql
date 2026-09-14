@@ -730,11 +730,14 @@ CREATE TABLE `rnt_payments` (
 
 CREATE TABLE `rnt_purchases` (
   `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `purchase_code` int NOT NULL,
   `vendor_name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `branch_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
   `status` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
   `order_date` date NOT NULL,
+  `arrival_date` date DEFAULT NULL,
   `total_amount` decimal(15,2) NOT NULL,
+  `created_by` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
