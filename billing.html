@@ -110,6 +110,7 @@
     const today = new Date().toISOString().split('T')[0];
     let overrides = {};
     let currentLines = [];
+    let shadow = null; // invoice bayangan yang sedang diterbitkan (?shadow=)
 
     const billable = MockData.projects.filter(p => Bill.segments(p.id).length);
     document.getElementById('fProject').innerHTML = billable.map(p => `<option value="${p.id}">${p.name} — ${p.customerName}</option>`).join('');
@@ -200,6 +201,7 @@
         <tr><td colspan="9" class="text-end">TOTAL TAGIHAN</td><td class="num">${formatRupiah(subtotal + tax)}</td></tr>`;
 
       document.getElementById('btnCreate').disabled = !currentLines.length || clash.length > 0 || pe < ps;
+      document.getElementById('btnCreate').innerHTML = '<i class="bi bi-receipt me-1"></i>' + (shadow && shadow.projectId === pid ? 'Terbitkan ' + shadow.id : 'Buat Invoice');
     }
 
     function createInvoice() {
@@ -208,7 +210,8 @@
         taxRate: document.getElementById('fTax').checked ? settings.taxRate : 0,
         invoiceDate: document.getElementById('fInvDate').value,
         dueDays: document.getElementById('fDue').value,
-        accountId: document.getElementById('fAccount').value
+        accountId: document.getElementById('fAccount').value,
+        shadowId: shadow && shadow.projectId === pid ? shadow.id : null
       }));
       if (!res.success) { showToast(res.error, 'error'); return; }
       showToast('Invoice ' + res.invoice.id + ' berhasil dibuat', 'success');
@@ -226,6 +229,16 @@
     const preset = getUrlParam('project');
     if (preset && billable.find(p => p.id === preset)) document.getElementById('fProject').value = preset;
     onProjectChange();
+
+    // Menerbitkan invoice bayangan lewat rekap: nomor invoice bayangan dipakai ulang
+    shadow = MockData.invoices.find(i => i.id === getUrlParam('shadow') && i.status === 'Shadow' && i.projectId === document.getElementById('fProject').value);
+    if (shadow) {
+      if (shadow.periodStart) document.getElementById('fStart').value = shadow.periodStart;
+      if (shadow.periodEnd) document.getElementById('fEnd').value = shadow.periodEnd;
+      document.getElementById('fTax').checked = shadow.taxRate > 0;
+      document.getElementById('overlapAlert').insertAdjacentHTML('beforebegin', `<div class="alert alert-light border py-2 fs-13"><i class="bi bi-file-earmark-plus me-1"></i>Menerbitkan invoice bayangan <a href="invoice-detail.html?id=${shadow.id}" class="text-mono">${shadow.id}</a>${shadow.amount ? ' (estimasi ' + formatRupiah(shadow.amount) + ')' : ''} — nomor invoice tetap ${shadow.id}. Ganti proyek untuk membuat invoice baru biasa.</div>`);
+      render();
+    }
   </script>
 </body>
 </html>

@@ -348,7 +348,7 @@
 
     // Invoice Chart (Dynamic)
     const invStats = { paid: 0, issued: 0, partial: 0, overdue: 0 };
-    MockData.invoices.filter(inv => inv.status !== 'Cancelled').forEach(inv => {
+    MockData.invoices.filter(inv => inv.status !== 'Cancelled' && inv.status !== 'Shadow').forEach(inv => {
       const st = BizLogic.Invoice.statusOf(inv);
       if (st === 'Paid') invStats.paid++;
       else if (st === 'Partially Paid') invStats.partial++;

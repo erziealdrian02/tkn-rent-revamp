@@ -16,6 +16,7 @@
       <header class="app-header" id="appHeader"></header>
       <div class="app-content">
         <div class="d-flex justify-content-end gap-2 mb-3 no-print" id="actions"></div>
+        <div class="no-print" id="shadowBanner" style="max-width:800px"></div>
         <div class="invoice-paper mb-4" id="invoiceContent"></div>
         <div class="er-card no-print">
           <div class="er-card-header"><h5 class="er-card-title"><i class="bi bi-cash-coin me-1"></i>Riwayat Pembayaran</h5></div>
@@ -57,6 +58,27 @@
     </div></div>
   </div>
 
+  <!-- Terbitkan Invoice Bayangan Modal -->
+  <div class="modal fade" id="issueModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Terbitkan Invoice Bayangan</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="alert alert-light border py-2 fs-13">Setelah diterbitkan, status berubah jadi <strong>Belum Dibayar</strong> dan invoice masuk ke piutang.</div>
+        <div class="row g-3">
+          <div class="col-12"><label class="form-label form-label-er">Deskripsi</label><input type="text" id="isDesc" class="form-control"></div>
+          <div class="col-12"><label class="form-label form-label-er">Nominal Final (sebelum PPN)</label><div class="input-group"><span class="input-group-text">Rp</span><input type="number" min="0" id="isAmount" class="form-control text-end"></div></div>
+          <div class="col-6"><label class="form-label form-label-er">Tgl Invoice</label><input type="date" id="isDate" class="form-control"></div>
+          <div class="col-6"><label class="form-label form-label-er">Jatuh Tempo (hari)</label><input type="number" id="isDue" class="form-control text-end"></div>
+          <div class="col-12"><label class="d-flex align-items-center gap-2 fs-13"><input type="checkbox" class="form-check-input m-0" id="isTax"> PPN <span id="isTaxPct"></span></label></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+        <button class="btn btn-primary" onclick="submitIssue()"><i class="bi bi-send-check me-1"></i>Terbitkan</button>
+      </div>
+    </div></div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
@@ -73,22 +95,32 @@
     const status = Inv.statusOf(inv);
     const paid = Inv.paidAmount(inv);
     const remaining = Inv.outstanding(inv);
+    const isShadow = status === 'Shadow';
     const isRent = inv.type === 'Sewa';
+    const isRecap = isRent && !isShadow && !!inv.monthDays; // item berasal dari rekap SJ
+    const canRecap = isShadow && isRent && inv.projectId;
 
     document.getElementById('actions').innerHTML = `
-      ${isRent ? `<a href="billing.html?project=${inv.projectId}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calculator me-1"></i>Rekap Tagihan</a>` : ''}
+      ${isRent && inv.projectId ? `<a href="billing.html?project=${inv.projectId}${isShadow ? '&shadow=' + inv.id : ''}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calculator me-1"></i>${isShadow ? 'Terbitkan dari Rekap' : 'Rekap Tagihan'}</a>` : ''}
       <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak</button>
       ${paid === 0 && status !== 'Cancelled' ? '<button class="btn btn-outline-danger btn-sm" onclick="cancelInvoice()"><i class="bi bi-x-circle me-1"></i>Batalkan</button>' : ''}
+      ${isShadow ? '<button class="btn btn-primary btn-sm" onclick="openIssue()"><i class="bi bi-send-check me-1"></i>Terbitkan</button>' : ''}
       ${remaining > 0 ? '<button class="btn btn-success btn-sm" onclick="openPay()"><i class="bi bi-cash me-1"></i>Catat Pembayaran</button>' : ''}`;
 
-    const itemsHead = isRent
+    document.getElementById('shadowBanner').innerHTML = isShadow
+      ? `<div class="alert alert-warning py-2 fs-13"><i class="bi bi-file-earmark-plus me-1"></i><strong>Invoice bayangan</strong> — belum diterbitkan, belum masuk piutang dan belum bisa dibayar.
+          ${canRecap ? 'Terbitkan dari <strong>Rekap Tagihan</strong> bila data SJ sudah lengkap, atau' : ''} klik <strong>Terbitkan</strong> untuk mengisi nominal final.</div>`
+      : inv.fromShadow ? `<div class="alert alert-light border py-2 fs-13"><i class="bi bi-file-earmark-check me-1"></i>Diterbitkan dari invoice bayangan${inv.shadowEstimate != null ? ' (estimasi awal ' + formatRupiah(inv.shadowEstimate) + ')' : ''}.</div>` : '';
+
+    const itemsHead = isRecap
       ? '<tr><th>No</th><th>Nama Barang</th><th>SJ Kirim</th><th class="text-end">Qty</th><th>Awal</th><th>Akhir</th><th class="text-end">Hari</th><th class="text-end">Harga Satuan</th><th class="text-end">Total</th></tr>'
       : '<tr><th>No</th><th style="width:55%">Deskripsi</th><th class="text-end">Qty</th><th class="text-end">Harga Satuan</th><th class="text-end">Total</th></tr>';
-    const itemsBody = inv.items.map((it, n) => isRent
+    const itemsBody = inv.items.map((it, n) => isRecap
       ? `<tr><td>${n + 1}</td><td>${it.desc}</td><td class="text-mono fs-12">${it.sjDelivery}${it.sjReturn ? '<br><span class="text-muted">↩ ' + it.sjReturn + '</span>' : ''}</td><td class="text-end">${it.qty}</td><td>${formatDate(it.startDate)}</td><td>${formatDate(it.endDate)}${it.adjusted ? ' <i class="bi bi-pencil-square text-warning" title="Tanggal di-adjust"></i>' : ''}</td><td class="text-end">${it.days}</td><td class="text-end">${formatRupiah(it.unitPrice)}</td><td class="text-end">${formatRupiah(it.amount)}</td></tr>`
       : `<tr><td>${n + 1}</td><td>${it.desc}</td><td class="text-end">${it.qty}</td><td class="text-end">${formatRupiah(it.unitPrice)}</td><td class="text-end">${formatRupiah(it.amount)}</td></tr>`
-    ).join('');
+    ).join('') || `<tr><td colspan="5" class="text-center text-muted py-4">Belum ada rincian — diisi saat invoice diterbitkan</td></tr>`;
 
+    document.getElementById('invoiceContent').classList.toggle('is-shadow', isShadow);
     document.getElementById('invoiceContent').innerHTML = `
       <div class="invoice-header">
         <div class="invoice-company">
@@ -98,7 +130,7 @@
           <p>NPWP: ${company.taxId}</p>
         </div>
         <div class="invoice-title-section">
-          <h2>INVOICE</h2>
+          <h2>${isShadow ? 'INVOICE BAYANGAN' : 'INVOICE'}</h2>
           <p class="text-mono" style="font-size:18px;font-weight:600">${inv.id}</p>
           <p>${invoiceStatusBadge(status)}</p>
         </div>
@@ -116,23 +148,24 @@
             <tr><td class="text-muted py-1">Tipe</td><td class="text-end py-1">${inv.type}</td></tr>
             <tr><td class="text-muted py-1">Proyek</td><td class="text-end py-1">${inv.projectId ? `<a href="project-detail.html?id=${inv.projectId}">${inv.projectName}</a>` : '-'}</td></tr>
             ${isRent ? `<tr><td class="text-muted py-1">Periode Sewa</td><td class="text-end py-1">${formatDate(inv.periodStart)} — ${formatDate(inv.periodEnd)}</td></tr>
-            <tr><td class="text-muted py-1">Bulan Sewa</td><td class="text-end py-1">${inv.monthDays} hari</td></tr>` : `<tr><td class="text-muted py-1">Referensi</td><td class="text-end py-1 text-mono">${inv.reference || '-'}</td></tr>`}
+            ${inv.monthDays ? `<tr><td class="text-muted py-1">Bulan Sewa</td><td class="text-end py-1">${inv.monthDays} hari</td></tr>` : ''}` : `<tr><td class="text-muted py-1">Referensi</td><td class="text-end py-1 text-mono">${inv.reference || '-'}</td></tr>`}
             <tr><td class="text-muted py-1">Tanggal Invoice</td><td class="text-end py-1">${formatDate(inv.invoiceDate)}</td></tr>
             <tr><td class="text-muted py-1">Jatuh Tempo</td><td class="text-end py-1 ${status === 'Overdue' ? 'qty-minus' : ''}">${formatDate(inv.dueDate)}</td></tr>
           </table>
         </div>
       </div>
 
-      <div class="er-table-wrapper"><table class="w-100 invoice-items-table mb-0 ${isRent ? 'rent' : ''}"><thead>${itemsHead}</thead><tbody>${itemsBody}</tbody></table></div>
-      ${isRent ? `<p class="fs-12 text-muted mt-2 mb-0">Total = Qty × Hari × Harga Satuan ÷ ${inv.monthDays}. Hari = Akhir − Awal + 1.</p>` : ''}
+      <div class="er-table-wrapper"><table class="w-100 invoice-items-table mb-0 ${isRecap ? 'rent' : ''}"><thead>${itemsHead}</thead><tbody>${itemsBody}</tbody></table></div>
+      ${isRecap ? `<p class="fs-12 text-muted mt-2 mb-0">Total = Qty × Hari × Harga Satuan ÷ ${inv.monthDays}. Hari = Akhir − Awal + 1.</p>` : ''}
 
       <div class="invoice-summary mt-4">
         <table>
           <tr><td class="text-muted">Subtotal</td><td class="text-end">${formatRupiah(inv.subtotal)}</td></tr>
           ${inv.tax ? `<tr><td class="text-muted">PPN ${Math.round(inv.taxRate * 100)}%</td><td class="text-end">${formatRupiah(inv.tax)}</td></tr>` : ''}
+          ${isShadow ? `<tr class="total-row"><td class="pt-2">Estimasi Total</td><td class="text-end pt-2">${formatRupiah(inv.amount)}</td></tr>` : `
           <tr><td class="fw-600">Total Tagihan</td><td class="text-end fw-600">${formatRupiah(inv.amount)}</td></tr>
           <tr><td class="text-muted border-bottom pb-2">Sudah Dibayar</td><td class="text-end text-success border-bottom pb-2">− ${formatRupiah(paid)}</td></tr>
-          <tr class="total-row"><td class="pt-2">Sisa Tagihan</td><td class="text-end pt-2" style="color:var(--primary)">${formatRupiah(remaining)}</td></tr>
+          <tr class="total-row"><td class="pt-2">Sisa Tagihan</td><td class="text-end pt-2" style="color:var(--primary)">${formatRupiah(remaining)}</td></tr>`}
         </table>
       </div>
 
@@ -198,6 +231,32 @@
       showToast('Invoice dibatalkan', 'warning');
       setTimeout(() => location.reload(), 700);
     }
+    // Terbitkan invoice bayangan
+    const taxRate = (MockData.settings && MockData.settings.taxRate) || 0;
+    document.getElementById('isTaxPct').textContent = Math.round(taxRate * 100) + '%';
+    function openIssue() {
+      const est = inv.items.length === 1 ? inv.items[0] : null;
+      document.getElementById('isDesc').value = est ? est.desc.replace(/^Estimasi tagihan/, 'Tagihan') : 'Tagihan ' + inv.type.toLowerCase();
+      document.getElementById('isAmount').value = inv.subtotal || '';
+      document.getElementById('isDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('isDue').value = Math.max(0, Math.round((new Date(inv.dueDate) - new Date(inv.invoiceDate)) / 864e5)) || (MockData.settings && MockData.settings.paymentTermDays) || 30;
+      document.getElementById('isTax').checked = inv.taxRate > 0;
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('issueModal')).show();
+    }
+    function submitIssue() {
+      const res = Inv.issueShadow(inv.id, {
+        desc: document.getElementById('isDesc').value.trim(),
+        amount: document.getElementById('isAmount').value,
+        invoiceDate: document.getElementById('isDate').value,
+        dueDays: document.getElementById('isDue').value,
+        taxRate: document.getElementById('isTax').checked ? taxRate : 0
+      });
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      bootstrap.Modal.getInstance(document.getElementById('issueModal')).hide();
+      showToast('Invoice ' + inv.id + ' diterbitkan', 'success');
+      setTimeout(() => location.reload(), 700);
+    }
+
     if (getUrlParam('pay') && remaining > 0) openPay();
   </script>
 </body>

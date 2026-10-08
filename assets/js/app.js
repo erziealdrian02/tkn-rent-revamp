@@ -650,7 +650,7 @@ function downloadCSV(filename, rows) {
 }
 
 // ---- INVOICE STATUS (label Indonesia) ----
-const INVOICE_STATUS_LABEL = { 'Issued': 'Belum Dibayar', 'Partially Paid': 'Dibayar Sebagian', 'Overdue': 'Jatuh Tempo', 'Paid': 'Lunas', 'Cancelled': 'Dibatalkan' };
+const INVOICE_STATUS_LABEL = { 'Shadow': 'Bayangan', 'Issued': 'Belum Dibayar', 'Partially Paid': 'Dibayar Sebagian', 'Overdue': 'Jatuh Tempo', 'Paid': 'Lunas', 'Cancelled': 'Dibatalkan' };
 function invoiceStatusBadge(status) {
   return statusBadge(status).replace('>' + status + '<', '>' + (INVOICE_STATUS_LABEL[status] || status) + '<');
 }

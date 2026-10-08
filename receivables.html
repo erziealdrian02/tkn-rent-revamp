@@ -60,7 +60,7 @@
 
     function build() {
       const asOf = document.getElementById('asOf').value;
-      const invoices = MockData.invoices.filter(i => i.status !== 'Cancelled' && i.invoiceDate <= asOf);
+      const invoices = MockData.invoices.filter(i => i.status !== 'Cancelled' && i.status !== 'Shadow' && i.invoiceDate <= asOf);
       const byCust = {};
       invoices.forEach(i => {
         const c = byCust[i.customerId] = byCust[i.customerId] || { id: i.customerId, name: i.customerName, total: 0, paid: 0, rest: 0, aging: { current: 0, d30: 0, d60: 0, d90: 0, d90plus: 0 }, invoices: [] };

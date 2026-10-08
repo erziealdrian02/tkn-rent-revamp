@@ -1406,7 +1406,7 @@ BizLogic.Billing = {
 
   rentInvoices: function(projectId) {
     return MockData.invoices.filter(function(i) {
-      return i.type === 'Sewa' && i.projectId === projectId && i.status !== 'Cancelled';
+      return i.type === 'Sewa' && i.projectId === projectId && i.status !== 'Cancelled' && i.status !== 'Shadow';
     });
   },
 
@@ -1434,7 +1434,9 @@ BizLogic.Billing = {
 
 // ============================================================
 // INVOICE — tagihan (Sewa dari rekap, Klaim dari claim)
-// Status disimpan: Issued | Partially Paid | Paid | Cancelled. "Overdue" dihitung saat tampil.
+// Status disimpan: Shadow | Issued | Partially Paid | Paid | Cancelled. "Overdue" dihitung saat tampil.
+// Shadow = invoice bayangan: dicatat dulu walau datanya belum lengkap, belum masuk piutang
+// sampai diterbitkan (status → Issued). Flag fromShadow tetap menempel setelah diterbitkan.
 // ============================================================
 
 BizLogic.Invoice = {
@@ -1450,12 +1452,12 @@ BizLogic.Invoice = {
   },
 
   outstanding: function(inv, asOf) {
-    if (inv.status === 'Cancelled') return 0;
+    if (inv.status === 'Cancelled' || inv.status === 'Shadow') return 0;
     return Math.max(0, inv.amount - this.paidAmount(inv, asOf));
   },
 
   statusOf: function(inv, asOf) {
-    if (inv.status === 'Cancelled') return 'Cancelled';
+    if (inv.status === 'Cancelled' || inv.status === 'Shadow') return inv.status;
     var today = asOf || new Date().toISOString().split('T')[0];
     var paid = this.paidAmount(inv, asOf);
     if (paid >= inv.amount) return 'Paid';
@@ -1475,7 +1477,7 @@ BizLogic.Invoice = {
   },
 
   _syncStatus: function(inv) {
-    if (inv.status === 'Cancelled') return;
+    if (inv.status === 'Cancelled' || inv.status === 'Shadow') return;
     var paid = this.paidAmount(inv);
     inv.status = paid >= inv.amount ? 'Paid' : paid > 0 ? 'Partially Paid' : 'Issued';
     inv.paidDate = inv.status === 'Paid' ? this.payments(inv.id).slice(-1)[0].date : null;
@@ -1503,6 +1505,12 @@ BizLogic.Invoice = {
       return { success: false, error: 'Periode bertabrakan dengan invoice ' + clash.map(function(i) { return i.id + ' (' + i.periodStart + ' s/d ' + i.periodEnd + ')'; }).join(', ') };
     }
 
+    var shadow = null;
+    if (opts.shadowId) {
+      shadow = MockData.invoices.find(function(i) { return i.id === opts.shadowId && i.status === 'Shadow'; });
+      if (!shadow) return { success: false, error: 'Invoice bayangan ' + opts.shadowId + ' tidak ditemukan / sudah diterbitkan' };
+    }
+
     var lines = BizLogic.Billing.recap(projectId, periodStart, periodEnd, opts);
     if (!lines.length) return { success: false, error: 'Tidak ada alat yang disewa pada periode ini' };
 
@@ -1513,7 +1521,7 @@ BizLogic.Invoice = {
     var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
 
     var inv = Object.assign({
-      id: MockData.generateId('INV', 'invoices'),
+      id: shadow ? shadow.id : MockData.generateId('INV', 'invoices'),
       type: 'Sewa',
       projectId: project.id, projectName: project.name,
       customerId: project.customerId, customerName: project.customerName,
@@ -1530,13 +1538,18 @@ BizLogic.Invoice = {
         };
       }),
       status: 'Issued',
-      notes: opts.notes || '',
+      notes: opts.notes || (shadow && shadow.notes) || '',
       createdBy: user.name || 'System'
     }, this._totals(subtotal, taxRate), this._account(opts.accountId));
 
-    MockData.invoices.push(inv);
+    if (shadow) {
+      Object.assign(inv, { fromShadow: true, shadowEstimate: shadow.amount });
+      MockData.invoices[MockData.invoices.indexOf(shadow)] = inv;
+    } else {
+      MockData.invoices.push(inv);
+    }
     MockData.save('invoices');
-    BizLogic.Activity.log('Invoice ' + inv.id + ' diterbitkan untuk ' + project.name + ' (' + periodStart + ' s/d ' + periodEnd + ')', 'success');
+    BizLogic.Activity.log('Invoice ' + inv.id + ' diterbitkan untuk ' + project.name + ' (' + periodStart + ' s/d ' + periodEnd + ')' + (shadow ? ' dari invoice bayangan' : ''), 'success');
     return { success: true, invoice: inv };
   },
 
@@ -1556,6 +1569,72 @@ BizLogic.Invoice = {
     MockData.invoices.push(inv);
     MockData.save('invoices');
     return inv;
+  },
+
+  // Invoice bayangan — semua field opsional kecuali customer.
+  // data: { customerId, projectId, type, periodStart, periodEnd, invoiceDate, dueDays, estimate, taxRate, accountId, notes }
+  createShadow: function(data) {
+    data = data || {};
+    var customer = MockData.customers.find(function(c) { return c.id === data.customerId; });
+    if (!customer) return { success: false, error: 'Pilih customer' };
+    var project = data.projectId ? MockData.projects.find(function(p) { return p.id === data.projectId; }) : null;
+    if (project && project.customerId !== customer.id) return { success: false, error: 'Proyek bukan milik customer ini' };
+    if (data.periodStart && data.periodEnd && data.periodEnd < data.periodStart) return { success: false, error: 'Tanggal akhir periode sebelum tanggal awal' };
+
+    var est = Math.max(0, Math.round(Number(data.estimate) || 0));
+    var invoiceDate = data.invoiceDate || new Date().toISOString().split('T')[0];
+    var dueDays = data.dueDays != null && data.dueDays !== '' ? Number(data.dueDays) : ((MockData.settings && MockData.settings.paymentTermDays) || 30);
+    var type = data.type === 'Klaim' ? 'Klaim' : 'Sewa';
+    var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
+
+    var inv = Object.assign({
+      id: MockData.generateId('INV', 'invoices'),
+      type: type,
+      projectId: project ? project.id : null, projectName: project ? project.name : null,
+      customerId: customer.id, customerName: customer.name,
+      reference: data.periodStart ? 'Sewa ' + data.periodStart + ' s/d ' + (data.periodEnd || '?') : 'Invoice bayangan',
+      invoiceDate: invoiceDate,
+      dueDate: BizLogic.Billing.addDays(invoiceDate, dueDays),
+      periodStart: data.periodStart || null, periodEnd: data.periodEnd || null,
+      items: est ? [{ desc: 'Estimasi tagihan ' + type.toLowerCase(), qty: 1, unitPrice: est, amount: est }] : [],
+      status: 'Shadow',
+      fromShadow: true,
+      notes: data.notes || '',
+      createdBy: user.name || 'System'
+    }, this._totals(est, data.taxRate), this._account(data.accountId));
+
+    MockData.invoices.push(inv);
+    MockData.save('invoices');
+    BizLogic.Activity.log('Invoice bayangan ' + inv.id + ' dibuat untuk ' + customer.name, 'info');
+    return { success: true, invoice: inv };
+  },
+
+  // Terbitkan invoice bayangan dengan nominal final (tanpa rekap).
+  // data: { amount, desc, taxRate, invoiceDate, dueDays, accountId, notes }
+  issueShadow: function(invoiceId, data) {
+    data = data || {};
+    var inv = MockData.invoices.find(function(i) { return i.id === invoiceId; });
+    if (!inv) return { success: false, error: 'Invoice tidak ditemukan' };
+    if (inv.status !== 'Shadow') return { success: false, error: 'Invoice ini bukan invoice bayangan' };
+    var subtotal = Math.round(Number(data.amount));
+    if (isNaN(subtotal) || subtotal <= 0) return { success: false, error: 'Nominal tagihan harus lebih dari 0' };
+
+    var invoiceDate = data.invoiceDate || new Date().toISOString().split('T')[0];
+    var dueDays = data.dueDays != null && data.dueDays !== '' ? Number(data.dueDays) : ((MockData.settings && MockData.settings.paymentTermDays) || 30);
+    var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
+
+    Object.assign(inv, {
+      shadowEstimate: inv.amount,
+      invoiceDate: invoiceDate,
+      dueDate: BizLogic.Billing.addDays(invoiceDate, dueDays),
+      items: [{ desc: data.desc || 'Tagihan ' + inv.type.toLowerCase(), qty: 1, unitPrice: subtotal, amount: subtotal }],
+      status: 'Issued',
+      notes: data.notes != null ? data.notes : inv.notes,
+      issuedBy: user.name || 'System'
+    }, this._totals(subtotal, data.taxRate != null ? Number(data.taxRate) : inv.taxRate), this._account(data.accountId || inv.accountId));
+    MockData.save('invoices');
+    BizLogic.Activity.log('Invoice bayangan ' + inv.id + ' diterbitkan (' + inv.customerName + ')', 'success');
+    return { success: true, invoice: inv };
   },
 
   cancel: function(invoiceId, reason) {
@@ -1585,6 +1664,7 @@ BizLogic.Payment = {
     var inv = MockData.invoices.find(function(i) { return i.id === invoiceId; });
     if (!inv) return { success: false, error: 'Invoice tidak ditemukan' };
     if (inv.status === 'Cancelled') return { success: false, error: 'Invoice sudah dibatalkan' };
+    if (inv.status === 'Shadow') return { success: false, error: 'Invoice bayangan harus diterbitkan dulu sebelum dibayar' };
 
     var amt = Math.round(Number(data.amount));
     if (isNaN(amt) || amt <= 0) return { success: false, error: 'Jumlah pembayaran tidak valid' };
