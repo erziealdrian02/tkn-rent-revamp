@@ -37,7 +37,7 @@
   <script src="assets/js/mock-data.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
-    initApp('deliveries.html',[{label:'Penyewaan',href:'#'},{label:'Pengiriman'}],'Pengiriman');
+    initApp('deliveries.html',[{label:'Rekap Stok',href:'#'},{label:'Pengiriman'}],'Pengiriman');
     const df=document.getElementById('driverFilter');
     [...new Set(MockData.deliveries.filter(d=>d.driverName).map(d=>d.driverName))].forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;df.appendChild(o);});
     const sessionUser = JSON.parse(sessionStorage.getItem('er_user') || '{}');

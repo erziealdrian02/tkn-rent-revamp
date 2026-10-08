@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice Bayangan — EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h2 class="page-header-title" id="pageTitle">Buat Invoice Bayangan</h2>
+            <p class="page-header-subtitle">Barang diisi manual — belum masuk piutang sampai diterbitkan</p>
+          </div>
+          <div class="page-header-actions">
+            <a href="invoices.html" class="btn btn-outline-secondary btn-sm" id="backLink"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
+          </div>
+        </div>
+
+        <div class="er-card mb-4">
+          <div class="er-card-header"><h5 class="er-card-title"><i class="bi bi-file-earmark-plus me-1"></i>Informasi Invoice</h5></div>
+          <div class="er-card-body">
+            <div class="row g-3">
+              <div class="col-md-4"><label class="form-label form-label-er">Customer <span class="text-danger">*</span></label><select class="form-select" id="fCustomer" onchange="onCustomerChange()"></select></div>
+              <div class="col-md-4"><label class="form-label form-label-er">Proyek</label><select class="form-select" id="fProject" onchange="onProjectChange()"></select></div>
+              <div class="col-6 col-md-2"><label class="form-label form-label-er">Tipe</label><select class="form-select" id="fType" onchange="renderItems()"><option>Sewa</option><option>Klaim</option></select></div>
+              <div class="col-6 col-md-2 d-flex align-items-end"><label class="d-flex align-items-center gap-2 fs-13 mb-2"><input type="checkbox" class="form-check-input m-0" id="fTax" checked onchange="recalc()"> PPN <span id="taxPct"></span></label></div>
+              <div class="col-6 col-md-3 rent-only"><label class="form-label form-label-er">Periode Awal</label><input type="date" class="form-control" id="fStart" onchange="onPeriodChange()"></div>
+              <div class="col-6 col-md-3 rent-only"><label class="form-label form-label-er">Periode Akhir</label><input type="date" class="form-control" id="fEnd" onchange="onPeriodChange()"></div>
+              <div class="col-6 col-md-2 rent-only"><label class="form-label form-label-er" title="Pembagi harga satuan per bulan">Bulan Sewa (hari)</label><input type="number" class="form-control text-end" id="fMonthDays" min="1" oninput="recalc()"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="er-card mb-4">
+          <div class="er-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h5 class="er-card-title mb-0"><i class="bi bi-box-seam me-1"></i>Barang</h5>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-secondary btn-sm" id="btnFromProject" onclick="fillFromProject()" disabled><i class="bi bi-list-check me-1"></i>Ambil dari Kebutuhan Proyek</button>
+              <button class="btn btn-primary btn-sm" onclick="addItem()"><i class="bi bi-plus-lg me-1"></i>Tambah Barang</button>
+            </div>
+          </div>
+          <div class="er-card-body">
+            <div class="er-table-wrapper"><table class="er-table">
+              <thead id="itemsHead"></thead>
+              <tbody id="itemsBody"></tbody>
+              <tfoot id="itemsFoot"></tfoot>
+            </table></div>
+            <p class="fs-12 text-muted mt-2 mb-0" id="formulaNote"></p>
+            <datalist id="equipmentList"></datalist>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-body">
+            <div class="row g-3 align-items-end">
+              <div class="col-6 col-md-2"><label class="form-label form-label-er">Tgl Invoice</label><input type="date" class="form-control" id="fInvDate"></div>
+              <div class="col-6 col-md-2"><label class="form-label form-label-er">Jatuh Tempo (hari)</label><input type="number" class="form-control text-end" id="fDue"></div>
+              <div class="col-md-3"><label class="form-label form-label-er">Rekening</label><select class="form-select" id="fAccount"></select></div>
+              <div class="col-md-5"><label class="form-label form-label-er">Catatan</label><input type="text" class="form-control" id="fNotes" placeholder="Mis. menunggu SJ pulang / konfirmasi customer"></div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-3">
+              <a href="invoices.html" class="btn btn-outline-secondary" id="cancelLink">Batal</a>
+              <button class="btn btn-primary" onclick="save()"><i class="bi bi-check-lg me-1"></i>Simpan Bayangan</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    const Inv = BizLogic.Invoice;
+    const Bill = BizLogic.Billing;
+    const settings = MockData.settings || {};
+    const today = new Date().toISOString().split('T')[0];
+    const editing = getUrlParam('id') ? MockData.invoices.find(i => i.id === getUrlParam('id')) : null;
+    if (getUrlParam('id') && (!editing || editing.status !== 'Shadow')) {
+      location.replace('invoice-detail.html?id=' + getUrlParam('id'));
+    }
+    initApp('invoices.html', [{label:'Piutang',href:'#'},{label:'Invoice',href:'invoices.html'},{label: editing ? editing.id : 'Invoice Bayangan'}], 'Invoice Bayangan');
+
+    let items = [];
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const isRent = () => document.getElementById('fType').value === 'Sewa';
+    const monthDays = () => Number(document.getElementById('fMonthDays').value) || Bill.monthDays();
+
+    document.getElementById('fCustomer').innerHTML = '<option value="">— Pilih customer —</option>' + MockData.customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    document.getElementById('fAccount').innerHTML = MockData.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+    document.getElementById('taxPct').textContent = Math.round((settings.taxRate || 0) * 100) + '%';
+
+    function onCustomerChange() {
+      const cid = document.getElementById('fCustomer').value;
+      document.getElementById('fProject').innerHTML = '<option value="">— Tanpa proyek —</option>' + MockData.projects.filter(p => p.customerId === cid).map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+      onProjectChange();
+    }
+    function onProjectChange() {
+      const p = MockData.projects.find(x => x.id === document.getElementById('fProject').value);
+      document.getElementById('btnFromProject').disabled = !(p && (p.requirements || []).length);
+      const names = new Set([...(p ? (p.requirements || []).map(r => r.equipment) : []), ...MockData.equipment.map(e => e.name)]);
+      document.getElementById('equipmentList').innerHTML = [...names].map(n => `<option value="${esc(n)}">`).join('');
+    }
+    function onPeriodChange() {
+      const s = document.getElementById('fStart').value, e = document.getElementById('fEnd').value;
+      items.forEach(it => { if (!it.startDate) it.startDate = s; if (!it.endDate) it.endDate = e; });
+      renderItems();
+    }
+
+    function blankItem(desc, qty, unitPrice) {
+      return { desc: desc || '', qty: qty || 1, unitPrice: unitPrice || '', startDate: document.getElementById('fStart').value, endDate: document.getElementById('fEnd').value };
+    }
+    function addItem() {
+      items.push(blankItem());
+      renderItems();
+      const inputs = document.querySelectorAll('#itemsBody input[data-f="desc"]');
+      inputs[inputs.length - 1].focus();
+    }
+    function removeItem(n) { items.splice(n, 1); renderItems(); }
+    function fillFromProject() {
+      const p = MockData.projects.find(x => x.id === document.getElementById('fProject').value);
+      (p.requirements || []).forEach(r => {
+        if (!items.some(it => it.desc === r.equipment)) items.push(blankItem(r.equipment, r.qty, r.unitPrice));
+      });
+      items = items.filter(it => it.desc.trim());
+      renderItems();
+    }
+
+    function lineCalc(it) {
+      const qty = Number(it.qty) || 0, price = Number(it.unitPrice) || 0;
+      if (!isRent()) return { days: null, amount: Math.round(qty * price) };
+      const days = it.startDate && it.endDate && it.endDate >= it.startDate ? Bill.days(it.startDate, it.endDate) : 0;
+      return { days, amount: Math.round(qty * days * price / monthDays()) };
+    }
+
+    function renderItems() {
+      const rent = isRent();
+      document.querySelectorAll('.rent-only').forEach(el => el.classList.toggle('d-none', !rent));
+      document.getElementById('itemsHead').innerHTML = rent
+        ? '<tr><th style="width:40px">No</th><th>Nama Barang</th><th class="num" style="width:90px">Qty</th><th class="num" style="width:150px">Harga Satuan</th><th style="width:150px">Awal</th><th style="width:150px">Akhir</th><th class="num" style="width:70px">Hari</th><th class="num">Total</th><th style="width:44px"></th></tr>'
+        : '<tr><th style="width:40px">No</th><th>Deskripsi</th><th class="num" style="width:90px">Qty</th><th class="num" style="width:160px">Harga Satuan</th><th class="num">Total</th><th style="width:44px"></th></tr>';
+      document.getElementById('itemsBody').innerHTML = items.map((it, n) => `<tr>
+        <td>${n + 1}</td>
+        <td><input type="text" class="form-control form-control-sm" list="equipmentList" data-f="desc" value="${esc(it.desc)}" placeholder="${rent ? 'Ketik / pilih barang' : 'Deskripsi'}" oninput="setField(${n},'desc',this.value)" onchange="onDescChange(${n})"></td>
+        <td><input type="number" min="0" class="form-control form-control-sm text-end" value="${esc(it.qty)}" oninput="setField(${n},'qty',this.value)"></td>
+        <td><input type="number" min="0" class="form-control form-control-sm text-end" id="price-${n}" value="${esc(it.unitPrice)}" oninput="setField(${n},'unitPrice',this.value)"></td>
+        ${rent ? `<td><input type="date" class="form-control form-control-sm" value="${esc(it.startDate)}" onchange="setField(${n},'startDate',this.value)"></td>
+        <td><input type="date" class="form-control form-control-sm" value="${esc(it.endDate)}" onchange="setField(${n},'endDate',this.value)"></td>
+        <td class="num" id="days-${n}"></td>` : ''}
+        <td class="num fw-600" id="amt-${n}"></td>
+        <td><button class="btn-action" title="Hapus" onclick="removeItem(${n})"><i class="bi bi-trash"></i></button></td>
+      </tr>`).join('') || `<tr><td colspan="${rent ? 9 : 6}" class="text-center text-muted py-4">Belum ada barang — klik <strong>Tambah Barang</strong>. Boleh disimpan kosong dulu.</td></tr>`;
+      document.getElementById('formulaNote').innerHTML = rent
+        ? `<strong>Hari</strong> = Akhir − Awal + 1 &nbsp;·&nbsp; <strong>Total</strong> = Qty × Hari × Harga Satuan ÷ <span id="mdText"></span> (bulan sewa)`
+        : '<strong>Total</strong> = Qty × Harga Satuan';
+      recalc();
+    }
+
+    function setField(n, f, v) { items[n][f] = v; recalc(); }
+    function onDescChange(n) {
+      const it = items[n];
+      if (it.desc.trim() && !Number(it.unitPrice)) {
+        const price = Bill.unitPrice(document.getElementById('fProject').value, it.desc.trim());
+        if (price) { it.unitPrice = price; document.getElementById('price-' + n).value = price; recalc(); }
+      }
+    }
+
+    function recalc() {
+      const rent = isRent();
+      let subtotal = 0;
+      items.forEach((it, n) => {
+        const c = lineCalc(it);
+        if (it.desc.trim()) subtotal += c.amount;
+        if (rent) document.getElementById('days-' + n).textContent = c.days || '-';
+        document.getElementById('amt-' + n).textContent = formatRupiah(c.amount);
+      });
+      const md = document.getElementById('mdText');
+      if (md) md.textContent = monthDays();
+      const taxRate = document.getElementById('fTax').checked ? (settings.taxRate || 0) : 0;
+      const tax = Math.round(subtotal * taxRate);
+      const span = rent ? 7 : 4;
+      document.getElementById('itemsFoot').innerHTML = items.length ? `
+        <tr><td colspan="${span}" class="text-end">Subtotal</td><td class="num">${formatRupiah(subtotal)}</td><td></td></tr>
+        ${taxRate ? `<tr><td colspan="${span}" class="text-end">PPN ${Math.round(taxRate * 100)}%</td><td class="num">${formatRupiah(tax)}</td><td></td></tr>` : ''}
+        <tr><td colspan="${span}" class="text-end fw-600">TOTAL</td><td class="num fw-600">${formatRupiah(subtotal + tax)}</td><td></td></tr>` : '';
+    }
+
+    function save() {
+      const res = Inv.saveShadow({
+        customerId: document.getElementById('fCustomer').value,
+        projectId: document.getElementById('fProject').value,
+        type: document.getElementById('fType').value,
+        periodStart: isRent() ? document.getElementById('fStart').value : '',
+        periodEnd: isRent() ? document.getElementById('fEnd').value : '',
+        monthDays: monthDays(),
+        items: items,
+        invoiceDate: document.getElementById('fInvDate').value,
+        dueDays: document.getElementById('fDue').value,
+        taxRate: document.getElementById('fTax').checked ? (settings.taxRate || 0) : 0,
+        accountId: document.getElementById('fAccount').value,
+        notes: document.getElementById('fNotes').value.trim()
+      }, editing ? editing.id : null);
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      showToast('Invoice bayangan ' + res.invoice.id + ' disimpan', 'success');
+      setTimeout(() => window.location.href = 'invoice-detail.html?id=' + res.invoice.id, 700);
+    }
+
+    // ---------- Init ----------
+    if (editing) {
+      document.getElementById('pageTitle').textContent = 'Ubah Invoice Bayangan ' + editing.id;
+      document.getElementById('backLink').href = document.getElementById('cancelLink').href = 'invoice-detail.html?id=' + editing.id;
+      document.getElementById('fCustomer').value = editing.customerId;
+      onCustomerChange();
+      document.getElementById('fProject').value = editing.projectId || '';
+      onProjectChange();
+      document.getElementById('fType').value = editing.type;
+      document.getElementById('fStart').value = editing.periodStart || '';
+      document.getElementById('fEnd').value = editing.periodEnd || '';
+      document.getElementById('fMonthDays').value = editing.monthDays || Bill.monthDays();
+      document.getElementById('fTax').checked = editing.taxRate > 0;
+      document.getElementById('fInvDate').value = editing.invoiceDate;
+      document.getElementById('fDue').value = Bill.days(editing.invoiceDate, editing.dueDate) - 1;
+      document.getElementById('fAccount').value = editing.accountId;
+      document.getElementById('fNotes').value = editing.notes || '';
+      items = editing.items.map(it => ({ desc: it.desc, qty: it.qty, unitPrice: it.unitPrice, startDate: it.startDate || '', endDate: it.endDate || '' }));
+    } else {
+      document.getElementById('fCustomer').value = getUrlParam('customer') || '';
+      onCustomerChange();
+      if (getUrlParam('project')) { document.getElementById('fProject').value = getUrlParam('project'); onProjectChange(); }
+      document.getElementById('fMonthDays').value = Bill.monthDays();
+      document.getElementById('fInvDate').value = today;
+      document.getElementById('fDue').value = settings.paymentTermDays || 30;
+    }
+    renderItems();
+  </script>
+</body>
+</html>

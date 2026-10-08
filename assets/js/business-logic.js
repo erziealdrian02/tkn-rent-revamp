@@ -1571,24 +1571,65 @@ BizLogic.Invoice = {
     return inv;
   },
 
-  // Invoice bayangan — semua field opsional kecuali customer.
-  // data: { customerId, projectId, type, periodStart, periodEnd, invoiceDate, dueDays, estimate, taxRate, accountId, notes }
-  createShadow: function(data) {
+  // Hitung ulang baris barang invoice bayangan (diisi manual).
+  // Sewa: Total = Qty × Hari × Harga Satuan ÷ Bulan Sewa (sama dgn rekap). Klaim/lainnya: Qty × Harga Satuan.
+  shadowItems: function(type, items, monthDays) {
+    var Bill = BizLogic.Billing;
+    var out = [], error = null;
+    (items || []).forEach(function(it, n) {
+      var desc = String(it.desc || '').trim();
+      if (!desc) return; // baris kosong diabaikan
+      var qty = Number(it.qty) || 0, unitPrice = Math.round(Number(it.unitPrice) || 0);
+      if (qty <= 0 && !error) error = 'Qty "' + desc + '" harus lebih dari 0';
+      if (type === 'Sewa') {
+        var start = it.startDate || null, end = it.endDate || null;
+        if (start && end && end < start && !error) error = 'Tanggal akhir "' + desc + '" sebelum tanggal awal';
+        var days = start && end && end >= start ? Bill.days(start, end) : 0;
+        out.push({
+          desc: desc, equipment: desc, qty: qty, unitPrice: unitPrice,
+          startDate: start, endDate: end, days: days,
+          amount: Math.round(qty * days * unitPrice / monthDays),
+          sjDelivery: null, sjReturn: null, adjusted: false, manual: true
+        });
+      } else {
+        out.push({ desc: desc, qty: qty, unitPrice: unitPrice, amount: Math.round(qty * unitPrice), manual: true });
+      }
+    });
+    return { items: out, error: error };
+  },
+
+  // Buat / ubah invoice bayangan — semua field opsional kecuali customer; barang ditambah manual.
+  // data: { customerId, projectId, type, periodStart, periodEnd, monthDays, items[], invoiceDate, dueDays, taxRate, accountId, notes }
+  saveShadow: function(data, invoiceId) {
     data = data || {};
+    var existing = null;
+    if (invoiceId) {
+      existing = MockData.invoices.find(function(i) { return i.id === invoiceId; });
+      if (!existing) return { success: false, error: 'Invoice tidak ditemukan' };
+      if (existing.status !== 'Shadow') return { success: false, error: 'Invoice ini sudah diterbitkan, tidak bisa diubah' };
+    }
     var customer = MockData.customers.find(function(c) { return c.id === data.customerId; });
     if (!customer) return { success: false, error: 'Pilih customer' };
     var project = data.projectId ? MockData.projects.find(function(p) { return p.id === data.projectId; }) : null;
     if (project && project.customerId !== customer.id) return { success: false, error: 'Proyek bukan milik customer ini' };
     if (data.periodStart && data.periodEnd && data.periodEnd < data.periodStart) return { success: false, error: 'Tanggal akhir periode sebelum tanggal awal' };
 
-    var est = Math.max(0, Math.round(Number(data.estimate) || 0));
+    var type = data.type === 'Klaim' ? 'Klaim' : 'Sewa';
+    var monthDays = Number(data.monthDays) || BizLogic.Billing.monthDays();
+    var calc = this.shadowItems(type, data.items, monthDays);
+    if (calc.error) return { success: false, error: calc.error };
+    var subtotal = calc.items.reduce(function(s, l) { return s + l.amount; }, 0);
+
     var invoiceDate = data.invoiceDate || new Date().toISOString().split('T')[0];
     var dueDays = data.dueDays != null && data.dueDays !== '' ? Number(data.dueDays) : ((MockData.settings && MockData.settings.paymentTermDays) || 30);
-    var type = data.type === 'Klaim' ? 'Klaim' : 'Sewa';
     var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
 
-    var inv = Object.assign({
+    var inv = Object.assign(existing || {
       id: MockData.generateId('INV', 'invoices'),
+      status: 'Shadow',
+      fromShadow: true,
+      createdBy: user.name || 'System'
+    }, {
       type: type,
       projectId: project ? project.id : null, projectName: project ? project.name : null,
       customerId: customer.id, customerName: customer.name,
@@ -1596,42 +1637,35 @@ BizLogic.Invoice = {
       invoiceDate: invoiceDate,
       dueDate: BizLogic.Billing.addDays(invoiceDate, dueDays),
       periodStart: data.periodStart || null, periodEnd: data.periodEnd || null,
-      items: est ? [{ desc: 'Estimasi tagihan ' + type.toLowerCase(), qty: 1, unitPrice: est, amount: est }] : [],
-      status: 'Shadow',
-      fromShadow: true,
-      notes: data.notes || '',
-      createdBy: user.name || 'System'
-    }, this._totals(est, data.taxRate), this._account(data.accountId));
+      monthDays: type === 'Sewa' ? monthDays : undefined,
+      items: calc.items,
+      notes: data.notes || ''
+    }, this._totals(subtotal, Number(data.taxRate) || 0), this._account(data.accountId));
 
-    MockData.invoices.push(inv);
+    if (!existing) MockData.invoices.push(inv);
     MockData.save('invoices');
-    BizLogic.Activity.log('Invoice bayangan ' + inv.id + ' dibuat untuk ' + customer.name, 'info');
+    BizLogic.Activity.log('Invoice bayangan ' + inv.id + (existing ? ' diubah' : ' dibuat untuk ' + customer.name), 'info');
     return { success: true, invoice: inv };
   },
 
-  // Terbitkan invoice bayangan dengan nominal final (tanpa rekap).
-  // data: { amount, desc, taxRate, invoiceDate, dueDays, accountId, notes }
+  // Terbitkan invoice bayangan apa adanya (barang manual). data: { invoiceDate, dueDays, taxRate, accountId }
   issueShadow: function(invoiceId, data) {
     data = data || {};
     var inv = MockData.invoices.find(function(i) { return i.id === invoiceId; });
     if (!inv) return { success: false, error: 'Invoice tidak ditemukan' };
     if (inv.status !== 'Shadow') return { success: false, error: 'Invoice ini bukan invoice bayangan' };
-    var subtotal = Math.round(Number(data.amount));
-    if (isNaN(subtotal) || subtotal <= 0) return { success: false, error: 'Nominal tagihan harus lebih dari 0' };
+    if (!inv.items.length || inv.subtotal <= 0) return { success: false, error: 'Tambahkan barang dengan total lebih dari 0 sebelum menerbitkan' };
 
     var invoiceDate = data.invoiceDate || new Date().toISOString().split('T')[0];
     var dueDays = data.dueDays != null && data.dueDays !== '' ? Number(data.dueDays) : ((MockData.settings && MockData.settings.paymentTermDays) || 30);
     var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
 
     Object.assign(inv, {
-      shadowEstimate: inv.amount,
       invoiceDate: invoiceDate,
       dueDate: BizLogic.Billing.addDays(invoiceDate, dueDays),
-      items: [{ desc: data.desc || 'Tagihan ' + inv.type.toLowerCase(), qty: 1, unitPrice: subtotal, amount: subtotal }],
       status: 'Issued',
-      notes: data.notes != null ? data.notes : inv.notes,
       issuedBy: user.name || 'System'
-    }, this._totals(subtotal, data.taxRate != null ? Number(data.taxRate) : inv.taxRate), this._account(data.accountId || inv.accountId));
+    }, this._totals(inv.subtotal, data.taxRate != null ? Number(data.taxRate) : inv.taxRate), this._account(data.accountId || inv.accountId));
     MockData.save('invoices');
     BizLogic.Activity.log('Invoice bayangan ' + inv.id + ' diterbitkan (' + inv.customerName + ')', 'success');
     return { success: true, invoice: inv };

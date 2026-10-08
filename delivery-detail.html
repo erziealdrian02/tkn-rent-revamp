@@ -81,7 +81,7 @@
   <script>
     const did = getUrlParam('id') || 'DLV-001';
     const dlv = MockData.deliveries.find(d => d.id === did) || MockData.deliveries[0];
-    initApp('deliveries.html',[{label:'Penyewaan',href:'#'},{label:'Pengiriman',href:'deliveries.html'},{label:dlv.id}],dlv.id);
+    initApp('deliveries.html',[{label:'Rekap Stok',href:'#'},{label:'Pengiriman',href:'deliveries.html'},{label:dlv.id}],dlv.id);
 
     document.getElementById('detailHeader').innerHTML = `
       <div class="detail-header-left">

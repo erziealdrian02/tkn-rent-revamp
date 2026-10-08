@@ -65,8 +65,7 @@
       <div class="modal-body">
         <div class="alert alert-light border py-2 fs-13">Setelah diterbitkan, status berubah jadi <strong>Belum Dibayar</strong> dan invoice masuk ke piutang.</div>
         <div class="row g-3">
-          <div class="col-12"><label class="form-label form-label-er">Deskripsi</label><input type="text" id="isDesc" class="form-control"></div>
-          <div class="col-12"><label class="form-label form-label-er">Nominal Final (sebelum PPN)</label><div class="input-group"><span class="input-group-text">Rp</span><input type="number" min="0" id="isAmount" class="form-control text-end"></div></div>
+          <div class="col-12 fs-13">Subtotal <strong id="isSubtotal"></strong> dari <span id="isCount"></span> barang. <span class="text-muted">Ubah barang dulu kalau belum final.</span></div>
           <div class="col-6"><label class="form-label form-label-er">Tgl Invoice</label><input type="date" id="isDate" class="form-control"></div>
           <div class="col-6"><label class="form-label form-label-er">Jatuh Tempo (hari)</label><input type="number" id="isDue" class="form-control text-end"></div>
           <div class="col-12"><label class="d-flex align-items-center gap-2 fs-13"><input type="checkbox" class="form-check-input m-0" id="isTax"> PPN <span id="isTaxPct"></span></label></div>
@@ -97,28 +96,29 @@
     const remaining = Inv.outstanding(inv);
     const isShadow = status === 'Shadow';
     const isRent = inv.type === 'Sewa';
-    const isRecap = isRent && !isShadow && !!inv.monthDays; // item berasal dari rekap SJ
+    const isRecap = isRent && !!inv.monthDays; // tabel sewa: Qty × Hari × Harga ÷ Bulan Sewa (dari rekap SJ atau diisi manual)
     const canRecap = isShadow && isRent && inv.projectId;
 
     document.getElementById('actions').innerHTML = `
       ${isRent && inv.projectId ? `<a href="billing.html?project=${inv.projectId}${isShadow ? '&shadow=' + inv.id : ''}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calculator me-1"></i>${isShadow ? 'Terbitkan dari Rekap' : 'Rekap Tagihan'}</a>` : ''}
       <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak</button>
       ${paid === 0 && status !== 'Cancelled' ? '<button class="btn btn-outline-danger btn-sm" onclick="cancelInvoice()"><i class="bi bi-x-circle me-1"></i>Batalkan</button>' : ''}
-      ${isShadow ? '<button class="btn btn-primary btn-sm" onclick="openIssue()"><i class="bi bi-send-check me-1"></i>Terbitkan</button>' : ''}
+      ${isShadow ? `<a href="invoice-shadow.html?id=${inv.id}" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil-square me-1"></i>Ubah Barang</a>
+      <button class="btn btn-primary btn-sm" onclick="openIssue()"><i class="bi bi-send-check me-1"></i>Terbitkan</button>` : ''}
       ${remaining > 0 ? '<button class="btn btn-success btn-sm" onclick="openPay()"><i class="bi bi-cash me-1"></i>Catat Pembayaran</button>' : ''}`;
 
     document.getElementById('shadowBanner').innerHTML = isShadow
       ? `<div class="alert alert-warning py-2 fs-13"><i class="bi bi-file-earmark-plus me-1"></i><strong>Invoice bayangan</strong> — belum diterbitkan, belum masuk piutang dan belum bisa dibayar.
-          ${canRecap ? 'Terbitkan dari <strong>Rekap Tagihan</strong> bila data SJ sudah lengkap, atau' : ''} klik <strong>Terbitkan</strong> untuk mengisi nominal final.</div>`
-      : inv.fromShadow ? `<div class="alert alert-light border py-2 fs-13"><i class="bi bi-file-earmark-check me-1"></i>Diterbitkan dari invoice bayangan${inv.shadowEstimate != null ? ' (estimasi awal ' + formatRupiah(inv.shadowEstimate) + ')' : ''}.</div>` : '';
+          ${canRecap ? 'Terbitkan dari <strong>Rekap Tagihan</strong> bila data SJ sudah lengkap, atau' : ''} tambah/ubah barang lewat <strong>Ubah Barang</strong>, lalu klik <strong>Terbitkan</strong> kalau sudah final.</div>`
+      : inv.fromShadow ? `<div class="alert alert-light border py-2 fs-13"><i class="bi bi-file-earmark-check me-1"></i>Diterbitkan dari invoice bayangan${inv.shadowEstimate != null ? ' (total saat bayangan ' + formatRupiah(inv.shadowEstimate) + ')' : ''}.</div>` : '';
 
     const itemsHead = isRecap
       ? '<tr><th>No</th><th>Nama Barang</th><th>SJ Kirim</th><th class="text-end">Qty</th><th>Awal</th><th>Akhir</th><th class="text-end">Hari</th><th class="text-end">Harga Satuan</th><th class="text-end">Total</th></tr>'
       : '<tr><th>No</th><th style="width:55%">Deskripsi</th><th class="text-end">Qty</th><th class="text-end">Harga Satuan</th><th class="text-end">Total</th></tr>';
     const itemsBody = inv.items.map((it, n) => isRecap
-      ? `<tr><td>${n + 1}</td><td>${it.desc}</td><td class="text-mono fs-12">${it.sjDelivery}${it.sjReturn ? '<br><span class="text-muted">↩ ' + it.sjReturn + '</span>' : ''}</td><td class="text-end">${it.qty}</td><td>${formatDate(it.startDate)}</td><td>${formatDate(it.endDate)}${it.adjusted ? ' <i class="bi bi-pencil-square text-warning" title="Tanggal di-adjust"></i>' : ''}</td><td class="text-end">${it.days}</td><td class="text-end">${formatRupiah(it.unitPrice)}</td><td class="text-end">${formatRupiah(it.amount)}</td></tr>`
+      ? `<tr><td>${n + 1}</td><td>${it.desc}</td><td class="text-mono fs-12">${it.sjDelivery || '<span class="text-muted">manual</span>'}${it.sjReturn ? '<br><span class="text-muted">↩ ' + it.sjReturn + '</span>' : ''}</td><td class="text-end">${it.qty}</td><td>${formatDate(it.startDate)}</td><td>${formatDate(it.endDate)}${it.adjusted ? ' <i class="bi bi-pencil-square text-warning" title="Tanggal di-adjust"></i>' : ''}</td><td class="text-end">${it.days}</td><td class="text-end">${formatRupiah(it.unitPrice)}</td><td class="text-end">${formatRupiah(it.amount)}</td></tr>`
       : `<tr><td>${n + 1}</td><td>${it.desc}</td><td class="text-end">${it.qty}</td><td class="text-end">${formatRupiah(it.unitPrice)}</td><td class="text-end">${formatRupiah(it.amount)}</td></tr>`
-    ).join('') || `<tr><td colspan="5" class="text-center text-muted py-4">Belum ada rincian — diisi saat invoice diterbitkan</td></tr>`;
+    ).join('') || `<tr><td colspan="${isRecap ? 9 : 5}" class="text-center text-muted py-4">Belum ada barang${isShadow ? ' — klik <strong>Ubah Barang</strong> untuk menambahkan' : ''}</td></tr>`;
 
     document.getElementById('invoiceContent').classList.toggle('is-shadow', isShadow);
     document.getElementById('invoiceContent').innerHTML = `
@@ -162,7 +162,7 @@
         <table>
           <tr><td class="text-muted">Subtotal</td><td class="text-end">${formatRupiah(inv.subtotal)}</td></tr>
           ${inv.tax ? `<tr><td class="text-muted">PPN ${Math.round(inv.taxRate * 100)}%</td><td class="text-end">${formatRupiah(inv.tax)}</td></tr>` : ''}
-          ${isShadow ? `<tr class="total-row"><td class="pt-2">Estimasi Total</td><td class="text-end pt-2">${formatRupiah(inv.amount)}</td></tr>` : `
+          ${isShadow ? `<tr class="total-row"><td class="pt-2">Total Sementara</td><td class="text-end pt-2">${formatRupiah(inv.amount)}</td></tr>` : `
           <tr><td class="fw-600">Total Tagihan</td><td class="text-end fw-600">${formatRupiah(inv.amount)}</td></tr>
           <tr><td class="text-muted border-bottom pb-2">Sudah Dibayar</td><td class="text-end text-success border-bottom pb-2">− ${formatRupiah(paid)}</td></tr>
           <tr class="total-row"><td class="pt-2">Sisa Tagihan</td><td class="text-end pt-2" style="color:var(--primary)">${formatRupiah(remaining)}</td></tr>`}
@@ -235,9 +235,9 @@
     const taxRate = (MockData.settings && MockData.settings.taxRate) || 0;
     document.getElementById('isTaxPct').textContent = Math.round(taxRate * 100) + '%';
     function openIssue() {
-      const est = inv.items.length === 1 ? inv.items[0] : null;
-      document.getElementById('isDesc').value = est ? est.desc.replace(/^Estimasi tagihan/, 'Tagihan') : 'Tagihan ' + inv.type.toLowerCase();
-      document.getElementById('isAmount').value = inv.subtotal || '';
+      if (!inv.items.length || !inv.subtotal) { showToast('Tambahkan barang dulu lewat Ubah Barang', 'error'); return; }
+      document.getElementById('isSubtotal').textContent = formatRupiah(inv.subtotal);
+      document.getElementById('isCount').textContent = inv.items.length;
       document.getElementById('isDate').value = new Date().toISOString().split('T')[0];
       document.getElementById('isDue').value = Math.max(0, Math.round((new Date(inv.dueDate) - new Date(inv.invoiceDate)) / 864e5)) || (MockData.settings && MockData.settings.paymentTermDays) || 30;
       document.getElementById('isTax').checked = inv.taxRate > 0;
@@ -245,8 +245,6 @@
     }
     function submitIssue() {
       const res = Inv.issueShadow(inv.id, {
-        desc: document.getElementById('isDesc').value.trim(),
-        amount: document.getElementById('isAmount').value,
         invoiceDate: document.getElementById('isDate').value,
         dueDays: document.getElementById('isDue').value,
         taxRate: document.getElementById('isTax').checked ? taxRate : 0

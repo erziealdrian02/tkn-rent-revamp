@@ -116,10 +116,10 @@ function renderSidebar(user, activePage) {
     html += sidebarSection('RENTAL');
     html += sidebarLink('rentals.html', 'bi-file-earmark-text', 'Rentals', activePage);
     html += sidebarLink('projects.html', 'bi-folder', 'Projects', activePage);
-    html += sidebarLink('deliveries.html', 'bi-truck', 'Deliveries', activePage);
-    html += sidebarLink('returns.html', 'bi-box-arrow-in-left', 'Returns', activePage);
     html += sidebarLink('claims.html', 'bi-exclamation-triangle', 'Claims', activePage);
     html += sidebarSection('STOCK RECAP');
+    html += sidebarLink('deliveries.html', 'bi-truck', 'Deliveries', activePage);
+    html += sidebarLink('returns.html', 'bi-box-arrow-in-left', 'Returns', activePage);
     html += sidebarLink('stock.html', 'bi-boxes', 'Warehouse Stock', activePage);
     html += sidebarLink('stock-mutations.html', 'bi-arrow-left-right', 'Stock Movements', activePage);
     html += sidebarLink('project-stock.html', 'bi-folder-check', 'Project Stock', activePage);
@@ -201,10 +201,10 @@ function renderSidebarI18n(user, activePage) {
     html += sidebarSectionI18n(t('rental_section'));
     html += sidebarLinkI18n('rentals.html', 'bi-file-earmark-text', t('rentals'), activePage, 'rentals.html');
     html += sidebarLinkI18n('projects.html', 'bi-folder', t('projects'), activePage, 'projects.html');
-    html += sidebarLinkI18n('deliveries.html', 'bi-truck', t('deliveries'), activePage, 'deliveries.html');
-    html += sidebarLinkI18n('returns.html', 'bi-box-arrow-in-left', t('returns'), activePage, 'returns.html');
     html += sidebarLinkI18n('claims.html', 'bi-exclamation-triangle', t('claims'), activePage, 'claims.html');
     html += sidebarSectionI18n(t('stock_recap_section'));
+    html += sidebarLinkI18n('deliveries.html', 'bi-truck', t('deliveries'), activePage, 'deliveries.html');
+    html += sidebarLinkI18n('returns.html', 'bi-box-arrow-in-left', t('returns'), activePage, 'returns.html');
     html += sidebarLinkI18n('stock.html', 'bi-boxes', t('warehouse_stock'), activePage, 'stock.html');
     html += sidebarLinkI18n('stock-mutations.html', 'bi-arrow-left-right', t('stock_mutations'), activePage, 'stock-mutations.html');
     html += sidebarLinkI18n('project-stock.html', 'bi-folder-check', t('project_stock'), activePage, 'project-stock.html');

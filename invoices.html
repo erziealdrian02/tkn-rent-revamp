@@ -19,7 +19,7 @@
           <div class="page-header-left"><h2 class="page-header-title">Invoice</h2><p class="page-header-subtitle">Tagihan yang sudah diterbitkan dari rekap tagihan dan klaim</p></div>
           <div class="page-header-actions">
             <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-download me-1"></i>Export CSV</button>
-            <button class="btn btn-outline-primary btn-sm" onclick="openShadow()"><i class="bi bi-file-earmark-plus me-1"></i>Invoice Bayangan</button>
+            <a href="invoice-shadow.html" class="btn btn-outline-primary btn-sm" onclick="if (custSel.value) this.href += '?customer=' + custSel.value"><i class="bi bi-file-earmark-plus me-1"></i>Invoice Bayangan</a>
             <a href="billing.html" class="btn btn-primary btn-sm"><i class="bi bi-calculator me-1"></i>Buat dari Rekap Tagihan</a>
           </div>
         </div>
@@ -45,32 +45,6 @@
         </div></div>
       </div>
     </main>
-  </div>
-
-  <!-- Invoice Bayangan Modal -->
-  <div class="modal fade" id="shadowModal" tabindex="-1">
-    <div class="modal-dialog modal-lg"><div class="modal-content">
-      <div class="modal-header"><h5 class="modal-title">Buat Invoice Bayangan</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-      <div class="modal-body">
-        <div class="alert alert-light border py-2 fs-13"><i class="bi bi-info-circle me-1"></i>Invoice bayangan dicatat dulu walau datanya belum lengkap. Belum dihitung sebagai piutang dan belum bisa dibayar sampai <strong>diterbitkan</strong> dari halaman detail.</div>
-        <div class="row g-3">
-          <div class="col-md-6"><label class="form-label form-label-er">Customer <span class="text-danger">*</span></label><select class="form-select" id="shCustomer" onchange="onShadowCustomer()"></select></div>
-          <div class="col-md-6"><label class="form-label form-label-er">Proyek</label><select class="form-select" id="shProject"></select></div>
-          <div class="col-6 col-md-3"><label class="form-label form-label-er">Tipe</label><select class="form-select" id="shType"><option>Sewa</option><option>Klaim</option></select></div>
-          <div class="col-6 col-md-3"><label class="form-label form-label-er">Tgl Invoice</label><input type="date" class="form-control" id="shDate"></div>
-          <div class="col-6 col-md-3"><label class="form-label form-label-er">Periode Awal</label><input type="date" class="form-control" id="shStart"></div>
-          <div class="col-6 col-md-3"><label class="form-label form-label-er">Periode Akhir</label><input type="date" class="form-control" id="shEnd"></div>
-          <div class="col-md-6"><label class="form-label form-label-er">Estimasi Nominal (sebelum PPN)</label><div class="input-group"><span class="input-group-text">Rp</span><input type="number" min="0" class="form-control text-end" id="shEstimate" placeholder="Boleh dikosongkan"></div></div>
-          <div class="col-6 col-md-3"><label class="form-label form-label-er">Jatuh Tempo (hari)</label><input type="number" class="form-control text-end" id="shDue"></div>
-          <div class="col-6 col-md-3 d-flex align-items-end"><label class="d-flex align-items-center gap-2 fs-13 mb-2"><input type="checkbox" class="form-check-input m-0" id="shTax" checked> PPN <span id="shTaxPct"></span></label></div>
-          <div class="col-12"><label class="form-label form-label-er">Catatan</label><textarea class="form-control" id="shNotes" rows="2" placeholder="Mis. menunggu SJ pulang / konfirmasi customer"></textarea></div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-        <button class="btn btn-primary" onclick="submitShadow()"><i class="bi bi-check-lg me-1"></i>Simpan Bayangan</button>
-      </div>
-    </div></div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -117,7 +91,7 @@
       const shadows = data.filter(r => r.status === 'Shadow');
       document.getElementById('shadowAlert').innerHTML = shadows.length && document.getElementById('statusFilter').value !== 'Shadow'
         ? `<div class="alert alert-light border py-2 fs-13 mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <span><i class="bi bi-file-earmark-plus me-1"></i><strong>${shadows.length} invoice bayangan</strong> belum diterbitkan (estimasi ${formatRupiah(shadows.reduce((s, r) => s + r.i.amount, 0))}) — belum dihitung ke piutang.</span>
+            <span><i class="bi bi-file-earmark-plus me-1"></i><strong>${shadows.length} invoice bayangan</strong> belum diterbitkan (total sementara ${formatRupiah(shadows.reduce((s, r) => s + r.i.amount, 0))}) — belum dihitung ke piutang.</span>
             <a href="#" class="fs-12" onclick="document.getElementById('statusFilter').value='Shadow';render();return false">Lihat bayangan</a></div>`
         : '';
       const sum = f => active.reduce((s, r) => s + f(r), 0);
@@ -135,7 +109,7 @@
         <td class="fs-12 text-nowrap">${i.periodStart || i.periodEnd ? formatDate(i.periodStart) + ' —<br>' + formatDate(i.periodEnd) : '<span class="text-muted">-</span>'}</td>
         <td class="text-nowrap">${formatDate(i.invoiceDate)}</td>
         <td class="text-nowrap">${formatDate(i.dueDate)}</td>
-        <td class="num">${i.amount ? '<span class="fs-11 text-muted">est.</span> ' + formatRupiah(i.amount) : '<span class="text-muted">belum ada</span>'}</td>
+        <td class="num">${i.items.length ? formatRupiah(i.amount) + '<div class="fs-11 text-muted">' + i.items.length + ' barang</div>' : '<span class="text-muted">belum ada barang</span>'}</td>
         <td class="num zero">-</td>
         <td class="num zero">-</td>
         <td>${invoiceStatusBadge(status)}</td>
@@ -159,44 +133,6 @@
       const out = [['No. Invoice', 'Tipe', 'Proyek', 'Customer', 'Periode Awal', 'Periode Akhir', 'Tgl Invoice', 'Jatuh Tempo', 'Total', 'Dibayar', 'Sisa', 'Status']];
       rows().forEach(({ i, status, paid, rest }) => out.push([i.id, i.type, i.projectName, i.customerName, i.periodStart || '', i.periodEnd || '', i.invoiceDate, i.dueDate, i.amount, paid, rest, INVOICE_STATUS_LABEL[status]]));
       downloadCSV('invoice-' + new Date().toISOString().split('T')[0] + '.csv', out);
-    }
-
-    // ---------- Invoice bayangan ----------
-    const settings = MockData.settings || {};
-    document.getElementById('shCustomer').innerHTML = '<option value="">— Pilih customer —</option>' + MockData.customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-    document.getElementById('shTaxPct').textContent = Math.round((settings.taxRate || 0) * 100) + '%';
-    function onShadowCustomer() {
-      const cid = document.getElementById('shCustomer').value;
-      document.getElementById('shProject').innerHTML = '<option value="">— Tanpa proyek —</option>' + MockData.projects.filter(p => p.customerId === cid).map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-    }
-    function openShadow() {
-      ['shCustomer', 'shStart', 'shEnd', 'shEstimate', 'shNotes'].forEach(id => document.getElementById(id).value = '');
-      document.getElementById('shCustomer').value = custSel.value;
-      document.getElementById('shType').value = 'Sewa';
-      document.getElementById('shDate').value = new Date().toISOString().split('T')[0];
-      document.getElementById('shDue').value = settings.paymentTermDays || 30;
-      document.getElementById('shTax').checked = true;
-      onShadowCustomer();
-      bootstrap.Modal.getOrCreateInstance(document.getElementById('shadowModal')).show();
-    }
-    function submitShadow() {
-      const res = Inv.createShadow({
-        customerId: document.getElementById('shCustomer').value,
-        projectId: document.getElementById('shProject').value,
-        type: document.getElementById('shType').value,
-        invoiceDate: document.getElementById('shDate').value,
-        periodStart: document.getElementById('shStart').value,
-        periodEnd: document.getElementById('shEnd').value,
-        estimate: document.getElementById('shEstimate').value,
-        dueDays: document.getElementById('shDue').value,
-        taxRate: document.getElementById('shTax').checked ? (settings.taxRate || 0) : 0,
-        notes: document.getElementById('shNotes').value.trim()
-      });
-      if (!res.success) { showToast(res.error, 'error'); return; }
-      bootstrap.Modal.getInstance(document.getElementById('shadowModal')).hide();
-      showToast('Invoice bayangan ' + res.invoice.id + ' disimpan', 'success');
-      buildCustomerFilter();
-      render();
     }
 
     render();

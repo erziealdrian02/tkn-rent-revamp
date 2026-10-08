@@ -30,7 +30,7 @@
   <script>
     const rid = getUrlParam('id') || 'RET-003';
     const ret = MockData.returns.find(r => r.id === rid) || MockData.returns[2];
-    initApp('returns.html',[{label:'Penyewaan',href:'#'},{label:'Pengembalian',href:'returns.html'},{label:ret.id}],ret.id);
+    initApp('returns.html',[{label:'Rekap Stok',href:'#'},{label:'Pengembalian',href:'returns.html'},{label:ret.id}],ret.id);
 
     const hasMissing = ret.items.some(i => i.lost > 0 || i.missing > 0 || i.damaged > 0);
     const relatedClaims = MockData.claims.filter(c => c.returnId === ret.id);
