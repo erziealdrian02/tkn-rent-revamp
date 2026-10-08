@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    EquipRent Enterprise — Shared Application Logic
    ============================================================ */
 
@@ -65,7 +65,6 @@ function formatDateTime(dateStr) {
 function statusBadge(status) {
   if (!status) return '';
   const cls = status.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-  // map common multi-word statuses
   const map = {
     'waiting-approval': 'waiting',
     'pending-approval': 'waiting',
@@ -99,34 +98,27 @@ function statusBadge(status) {
 
 // ---- SIDEBAR ----
 function renderSidebar(user, activePage) {
+  if (typeof I18n !== 'undefined') return renderSidebarI18n(user, activePage);
   const isDriver = user.role === 'Driver';
   let html = '';
-
-  // Brand
   html += `
     <div class="sidebar-brand">
       <div class="sidebar-brand-icon"><i class="bi bi-gear-wide-connected"></i></div>
       <div class="sidebar-brand-text">EquipRent<small>Enterprise v1.0</small></div>
     </div>`;
-
   html += '<nav class="sidebar-nav">';
-
   if (isDriver) {
-    // Driver Portal
     html += sidebarLink('driver-dashboard.html', 'bi-speedometer2', 'Dashboard', activePage);
     html += sidebarLink('driver-deliveries.html', 'bi-truck', 'My Deliveries', activePage);
     html += sidebarLink('#', 'bi-person', 'Profile', activePage);
   } else {
-    // Full sidebar
     html += sidebarLink('dashboard.html', 'bi-speedometer2', 'Dashboard', activePage);
-
     html += sidebarSection('RENTAL');
     html += sidebarLink('rentals.html', 'bi-file-earmark-text', 'Rentals', activePage);
     html += sidebarLink('projects.html', 'bi-folder', 'Projects', activePage);
     html += sidebarLink('deliveries.html', 'bi-truck', 'Deliveries', activePage);
     html += sidebarLink('returns.html', 'bi-box-arrow-in-left', 'Returns', activePage);
     html += sidebarLink('claims.html', 'bi-exclamation-triangle', 'Claims', activePage);
-
     html += sidebarSection('INVENTORY');
     html += sidebarLink('equipment.html', 'bi-tools', 'Equipment', activePage);
     html += sidebarLink('branches.html', 'bi-building', 'Branches', activePage);
@@ -137,25 +129,19 @@ function renderSidebar(user, activePage) {
     html += sidebarLink('goods-receipts.html', 'bi-box-seam', 'Goods Receipts', activePage);
     html += sidebarLink('repairs.html', 'bi-tools', 'Repairs', activePage);
     html += sidebarLink('maintenance.html', 'bi-wrench-adjustable', 'Maintenance', activePage);
-
     html += sidebarSection('MASTER DATA');
     html += sidebarLink('customers.html', 'bi-people', 'Customers', activePage);
     html += sidebarLink('drivers.html', 'bi-person-badge', 'Drivers', activePage);
     html += sidebarLink('vehicles.html', 'bi-truck-front', 'Vehicles', activePage);
     html += sidebarLink('accounts.html', 'bi-bank', 'Company Accounts', activePage);
-
     html += sidebarSection('FINANCE & BILLING');
     html += sidebarLink('invoices.html', 'bi-receipt', 'Invoices', activePage);
     html += sidebarLink('finance-ledger.html', 'bi-wallet2', 'Bank Ledger', activePage);
-
     html += sidebarSection('ADMINISTRATION');
     html += sidebarLink('users.html', 'bi-person-gear', 'Users', activePage);
     html += sidebarLink('roles.html', 'bi-shield-lock', 'Roles', activePage);
   }
-
   html += '</nav>';
-
-  // Footer
   const theme = document.documentElement.getAttribute('data-theme') || 'light';
   html += `
     <div class="sidebar-footer">
@@ -177,7 +163,6 @@ function renderSidebar(user, activePage) {
         </button>
       </div>
     </div>`;
-
   return html;
 }
 
@@ -191,9 +176,89 @@ function sidebarLink(href, icon, label, activePage) {
   return `<a href="${href}" class="sidebar-link ${isActive ? 'active' : ''}"><i class="bi ${icon}"></i>${label}</a>`;
 }
 
+// ---- SIDEBAR i18n ----
+function renderSidebarI18n(user, activePage) {
+  const isDriver = user.role === 'Driver';
+  let html = '';
+  html += `
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon"><i class="bi bi-gear-wide-connected"></i></div>
+      <div class="sidebar-brand-text">EquipRent<small>Enterprise v1.0</small></div>
+    </div>`;
+  html += '<nav class="sidebar-nav">';
+  if (isDriver) {
+    html += sidebarLinkI18n('driver-dashboard.html', 'bi-speedometer2', t('dashboard'), activePage, 'driver-dashboard.html');
+    html += sidebarLinkI18n('driver-deliveries.html', 'bi-truck', t('my_deliveries'), activePage, 'driver-deliveries.html');
+    html += sidebarLinkI18n('#', 'bi-person', t('profile'), activePage, '#');
+  } else {
+    html += sidebarLinkI18n('dashboard.html', 'bi-speedometer2', t('dashboard'), activePage, 'dashboard.html');
+    html += sidebarSectionI18n(t('rental_section'));
+    html += sidebarLinkI18n('rentals.html', 'bi-file-earmark-text', t('rentals'), activePage, 'rentals.html');
+    html += sidebarLinkI18n('projects.html', 'bi-folder', t('projects'), activePage, 'projects.html');
+    html += sidebarLinkI18n('deliveries.html', 'bi-truck', t('deliveries'), activePage, 'deliveries.html');
+    html += sidebarLinkI18n('returns.html', 'bi-box-arrow-in-left', t('returns'), activePage, 'returns.html');
+    html += sidebarLinkI18n('claims.html', 'bi-exclamation-triangle', t('claims'), activePage, 'claims.html');
+    html += sidebarSectionI18n(t('inventory'));
+    html += sidebarLinkI18n('equipment.html', 'bi-tools', t('equipment'), activePage, 'equipment.html');
+    html += sidebarLinkI18n('branches.html', 'bi-building', t('branches'), activePage, 'branches.html');
+    html += sidebarLinkI18n('stock.html', 'bi-boxes', t('stock'), activePage, 'stock.html');
+    html += sidebarLinkI18n('stock-transfer.html', 'bi-arrow-left-right', t('stock_transfer'), activePage, 'stock-transfer.html');
+    html += sidebarLinkI18n('movements.html', 'bi-arrow-left-right', t('movements'), activePage, 'movements.html');
+    html += sidebarLinkI18n('purchases.html', 'bi-cart', t('purchases'), activePage, 'purchases.html');
+    html += sidebarLinkI18n('goods-receipts.html', 'bi-box-seam', t('goods_receipts'), activePage, 'goods-receipts.html');
+    html += sidebarLinkI18n('repairs.html', 'bi-tools', t('repairs'), activePage, 'repairs.html');
+    html += sidebarLinkI18n('maintenance.html', 'bi-wrench-adjustable', t('maintenance'), activePage, 'maintenance.html');
+    html += sidebarSectionI18n(t('master_data'));
+    html += sidebarLinkI18n('customers.html', 'bi-people', t('customers'), activePage, 'customers.html');
+    html += sidebarLinkI18n('drivers.html', 'bi-person-badge', t('drivers'), activePage, 'drivers.html');
+    html += sidebarLinkI18n('vehicles.html', 'bi-truck-front', t('vehicles'), activePage, 'vehicles.html');
+    html += sidebarLinkI18n('accounts.html', 'bi-bank', t('company_accounts'), activePage, 'accounts.html');
+    html += sidebarSectionI18n(t('finance_billing'));
+    html += sidebarLinkI18n('invoices.html', 'bi-receipt', t('invoices'), activePage, 'invoices.html');
+    html += sidebarLinkI18n('finance-ledger.html', 'bi-wallet2', t('bank_ledger'), activePage, 'finance-ledger.html');
+    html += sidebarSectionI18n(t('administration'));
+    html += sidebarLinkI18n('users.html', 'bi-person-gear', t('users'), activePage, 'users.html');
+    html += sidebarLinkI18n('roles.html', 'bi-shield-lock', t('roles'), activePage, 'roles.html');
+  }
+  html += '</nav>';
+  const theme = document.documentElement.getAttribute('data-theme') || 'light';
+  const themeLabel = theme === 'dark' ? t('light_mode') : t('dark_mode');
+  html += `
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar">${user.initials}</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">${user.name}</div>
+          <div class="sidebar-user-role">${user.role}</div>
+        </div>
+      </div>
+      <div class="sidebar-footer-actions">
+        <button class="sidebar-footer-btn" onclick="toggleTheme()" title="${t('toggle_theme')}">
+          <i class="bi ${theme === 'dark' ? 'bi-sun' : 'bi-moon'}" id="themeIcon"></i>
+          <span>${themeLabel}</span>
+        </button>
+        <button class="sidebar-footer-btn ms-auto" onclick="logout()" title="${t('logout')}">
+          <i class="bi bi-box-arrow-left"></i>
+          <span>${t('logout')}</span>
+        </button>
+      </div>
+    </div>`;
+  return html;
+}
+
+function sidebarSectionI18n(title) {
+  return `<div class="sidebar-section"><div class="sidebar-section-title">${title}</div></div>`;
+}
+
+function sidebarLinkI18n(href, icon, label, activePage, pageFile) {
+  const isActive = activePage === pageFile;
+  return `<a href="${href}" class="sidebar-link ${isActive ? 'active' : ''}"><i class="bi ${icon}"></i>${label}</a>`;
+}
+
 // ---- HEADER ----
 function renderHeader(breadcrumbs, title) {
   const user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
+  const lang = (typeof I18n !== 'undefined') ? I18n.getLang() : 'id';
   let bcHtml = '<a href="dashboard.html"><i class="bi bi-house"></i></a>';
   if (breadcrumbs && breadcrumbs.length) {
     breadcrumbs.forEach(bc => {
@@ -205,6 +270,15 @@ function renderHeader(breadcrumbs, title) {
       }
     });
   }
+  const searchPlaceholder = (typeof t !== 'undefined') ? t('search_placeholder') : 'Search... (Ctrl+K)';
+  const notifTitle = (typeof t !== 'undefined') ? t('notifications') : 'Notifikasi';
+  const markReadLabel = (typeof t !== 'undefined') ? t('mark_all_read') : 'Tandai semua dibaca';
+  const profileLabel = (typeof t !== 'undefined') ? t('profile') : 'Profil';
+  const settingsLabel = (typeof t !== 'undefined') ? t('settings') : 'Pengaturan';
+  const logoutLabel = (typeof t !== 'undefined') ? t('logout') : 'Keluar';
+  const langLabel = (typeof t !== 'undefined') ? t('change_language') : 'Ganti Bahasa';
+  const idLabel = (typeof t !== 'undefined') ? t('indonesian') : 'Bahasa Indonesia';
+  const enLabel = (typeof t !== 'undefined') ? t('english') : 'English';
 
   return `
     <button class="header-toggle-btn" onclick="toggleSidebar()" id="sidebarToggle"><i class="bi bi-list"></i></button>
@@ -215,7 +289,7 @@ function renderHeader(breadcrumbs, title) {
     <div class="header-right">
       <div class="header-search">
         <i class="bi bi-search header-search-icon"></i>
-        <input type="text" class="header-search-input" placeholder="Search... (Ctrl+K)" id="globalSearchInput" onclick="openGlobalSearch()" readonly>
+        <input type="text" class="header-search-input" placeholder="${searchPlaceholder}" id="globalSearchInput" onclick="openGlobalSearch()" readonly>
       </div>
       <div style="position:relative">
         <button class="header-icon-btn" onclick="toggleNotifications()" id="notifBtn">
@@ -224,8 +298,8 @@ function renderHeader(breadcrumbs, title) {
         </button>
         <div class="notification-dropdown" id="notifDropdown">
           <div class="notification-header">
-            <h6>Notifications</h6>
-            <a href="#" class="fs-12" onclick="markAllRead()">Mark all read</a>
+            <h6>${notifTitle}</h6>
+            <a href="#" class="fs-12" onclick="markAllRead()">${markReadLabel}</a>
           </div>
           <div class="notification-list" id="notifList"></div>
         </div>
@@ -237,13 +311,32 @@ function renderHeader(breadcrumbs, title) {
           <i class="bi bi-chevron-down fs-11"></i>
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
-          <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profile</a></li>
-          <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
+          <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>${profileLabel}</a></li>
+          <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>${settingsLabel}</a></li>
           <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item" href="#" onclick="logout()"><i class="bi bi-box-arrow-left me-2"></i>Logout</a></li>
+          <li><span class="dropdown-item-text px-3 py-1" style="display:block;font-size:11px;font-weight:600;color:#64748b;letter-spacing:.5px;"><i class="bi bi-translate me-2"></i>${langLabel}</span></li>
+          <li>
+            <a class="dropdown-item ps-4 ${lang === 'id' ? 'fw-semibold text-primary' : ''}" href="#" onclick="switchLanguage('id');return false;">
+              ${lang === 'id' ? '<i class="bi bi-check2 me-1 text-primary"></i>' : '<span style="width:1.2rem;display:inline-block"></span>'}${idLabel}
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item ps-4 ${lang === 'en' ? 'fw-semibold text-primary' : ''}" href="#" onclick="switchLanguage('en');return false;">
+              ${lang === 'en' ? '<i class="bi bi-check2 me-1 text-primary"></i>' : '<span style="width:1.2rem;display:inline-block"></span>'}${enLabel}
+            </a>
+          </li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="#" onclick="logout()"><i class="bi bi-box-arrow-left me-2"></i>${logoutLabel}</a></li>
         </ul>
       </div>
     </div>`;
+}
+
+// Language switcher function
+function switchLanguage(lang) {
+  if (typeof I18n !== 'undefined') {
+    I18n.setLang(lang);
+  }
 }
 
 // ---- SIDEBAR TOGGLE ----
@@ -301,6 +394,8 @@ document.addEventListener('click', function(e) {
 // ---- GLOBAL SEARCH ----
 function openGlobalSearch() {
   let overlay = document.getElementById('globalSearchOverlay');
+  const searchPh = (typeof t !== 'undefined') ? t('enter_search') : 'Type to search across the system';
+  const searchAll = (typeof t !== 'undefined') ? t('search_all') : 'Search...';
   if (!overlay) {
     overlay = document.createElement('div');
     overlay.className = 'search-overlay';
@@ -309,10 +404,10 @@ function openGlobalSearch() {
       <div class="search-modal">
         <div style="position:relative">
           <i class="bi bi-search search-modal-icon"></i>
-          <input type="text" class="search-modal-input" placeholder="Search rentals, projects, equipment, customers..." id="globalSearchField" oninput="performGlobalSearch(this.value)">
+          <input type="text" class="search-modal-input" placeholder="${searchAll}" id="globalSearchField" oninput="performGlobalSearch(this.value)">
         </div>
         <div class="search-results" id="globalSearchResults">
-          <div class="empty-state py-4"><i class="bi bi-search"></i><p class="mb-0">Type to search across the system</p></div>
+          <div class="empty-state py-4"><i class="bi bi-search"></i><p class="mb-0">${searchPh}</p></div>
         </div>
       </div>`;
     overlay.addEventListener('click', function(e) {
@@ -331,75 +426,79 @@ function closeGlobalSearch() {
 
 function performGlobalSearch(query) {
   const results = document.getElementById('globalSearchResults');
+  const searchPh = (typeof t !== 'undefined') ? t('enter_search') : 'Type to search across the system';
+  const noResultsTxt = (typeof t !== 'undefined') ? t('no_results') : 'No results found';
   if (!query || query.length < 2) {
-    results.innerHTML = '<div class="empty-state py-4"><i class="bi bi-search"></i><p class="mb-0">Type to search across the system</p></div>';
+    results.innerHTML = `<div class="empty-state py-4"><i class="bi bi-search"></i><p class="mb-0">${searchPh}</p></div>`;
     return;
   }
   const q = query.toLowerCase();
   let html = '';
 
-  // Search rentals
+  const grpRentals = (typeof t !== 'undefined') ? t('search_rentals_group') : 'Penyewaan';
+  const grpProjects = (typeof t !== 'undefined') ? t('search_projects_group') : 'Proyek';
+  const grpEquipment = (typeof t !== 'undefined') ? t('search_equipment_group') : 'Alat Berat';
+  const grpCustomers = (typeof t !== 'undefined') ? t('search_customers_group') : 'Pelanggan';
+  const grpInvoices = (typeof t !== 'undefined') ? t('search_invoices_group') : 'Faktur';
+  const grpDeliveries = (typeof t !== 'undefined') ? t('search_deliveries_group') : 'Pengiriman';
+  const unassignedTxt = (typeof t !== 'undefined') ? t('unassigned') : 'Tidak Ditugaskan';
+
   const rentals = MockData.rentals.filter(r => r.id.toLowerCase().includes(q) || r.customerName.toLowerCase().includes(q) || r.projectName.toLowerCase().includes(q));
   if (rentals.length) {
-    html += `<div class="search-result-group"><div class="search-result-group-title">Rentals</div>`;
+    html += `<div class="search-result-group"><div class="search-result-group-title">${grpRentals}</div>`;
     rentals.slice(0, 5).forEach(r => {
       html += `<a href="rental-detail.html?id=${r.id}" class="search-result-item"><i class="bi bi-file-earmark-text"></i><div><strong>${r.id}</strong> — ${r.customerName}<br><span class="text-muted fs-11">${r.projectName}</span></div></a>`;
     });
     html += '</div>';
   }
 
-  // Search projects
   const projects = MockData.projects.filter(p => p.id.toLowerCase().includes(q) || p.name.toLowerCase().includes(q) || p.customerName.toLowerCase().includes(q));
   if (projects.length) {
-    html += `<div class="search-result-group"><div class="search-result-group-title">Projects</div>`;
+    html += `<div class="search-result-group"><div class="search-result-group-title">${grpProjects}</div>`;
     projects.slice(0, 5).forEach(p => {
       html += `<a href="project-detail.html?id=${p.id}" class="search-result-item"><i class="bi bi-folder"></i><div><strong>${p.id}</strong> — ${p.name}<br><span class="text-muted fs-11">${p.customerName}</span></div></a>`;
     });
     html += '</div>';
   }
 
-  // Search equipment
   const equip = MockData.equipment.filter(e => e.id.toLowerCase().includes(q) || e.name.toLowerCase().includes(q) || e.serial.toLowerCase().includes(q));
   if (equip.length) {
-    html += `<div class="search-result-group"><div class="search-result-group-title">Equipment</div>`;
+    html += `<div class="search-result-group"><div class="search-result-group-title">${grpEquipment}</div>`;
     equip.slice(0, 5).forEach(e => {
       html += `<a href="equipment-detail.html?id=${e.id}" class="search-result-item"><i class="bi bi-tools"></i><div><strong>${e.id}</strong> — ${e.name}<br><span class="text-muted fs-11">${e.serial}</span></div></a>`;
     });
     html += '</div>';
   }
 
-  // Search customers
   const customers = MockData.customers.filter(c => c.id.toLowerCase().includes(q) || c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q));
   if (customers.length) {
-    html += `<div class="search-result-group"><div class="search-result-group-title">Customers</div>`;
+    html += `<div class="search-result-group"><div class="search-result-group-title">${grpCustomers}</div>`;
     customers.slice(0, 5).forEach(c => {
       html += `<a href="customer-detail.html?id=${c.id}" class="search-result-item"><i class="bi bi-people"></i><div><strong>${c.code}</strong> — ${c.name}<br><span class="text-muted fs-11">${c.pic}</span></div></a>`;
     });
     html += '</div>';
   }
 
-  // Search invoices
   const invoices = MockData.invoices.filter(i => i.id.toLowerCase().includes(q) || i.customerName.toLowerCase().includes(q));
   if (invoices.length) {
-    html += `<div class="search-result-group"><div class="search-result-group-title">Invoices</div>`;
+    html += `<div class="search-result-group"><div class="search-result-group-title">${grpInvoices}</div>`;
     invoices.slice(0, 5).forEach(i => {
       html += `<a href="invoice-detail.html?id=${i.id}" class="search-result-item"><i class="bi bi-receipt"></i><div><strong>${i.id}</strong> — ${i.customerName}<br><span class="text-muted fs-11">${formatRupiah(i.amount)}</span></div></a>`;
     });
     html += '</div>';
   }
 
-  // Search deliveries
   const deliveries = MockData.deliveries.filter(d => d.id.toLowerCase().includes(q) || d.customerName.toLowerCase().includes(q) || (d.driverName && d.driverName.toLowerCase().includes(q)));
   if (deliveries.length) {
-    html += `<div class="search-result-group"><div class="search-result-group-title">Deliveries</div>`;
+    html += `<div class="search-result-group"><div class="search-result-group-title">${grpDeliveries}</div>`;
     deliveries.slice(0, 5).forEach(d => {
-      html += `<a href="delivery-detail.html?id=${d.id}" class="search-result-item"><i class="bi bi-truck"></i><div><strong>${d.id}</strong> — ${d.customerName}<br><span class="text-muted fs-11">${d.driverName || 'Unassigned'}</span></div></a>`;
+      html += `<a href="delivery-detail.html?id=${d.id}" class="search-result-item"><i class="bi bi-truck"></i><div><strong>${d.id}</strong> — ${d.customerName}<br><span class="text-muted fs-11">${d.driverName || unassignedTxt}</span></div></a>`;
     });
     html += '</div>';
   }
 
   if (!html) {
-    html = '<div class="empty-state py-4"><i class="bi bi-search"></i><p class="mb-0">No results found</p></div>';
+    html = `<div class="empty-state py-4"><i class="bi bi-search"></i><p class="mb-0">${noResultsTxt}</p></div>`;
   }
 
   results.innerHTML = html;
@@ -435,7 +534,12 @@ function showToast(message, type = 'success') {
 // ---- TABLES ----
 function renderPagination(totalItems, currentPage, pageSize, onPageChange) {
   const totalPages = Math.ceil(totalItems / pageSize);
-  if (totalPages <= 1) return `<div class="d-flex justify-content-between align-items-center"><span class="fs-12 text-muted">Showing ${totalItems} of ${totalItems} entries</span></div>`;
+  const showingTxt = (typeof t !== 'undefined') ? t('showing') : 'Menampilkan';
+  const toTxt = (typeof t !== 'undefined') ? t('to') : 'hingga';
+  const ofTxt = (typeof t !== 'undefined') ? t('of') : 'dari';
+  const entriesTxt = (typeof t !== 'undefined') ? t('entries') : 'entri';
+
+  if (totalPages <= 1) return `<div class="d-flex justify-content-between align-items-center"><span class="fs-12 text-muted">${showingTxt} ${totalItems} ${ofTxt} ${totalItems} ${entriesTxt}</span></div>`;
 
   const start = (currentPage - 1) * pageSize + 1;
   const end = Math.min(currentPage * pageSize, totalItems);
@@ -453,7 +557,7 @@ function renderPagination(totalItems, currentPage, pageSize, onPageChange) {
 
   return `
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-      <span class="fs-12 text-muted">Showing ${start} to ${end} of ${totalItems} entries</span>
+      <span class="fs-12 text-muted">${showingTxt} ${start} ${toTxt} ${end} ${ofTxt} ${totalItems} ${entriesTxt}</span>
       <nav><ul class="pagination pagination-sm mb-0">${pages}</ul></nav>
     </div>`;
 }
@@ -468,7 +572,8 @@ function switchTab(tabId) {
 
 // ---- ACTIVITY TIMELINE ----
 function renderActivityTimeline(activities) {
-  if (!activities || !activities.length) return '<div class="empty-state"><i class="bi bi-clock-history"></i><p>No activity yet</p></div>';
+  const noActivityTxt = (typeof t !== 'undefined') ? t('no_activity') : 'Belum ada aktivitas';
+  if (!activities || !activities.length) return `<div class="empty-state"><i class="bi bi-clock-history"></i><p>${noActivityTxt}</p></div>`;
   return '<div class="activity-timeline">' + activities.map(a => {
     const dotClass = a.type === 'success' ? 'success' : a.type === 'danger' ? 'danger' : a.type === 'warning' ? 'warning' : 'info';
     return `
@@ -487,9 +592,12 @@ function initApp(pageName, breadcrumbs, title) {
 
   initTheme();
 
-  // Render sidebar
+  // Render sidebar (with i18n if available)
   const sidebar = document.getElementById('appSidebar');
-  if (sidebar) sidebar.innerHTML = renderSidebar(user, pageName);
+  if (sidebar) {
+    const renderFn = (typeof I18n !== 'undefined') ? renderSidebarI18n : renderSidebar;
+    sidebar.innerHTML = renderFn(user, pageName);
+  }
 
   // Render header
   const header = document.getElementById('appHeader');

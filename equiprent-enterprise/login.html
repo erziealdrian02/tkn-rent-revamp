@@ -1,5 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
+﻿<!DOCTYPE html>
+<html lang="id">
 
 <head>
   <meta charset="UTF-8">
@@ -137,7 +137,7 @@
     <div class="login-image">
       <div class="login-image-overlay">
         <h2 class="display-5 fw-bold text-white mb-2">EquipRent Enterprise</h2>
-        <p class="fs-5 text-white-50 mb-0">Next-generation equipment rental and logistics management system.</p>
+        <p class="fs-5 text-white-50 mb-0">Sistem manajemen penyewaan alat berat dan logistik generasi terbaru.</p>
       </div>
     </div>
 
@@ -145,8 +145,8 @@
     <div class="login-form-container">
       <div class="login-brand-split">
         <div class="login-brand-icon-split"><i class="bi bi-gear-wide-connected"></i></div>
-        <h1>Welcome Back</h1>
-        <p>Please sign in to your account</p>
+        <h1>Selamat Datang</h1>
+        <p>Silakan masuk ke akun Anda</p>
       </div>
 
       <form id="loginForm" onsubmit="handleLogin(event)">
@@ -154,7 +154,7 @@
           <label class="form-label form-label-er" for="username">Username / Email</label>
           <div class="input-group">
             <span class="input-group-text"><i class="bi bi-person"></i></span>
-            <input type="text" class="form-control" id="username" placeholder="Enter username" value="admin" required>
+            <input type="text" class="form-control" id="username" placeholder="Masukkan username" value="admin" required>
           </div>
         </div>
 
@@ -162,7 +162,7 @@
           <label class="form-label form-label-er" for="password">Password</label>
           <div class="input-group">
             <span class="input-group-text"><i class="bi bi-lock"></i></span>
-            <input type="password" class="form-control" id="password" placeholder="Enter password" value="demo"
+            <input type="password" class="form-control" id="password" placeholder="Masukkan kata sandi" value="demo"
               required>
             <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
               <i class="bi bi-eye" id="pwdIcon"></i>
@@ -171,7 +171,7 @@
         </div>
 
         <div class="mb-3">
-          <label class="form-label form-label-er">Demo Login As</label>
+          <label class="form-label form-label-er">Masuk sebagai (Demo)</label>
           <select class="form-select" id="roleSelect" onchange="setDemoUser()">
             <option value="superadmin">Super Admin</option>
             <option value="admin" selected>Admin</option>
@@ -186,13 +186,13 @@
         <div class="d-flex align-items-center justify-content-between mb-4">
           <div class="form-check">
             <input class="form-check-input" type="checkbox" id="remember">
-            <label class="form-check-label fs-13" for="remember">Remember me</label>
+            <label class="form-check-label fs-13" for="remember">Ingat saya</label>
           </div>
-          <a href="#" class="fs-12 text-primary text-decoration-none">Forgot password?</a>
+          <a href="#" class="fs-12 text-primary text-decoration-none">Lupa kata sandi?</a>
         </div>
 
         <button type="submit" class="btn btn-primary w-100" id="loginBtn" style="padding: 10px 0;">
-          <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+          <i class="bi bi-box-arrow-in-right me-1"></i> Masuk
         </button>
 
         <div id="loginError" class="alert alert-danger mt-3 py-2 fs-12 d-none">
@@ -201,11 +201,12 @@
       </form>
 
       <div class="login-footer-split">
-        <p class="mb-1">&copy; 2026 PT EquipRent Indonesia.<br>All rights reserved.</p>
+        <p class="mb-1">&copy; 2026 PT EquipRent Indonesia.<br>Semua hak dilindungi.</p>
       </div>
     </div>
   </div>
 
+  <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
   <script>
     // Init theme on login page too
@@ -265,3 +266,4 @@
 </body>
 
 </html>
+

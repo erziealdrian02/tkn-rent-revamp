@@ -1,8 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
+﻿<!DOCTYPE html>
+<html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Delivery Detail — EquipRent Enterprise</title>
+  <title>Detail Pengiriman — EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -41,7 +41,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
           <button class="btn btn-success" onclick="completeDelivery()"><i class="bi bi-check-lg me-1"></i>Confirm Delivery</button>
         </div>
       </div>
@@ -67,20 +67,21 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
           <button class="btn btn-danger" onclick="failDelivery()"><i class="bi bi-x-circle me-1"></i>Report Failure</button>
         </div>
       </div>
     </div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
   <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
     const did = getUrlParam('id') || 'DLV-001';
     const dlv = MockData.deliveries.find(d => d.id === did) || MockData.deliveries[0];
-    initApp('deliveries.html',[{label:'Rental',href:'#'},{label:'Deliveries',href:'deliveries.html'},{label:dlv.id}],dlv.id);
+    initApp('deliveries.html',[{label:'Penyewaan',href:'#'},{label:'Pengiriman',href:'deliveries.html'},{label:dlv.id}],dlv.id);
 
     document.getElementById('detailHeader').innerHTML = `
       <div class="detail-header-left">
@@ -102,7 +103,7 @@
         ${dlv.status === 'Arrived' ? `<button class="btn btn-success btn-sm" onclick="openPodModal()"><i class="bi bi-check-circle me-1"></i>Complete Handover (PoD)</button>
                                       <button class="btn btn-outline-danger btn-sm" onclick="openFailModal()"><i class="bi bi-exclamation-triangle me-1"></i>Report Issue</button>` : ''}
         ${dlv.status === 'Failed' ? `<button class="btn btn-primary btn-sm" onclick="rescheduleDelivery()"><i class="bi bi-arrow-repeat me-1"></i>Reschedule</button>` : ''}
-        <button class="btn btn-outline-secondary btn-sm" onclick="showToast('Print initiated','info')"><i class="bi bi-printer me-1"></i>Print</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="showToast('Print initiated','info')"><i class="bi bi-printer me-1"></i>Cetak</button>
       </div>`;
 
     document.getElementById('detailBody').innerHTML = `
@@ -123,7 +124,7 @@
         <div class="col-md-6">
           <h6 class="fw-600 mb-3">Driver & Vehicle</h6>
           <div class="info-grid">
-            <div class="info-item"><span class="info-label">Driver</span><span class="info-value">${dlv.driverName?`<a href="driver-detail.html?id=${dlv.driverId}">${dlv.driverName}</a>`:'<span class="text-muted">Unassigned</span>'}</span></div>
+            <div class="info-item"><span class="info-label">Driver</span><span class="info-value">${dlv.driverName?`<a href="driver-detail.html?id=${dlv.driverId}">${dlv.driverName}</a>`:'<span class="text-muted">Tidak Ditugaskan</span>'}</span></div>
             <div class="info-item"><span class="info-label">Vehicle</span><span class="info-value">${dlv.vehiclePlate?`<a href="vehicle-detail.html?id=${dlv.vehicleId}">${dlv.vehiclePlate}</a>`:'-'}</span></div>
           </div>
         </div>
@@ -232,3 +233,9 @@
   </script>
 </body>
 </html>
+
+
+
+
+
+

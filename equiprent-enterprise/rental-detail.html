@@ -1,9 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
+﻿<!DOCTYPE html>
+<html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rental Detail — EquipRent Enterprise</title>
+  <title>Detail Penyewaan — EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -47,7 +47,7 @@
           <div class="mb-3 mt-3"><label class="form-label form-label-er">Notes</label><textarea class="form-control" rows="2" id="dlvNotes"></textarea></div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
           <button class="btn btn-primary" onclick="createDelivery()"><i class="bi bi-check-lg me-1"></i>Create Delivery</button>
         </div>
       </div>
@@ -55,13 +55,14 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
   <script src="assets/js/app.js"></script>
   <script src="assets/js/business-logic.js"></script>
   <script>
     const rentalId = getUrlParam('id') || 'RNT-001';
     const rental = MockData.rentals.find(r => r.id === rentalId) || MockData.rentals[0];
-    const user = initApp('rentals.html', [{label:'Rental',href:'#'},{label:'Rentals',href:'rentals.html'},{label:rental.id}], rental.id);
+    const user = initApp('rentals.html', [{label:'Penyewaan',href:'#'},{label:'Penyewaan',href:'rentals.html'},{label:rental.id}], rental.id);
 
     // Populate delivery modal dropdowns
     const today = new Date().toISOString().split('T')[0];
@@ -86,8 +87,8 @@
       const s = rental.status;
 
       if (s === 'Pending Approval' || s === 'Waiting Approval') {
-        actionBtns += '<button class="btn btn-success btn-sm" onclick="approveRental()"><i class="bi bi-check-lg me-1"></i>Approve</button>';
-        actionBtns += '<button class="btn btn-outline-danger btn-sm" onclick="rejectRental()"><i class="bi bi-x-lg me-1"></i>Reject</button>';
+        actionBtns += '<button class="btn btn-success btn-sm" onclick="approveRental()"><i class="bi bi-check-lg me-1"></i>Setujui</button>';
+        actionBtns += '<button class="btn btn-outline-danger btn-sm" onclick="rejectRental()"><i class="bi bi-x-lg me-1"></i>Tolak</button>';
       }
       if (s === 'Rejected') {
         actionBtns += '<button class="btn btn-primary btn-sm" onclick="resubmitRental()"><i class="bi bi-arrow-repeat me-1"></i>Resubmit</button>';
@@ -96,12 +97,12 @@
         actionBtns += '<button class="btn btn-primary btn-sm" onclick="openDeliveryModal()"><i class="bi bi-truck me-1"></i>Create Delivery</button>';
       }
       if (['On Rental', 'Partially Returned', 'Overdue', 'Partially Delivered'].includes(s)) {
-        actionBtns += '<button class="btn btn-outline-primary btn-sm" onclick="createReturn()"><i class="bi bi-box-arrow-in-left me-1"></i>Create Return</button>';
+        actionBtns += '<button class="btn btn-outline-primary btn-sm" onclick="createReturn()"><i class="bi bi-box-arrow-in-left me-1"></i>Buat Pengembalian</button>';
       }
       if (['Draft', 'Pending Approval', 'Waiting Approval', 'Approved'].includes(s)) {
-        actionBtns += '<button class="btn btn-outline-danger btn-sm" onclick="cancelRental()"><i class="bi bi-x-circle me-1"></i>Cancel</button>';
+        actionBtns += '<button class="btn btn-outline-danger btn-sm" onclick="cancelRental()"><i class="bi bi-x-circle me-1"></i>Batal</button>';
       }
-      actionBtns += '<button class="btn btn-outline-secondary btn-sm" onclick="showToast(\'Print initiated\',\'info\')"><i class="bi bi-printer me-1"></i>Print</button>';
+      actionBtns += '<button class="btn btn-outline-secondary btn-sm" onclick="showToast(\'Print initiated\',\'info\')"><i class="bi bi-printer me-1"></i>Cetak</button>';
 
       document.getElementById('detailHeader').innerHTML = `
         <div class="detail-header-left">
@@ -122,7 +123,7 @@
       const tabs = ['Overview','Equipment','Delivery','Return','Invoice','Activity'];
       document.getElementById('detailTabs').innerHTML = tabs.map((t,i) => {
         let count = '';
-        if (t === 'Equipment') count = `<span class="er-tab-count">${rental.items.length}</span>`;
+        if (t === 'Alat Berat') count = `<span class="er-tab-count">${rental.items.length}</span>`;
         if (t === 'Delivery') count = `<span class="er-tab-count">${deliveries.length}</span>`;
         if (t === 'Return') count = `<span class="er-tab-count">${returns.length}</span>`;
         if (t === 'Invoice') count = `<span class="er-tab-count">${invoices.length}</span>`;
@@ -171,7 +172,7 @@
           <div class="info-item"><span class="info-label">Customer</span><span class="info-value"><a href="customer-detail.html?id=${rental.customerId}">${rental.customerName}</a></span></div>
           <div class="info-item"><span class="info-label">Project</span><span class="info-value"><a href="project-detail.html?id=${rental.projectId}">${rental.projectName}</a></span></div>
           <div class="info-item"><span class="info-label">Rental Date</span><span class="info-value">${formatDate(rental.rentalDate)}</span></div>
-          <div class="info-item"><span class="info-label">Return Date</span><span class="info-value">${formatDate(rental.returnDate)}${isOverdue ? ' <span class="badge bg-danger ms-1">OVERDUE ' + overdueDays + ' days</span>' : ''}</span></div>
+          <div class="info-item"><span class="info-label">Return Date</span><span class="info-value">${formatDate(rental.returnDate)}${isOverdue ? ' <span class="badge bg-danger ms-1">OVERDUE ' + overdueDays + ' hari</span>' : ''}</span></div>
           <div class="info-item"><span class="info-label">Branch</span><span class="info-value">${rental.branch}</span></div>
           <div class="info-item"><span class="info-label">Status</span><span class="info-value">${statusBadge(isOverdue ? 'Overdue' : rental.status)}</span></div>
           <div class="info-item"><span class="info-label">Delivery Status</span><span class="info-value">${statusBadge(rental.deliveryStatus)}</span></div>
@@ -199,10 +200,10 @@
 
       // ──── DELIVERY TAB ────
       tc += `<div class="er-tab-content" id="tab-delivery">
-        ${deliveries.length ? `<div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Delivery #</th><th>Date</th><th>Driver</th><th>Vehicle</th><th>Items</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+        ${deliveries.length ? `<div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No. Pengiriman</th><th>Tanggal</th><th>Pengemudi</th><th>Vehicle</th><th>Item</th><th>Status</th><th>Aksi</th></tr></thead><tbody>
         ${deliveries.map(d => `<tr>
           <td><a href="delivery-detail.html?id=${d.id}" class="cell-link text-mono">${d.id}</a></td>
-          <td>${formatDate(d.deliveryDate)}</td><td>${d.driverName||'<span class=\"text-muted\">Unassigned</span>'}</td><td>${d.vehiclePlate||'-'}</td>
+          <td>${formatDate(d.deliveryDate)}</td><td>${d.driverName||'<span class=\"text-muted\">Tidak Ditugaskan</span>'}</td><td>${d.vehiclePlate||'-'}</td>
           <td class="fs-12">${d.items.map(i=>i.name+' ×'+i.qty).join(', ')}</td>
           <td>${statusBadge(d.status)}</td><td><a href="delivery-detail.html?id=${d.id}" class="btn-action"><i class="bi bi-eye"></i></a></td>
         </tr>`).join('')}</tbody></table></div>` : '<div class="empty-state"><i class="bi bi-truck"></i><h5>No Deliveries</h5><p>No delivery has been created for this rental yet.</p>' + (['Approved','Preparing','Partially Delivered','On Rental'].includes(s) ? '<button class="btn btn-primary btn-sm" onclick="openDeliveryModal()"><i class="bi bi-plus-lg me-1"></i>Create Delivery</button>' : '') + '</div>'}
@@ -210,17 +211,17 @@
 
       // ──── RETURN TAB ────
       tc += `<div class="er-tab-content" id="tab-return">
-        ${returns.length ? `<div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Return #</th><th>Date</th><th>Items</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+        ${returns.length ? `<div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Return #</th><th>Tanggal</th><th>Item</th><th>Status</th><th>Aksi</th></tr></thead><tbody>
         ${returns.map(r => `<tr>
           <td><a href="return-detail.html?id=${r.id}" class="cell-link text-mono">${r.id}</a></td>
-          <td>${formatDate(r.returnDate)}</td><td>${r.items.length} types</td>
+          <td>${formatDate(r.returnDate)}</td><td>${r.items.length} tipe</td>
           <td>${statusBadge(r.status)}</td><td><a href="return-detail.html?id=${r.id}" class="btn-action"><i class="bi bi-eye"></i></a></td>
         </tr>`).join('')}</tbody></table></div>` : '<div class="empty-state"><i class="bi bi-box-arrow-in-left"></i><h5>No Returns</h5><p>No return has been recorded yet.</p></div>'}
       </div>`;
 
       // ──── INVOICE TAB ────
       tc += `<div class="er-tab-content" id="tab-invoice">
-        ${invoices.length ? `<div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Invoice #</th><th>Type</th><th>Date</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+        ${invoices.length ? `<div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No. Faktur</th><th>Tipe</th><th>Tanggal</th><th>Jumlah</th><th>Status</th><th>Aksi</th></tr></thead><tbody>
         ${invoices.map(i => `<tr>
           <td><a href="invoice-detail.html?id=${i.id}" class="cell-link text-mono">${i.id}</a></td>
           <td>${i.type}</td><td>${formatDate(i.invoiceDate)}</td><td class="fw-600">${formatRupiah(i.amount)}</td>
@@ -450,3 +451,10 @@
   </script>
 </body>
 </html>
+
+
+
+
+
+
+

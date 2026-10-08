@@ -1,8 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
+﻿<!DOCTYPE html>
+<html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Customers — EquipRent Enterprise</title>
+  <title>Pelanggan — EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -15,14 +15,14 @@
     <main class="app-main">
       <header class="app-header" id="appHeader"></header>
       <div class="app-content">
-        <div class="page-header"><div class="page-header-left"><h2 class="page-header-title">Customers</h2><p class="page-header-subtitle">Manage customer database and relations</p></div>
-        <div class="page-header-actions"><button class="btn btn-primary btn-sm" onclick="showToast('Add customer form','info')"><i class="bi bi-plus-lg me-1"></i>Add Customer</button></div></div>
+        <div class="page-header"><div class="page-header-left"><h2 class="page-header-title">Pelanggan</h2><p class="page-header-subtitle">Kelola database dan relasi pelanggan</p></div>
+        <div class="page-header-actions"><button class="btn btn-primary btn-sm" onclick="showToast('Add customer form','info')"><i class="bi bi-plus-lg me-1"></i>Tambah Pelanggan</button></div></div>
         <div class="er-card"><div class="er-card-body">
           <div class="table-toolbar"><div class="table-toolbar-left">
-            <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Search customers..." id="searchInput" oninput="filterData()"></div>
-            <select class="filter-select" id="statusFilter" onchange="filterData()"><option value="">All Status</option><option>Active</option><option>Inactive</option></select>
+            <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Cari pelanggan..." id="searchInput" oninput="filterData()"></div>
+            <select class="filter-select" id="statusFilter" onchange="filterData()"><option value="">Semua Status</option><option value="Active">Aktif</option><option value="Inactive">Tidak Aktif</option></select>
           </div></div>
-          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Customer ID</th><th>Company Code</th><th>Company Name</th><th>PIC</th><th>Contact</th><th>Status</th><th>Actions</th></tr></thead>
+          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>ID Pelanggan</th><th>Kode Perusahaan</th><th>Nama Perusahaan</th><th>PIC</th><th>Kontak</th><th>Status</th><th>Aksi</th></tr></thead>
           <tbody id="tableBody"></tbody></table></div>
         </div></div>
       </div>
@@ -35,55 +35,55 @@
       <div class="modal-content">
         <form id="customerForm" class="needs-validation" novalidate>
           <div class="modal-header">
-            <h5 class="modal-title">Add New Customer</h5>
+            <h5 class="modal-title">Tambah Pelanggan Baru</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
             <div class="row g-3">
               <div class="col-md-6">
-                <label class="form-label form-label-er">Customer ID</label>
+                <label class="form-label form-label-er">ID Pelanggan</label>
                 <input type="text" class="form-control bg-light text-mono" id="cusId" readonly>
               </div>
               <div class="col-md-6">
                 <label class="form-label form-label-er">Status</label>
                 <select class="form-select" id="cusStatus">
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
+                  <option value="Active">Aktif</option>
+                  <option value="Inactive">Tidak Aktif</option>
                 </select>
               </div>
               <div class="col-md-8">
-                <label class="form-label form-label-er">Company Name <span class="text-danger">*</span></label>
+                <label class="form-label form-label-er">Nama Perusahaan <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="cusName" required placeholder="e.g. PT Maju Jaya">
-                <div class="invalid-feedback">Company name is required.</div>
+                <div class="invalid-feedback">Nama perusahaan wajib diisi.</div>
               </div>
               <div class="col-md-4">
-                <label class="form-label form-label-er">Company Code <span class="text-danger">*</span></label>
+                <label class="form-label form-label-er">Kode Perusahaan <span class="text-danger">*</span></label>
                 <input type="text" class="form-control text-uppercase" id="cusCode" required placeholder="e.g. PTMJ">
-                <div class="invalid-feedback">Company code is required.</div>
+                <div class="invalid-feedback">Kode perusahaan wajib diisi.</div>
               </div>
               <div class="col-md-6">
-                <label class="form-label form-label-er">PIC Name <span class="text-danger">*</span></label>
+                <label class="form-label form-label-er">Nama PIC <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="cusPic" required>
-                <div class="invalid-feedback">PIC is required.</div>
+                <div class="invalid-feedback">PIC wajib diisi.</div>
               </div>
               <div class="col-md-6">
-                <label class="form-label form-label-er">Phone Number <span class="text-danger">*</span></label>
+                <label class="form-label form-label-er">Nomor Telepon <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="cusPhone" required>
-                <div class="invalid-feedback">Phone is required.</div>
+                <div class="invalid-feedback">Telepon wajib diisi.</div>
               </div>
               <div class="col-md-6">
-                <label class="form-label form-label-er">Email Address</label>
+                <label class="form-label form-label-er">Alamat Email</label>
                 <input type="email" class="form-control" id="cusEmail">
               </div>
               <div class="col-12">
-                <label class="form-label form-label-er">Full Address</label>
+                <label class="form-label form-label-er">Alamat Lengkap</label>
                 <textarea class="form-control" id="cusAddress" rows="2"></textarea>
               </div>
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary">Save Customer</button>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-primary">Simpan Pelanggan</button>
           </div>
         </form>
       </div>
@@ -91,10 +91,11 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
-    initApp('customers.html',[{label:'Master Data',href:'#'},{label:'Customers'}],'Customers');
+    initApp('customers.html',[{label:'Data Master',href:'#'},{label:'Pelanggan'}],'Pelanggan');
 
     document.querySelector('.page-header-actions .btn-primary').setAttribute('data-bs-toggle', 'modal');
     document.querySelector('.page-header-actions .btn-primary').setAttribute('data-bs-target', '#addCustomerModal');
@@ -125,7 +126,7 @@
       MockData.save('customers');
 
       bootstrap.Modal.getInstance(document.getElementById('addCustomerModal')).hide();
-      showToast('Customer successfully added.', 'success');
+      showToast('Customer berhasil ditambahkan.', 'success');
       
       this.reset();
       this.classList.remove('was-validated');
@@ -148,9 +149,18 @@
         <td><div class="fs-13"><i class="bi bi-telephone text-muted me-1"></i>${c.phone}<br><i class="bi bi-envelope text-muted me-1"></i>${c.email}</div></td>
         <td>${statusBadge(c.status)}</td>
         <td><a href="customer-detail.html?id=${c.id}" class="btn-action"><i class="bi bi-eye"></i></a><button class="btn-action"><i class="bi bi-pencil"></i></button></td>
-      </tr>`).join('')||'<tr><td colspan="7" class="text-center text-muted py-4">No customers found</td></tr>';
+      </tr>`).join('')||'<tr><td colspan="7" class="text-center text-muted py-4">Tidak ada pelanggan ditemukan</td></tr>';
     }
     filterData();
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+

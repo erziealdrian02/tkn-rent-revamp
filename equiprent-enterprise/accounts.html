@@ -1,5 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
+﻿<!DOCTYPE html>
+<html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Accounts — EquipRent Enterprise</title>
@@ -18,7 +18,7 @@
         <div class="page-header"><div class="page-header-left"><h2 class="page-header-title">Bank Accounts</h2><p class="page-header-subtitle">Manage company bank accounts for billing</p></div>
         <div class="page-header-actions"><button class="btn btn-primary btn-sm" onclick="showToast('Add account','info')"><i class="bi bi-plus-lg me-1"></i>Add Account</button></div></div>
         <div class="er-card"><div class="er-card-body">
-          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>ID</th><th>Account Name</th><th>Bank</th><th>Account Number</th><th>Holder Name</th><th>Status</th><th>Actions</th></tr></thead>
+          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>ID</th><th>Account Name</th><th>Bank</th><th>Account Number</th><th>Holder Name</th><th>Status</th><th>Aksi</th></tr></thead>
           <tbody id="tableBody"></tbody></table></div>
         </div></div>
       </div>
@@ -63,20 +63,20 @@
               <div class="col-md-6">
                 <label class="form-label form-label-er">Status</label>
                 <select class="form-select" id="accStatus">
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
+                  <option value="Active">Aktif</option>
+                  <option value="Inactive">Tidak Aktif</option>
                 </select>
               </div>
               <div class="col-12">
                 <label class="form-label form-label-er">Associated Branch</label>
                 <select class="form-select" id="accBranch">
-                  <option value="All">All Branches</option>
+                  <option value="All">Semua Cabang</option>
                 </select>
               </div>
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
             <button type="submit" class="btn btn-primary">Save Account</button>
           </div>
         </form>
@@ -85,6 +85,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
@@ -125,7 +126,7 @@
       MockData.save('accounts');
 
       bootstrap.Modal.getInstance(document.getElementById('addAccountModal')).hide();
-      showToast('Account successfully added.', 'success');
+      showToast('Account berhasil ditambahkan.', 'success');
       
       this.reset();
       this.classList.remove('was-validated');
@@ -145,3 +146,9 @@
   </script>
 </body>
 </html>
+
+
+
+
+
+

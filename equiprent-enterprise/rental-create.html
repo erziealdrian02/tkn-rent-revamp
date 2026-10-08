@@ -1,5 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
+﻿<!DOCTYPE html>
+<html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -74,14 +74,14 @@
         <div class="form-section">
           <h5 class="form-section-title">
             <i class="bi bi-tools me-2"></i>Equipment Items
-            <button class="btn btn-primary btn-sm float-end" onclick="addEquipmentRow()"><i class="bi bi-plus-lg me-1"></i>Add Equipment</button>
+            <button class="btn btn-primary btn-sm float-end" onclick="addEquipmentRow()"><i class="bi bi-plus-lg me-1"></i>Tambah Alat Berat</button>
           </h5>
           <div class="er-table-wrapper">
             <table class="er-table" id="equipmentTable">
               <thead>
                 <tr>
                   <th style="width:25%">Equipment</th>
-                  <th>Available</th>
+                  <th>Tersedia</th>
                   <th style="width:80px">Qty</th>
                   <th style="width:140px">Rate / Month</th>
                   <th style="width:80px">Duration</th>
@@ -145,7 +145,7 @@
 
         <!-- Actions -->
         <div class="d-flex justify-content-between align-items-center mt-3">
-          <a href="rentals.html" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a>
+          <a href="rentals.html" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
           <div class="d-flex gap-2">
             <button class="btn btn-outline-secondary" onclick="submitRental(true)"><i class="bi bi-save me-1"></i>Save Draft</button>
             <button class="btn btn-primary" onclick="submitRental(false)"><i class="bi bi-send me-1"></i>Submit for Approval</button>
@@ -157,11 +157,12 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
   <script src="assets/js/app.js"></script>
   <script src="assets/js/business-logic.js"></script>
   <script>
-    const user = initApp('rentals.html', [{label:'Rental',href:'#'},{label:'Rentals',href:'rentals.html'},{label:'Create'}], 'Create Rental');
+    const user = initApp('rentals.html', [{label:'Penyewaan',href:'#'},{label:'Penyewaan',href:'rentals.html'},{label:'Create'}], 'Create Rental');
 
     document.getElementById('rentalId').value = MockData.generateId('RNT', 'rentals');
 
@@ -344,3 +345,9 @@
   </script>
 </body>
 </html>
+
+
+
+
+
+

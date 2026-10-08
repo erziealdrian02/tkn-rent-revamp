@@ -1,8 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
+﻿<!DOCTYPE html>
+<html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Users — EquipRent Enterprise</title>
+  <title>Pengguna — EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -16,9 +16,9 @@
       <header class="app-header" id="appHeader"></header>
       <div class="app-content">
         <div class="page-header"><div class="page-header-left"><h2 class="page-header-title">System Users</h2><p class="page-header-subtitle">Manage user access and accounts</p></div>
-        <div class="page-header-actions"><button class="btn btn-primary btn-sm" onclick="showToast('Add user','info')"><i class="bi bi-plus-lg me-1"></i>Add User</button></div></div>
+        <div class="page-header-actions"><button class="btn btn-primary btn-sm" onclick="showToast('Add user','info')"><i class="bi bi-plus-lg me-1"></i>Tambah Pengguna</button></div></div>
         <div class="er-card"><div class="er-card-body">
-          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Name</th><th>Username</th><th>Peran</th><th>Status</th><th>Aksi</th></tr></thead>
           <tbody id="tableBody"></tbody></table></div>
         </div></div>
       </div>
@@ -31,7 +31,7 @@
       <div class="modal-content">
         <form id="userForm" class="needs-validation" novalidate>
           <div class="modal-header">
-            <h5 class="modal-title">Add New User</h5>
+            <h5 class="modal-title">Tambah Pengguna Baru</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
@@ -55,21 +55,21 @@
               <div class="col-md-6">
                 <label class="form-label form-label-er">Branch</label>
                 <select class="form-select" id="usrBranch">
-                  <option value="All">All Branches</option>
+                  <option value="All">Semua Cabang</option>
                 </select>
               </div>
               <div class="col-md-6">
                 <label class="form-label form-label-er">Status</label>
                 <select class="form-select" id="usrStatus">
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
+                  <option value="Active">Aktif</option>
+                  <option value="Inactive">Tidak Aktif</option>
                 </select>
               </div>
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary">Save User</button>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-primary">Simpan Pengguna</button>
           </div>
         </form>
       </div>
@@ -77,10 +77,11 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
-    initApp('users.html',[{label:'Settings',href:'#'},{label:'Users'}],'Users');
+    initApp('users.html',[{label:'Settings',href:'#'},{label:'Pengguna'}],'Pengguna');
 
     document.querySelector('.page-header-actions .btn-primary').setAttribute('data-bs-toggle', 'modal');
     document.querySelector('.page-header-actions .btn-primary').setAttribute('data-bs-target', '#addUserModal');
@@ -126,7 +127,7 @@
       MockData.save('demoUsers');
 
       bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
-      showToast('User successfully added.', 'success');
+      showToast('User berhasil ditambahkan.', 'success');
       
       this.reset();
       this.classList.remove('was-validated');
@@ -145,3 +146,10 @@
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
