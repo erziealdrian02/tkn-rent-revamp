@@ -18,7 +18,7 @@
         <div class="page-header"><div class="page-header-left"><h2 class="page-header-title">Cabang</h2><p class="page-header-subtitle">Warehouse and branch management</p></div>
         <div class="page-header-actions"><button class="btn btn-primary btn-sm" onclick="showToast('Add branch','info')"><i class="bi bi-plus-lg me-1"></i>Tambah Cabang</button></div></div>
         <div class="er-card"><div class="er-card-body">
-          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Code</th><th>Nama Cabang</th><th>Alamat</th><th>Kapasitas</th><th>Total Equipment</th><th>Tersedia</th><th>Di Sewa</th><th>Status</th><th>Aksi</th></tr></thead>
+          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Code</th><th>Nama Cabang</th><th>Alamat</th><th class="num">Kapasitas</th><th class="num">Stok Fisik</th><th class="num">Tersedia</th><th class="num">Jenis Alat</th><th>Status</th><th>Aksi</th></tr></thead>
           <tbody id="tableBody"></tbody></table></div>
         </div></div>
       </div>
@@ -38,7 +38,7 @@
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label form-label-er">Branch Code <span class="text-danger">*</span></label>
-                <input type="text" class="form-control text-uppercase" id="brCode" required placeholder="e.g. JKT">
+                <input type="text" class="form-control text-uppercase" id="brCode" required placeholder="e.g. CLS">
                 <div class="invalid-feedback">Branch code is required.</div>
               </div>
               <div class="col-md-6">
@@ -50,7 +50,7 @@
               </div>
               <div class="col-12">
                 <label class="form-label form-label-er">Branch Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="brName" required placeholder="e.g. Jakarta Warehouse">
+                <input type="text" class="form-control" id="brName" required placeholder="e.g. Cileungsi Warehouse">
                 <div class="invalid-feedback">Branch name is required.</div>
               </div>
               <div class="col-12">
@@ -76,6 +76,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
     initApp('branches.html',[{label:'Inventaris',href:'#'},{label:'Cabang'}],'Cabang');
@@ -98,9 +99,6 @@
         name: document.getElementById('brName').value,
         address: document.getElementById('brAddress').value,
         capacity: parseInt(document.getElementById('brCapacity').value) || 0,
-        totalEquipment: 0,
-        available: 0,
-        onRental: 0,
         status: document.getElementById('brStatus').value
       };
 
@@ -117,15 +115,20 @@
     });
 
     function renderTable() {
-      document.getElementById('tableBody').innerHTML=MockData.branches.map(b=>`<tr>
+      const bal = BizLogic.StockLedger.balances();
+      document.getElementById('tableBody').innerHTML=MockData.branches.map(b=>{
+        const qty = Object.values(bal['warehouse:' + b.id] || {});
+        const total = qty.reduce((a, v) => a + v, 0);
+        const avail = MockData.stock.filter(s => s.branch === b.name.replace(' Warehouse', '')).reduce((a, s) => a + s.available, 0);
+        return `<tr>
         <td class="text-mono fw-600">${b.code}</td>
         <td><a href="branch-detail.html?id=${b.id}" class="cell-link">${b.name}</a></td>
-        <td class="fs-12">${b.address}</td><td>${b.capacity}</td><td>${b.totalEquipment}</td>
-        <td><span class="badge-status available">${b.available}</span></td>
-        <td><span class="badge-status on-rental">${b.onRental}</span></td>
+        <td class="fs-12">${b.address}</td><td class="num">${b.capacity}</td><td class="num fw-600">${formatNumber(total)}</td>
+        <td class="num"><span class="badge-status available">${formatNumber(avail)}</span></td>
+        <td class="num">${qty.filter(v => v > 0).length}</td>
         <td>${statusBadge(b.status)}</td>
         <td><a href="branch-detail.html?id=${b.id}" class="btn-action"><i class="bi bi-eye"></i></a><button class="btn-action"><i class="bi bi-pencil"></i></button></td>
-      </tr>`).join('');
+      </tr>`;}).join('');
     }
     renderTable();
   </script>

@@ -58,7 +58,7 @@
             <div class="col-6">
               <label class="form-label form-label-er">Branch</label>
               <select class="form-select" id="mtBranch" onchange="updateAvailability()">
-                <option>Jakarta Warehouse</option><option>Bekasi Warehouse</option><option>Surabaya Warehouse</option>
+                <option>Cileungsi Warehouse</option><option>Bekasi Warehouse</option><option>Balikpapan Warehouse</option>
               </select>
             </div>
             <div class="col-6">
@@ -152,7 +152,7 @@
     // Seed initial mock data if empty
     if(!MockData.maintenance || MockData.maintenance.length === 0) {
         MockData.maintenance = [
-            { id: 'MT-001', equipment: 'Excavator PC200', branch: 'Jakarta Warehouse', quantity: 1, type: 'Routine Check', status: 'Completed', startDate: '2023-10-15', completionDate: '2023-10-16', notes: 'Monthly routine check', technician: 'Budi' },
+            { id: 'MT-001', equipment: 'Excavator PC200', branch: 'Cileungsi Warehouse', quantity: 1, type: 'Routine Check', status: 'Completed', startDate: '2023-10-15', completionDate: '2023-10-16', notes: 'Monthly routine check', technician: 'Budi' },
             { id: 'MT-002', equipment: 'Bulldozer D85', branch: 'Bekasi Warehouse', quantity: 2, type: 'Calibration', status: 'In Progress', startDate: new Date().toISOString().split('T')[0], completionDate: null, notes: 'Blade calibration', technician: 'Andi' }
         ];
         MockData.save('maintenance');

@@ -54,9 +54,9 @@
             <div class="col-md-3">
               <label class="form-label form-label-er">Branch *</label>
               <select class="form-select" id="branchSelect">
-                <option>Jakarta Warehouse</option>
+                <option>Cileungsi Warehouse</option>
                 <option>Bekasi Warehouse</option>
-                <option>Surabaya Warehouse</option>
+                <option>Balikpapan Warehouse</option>
               </select>
             </div>
             <div class="col-md-3">
@@ -312,7 +312,7 @@
         rentalDate: document.getElementById('startDate').value,
         returnDate: document.getElementById('endDate').value,
         branch: document.getElementById('branchSelect').value,
-        branchId: 'BR-001',
+        branchId: BizLogic.StockLedger.warehouseIdOf(document.getElementById('branchSelect').value),
         totalItems: items.length,
         deliveryStatus: 'Pending',
         status: isDraft ? 'Draft' : 'Draft', // Saved as draft first, then submitted

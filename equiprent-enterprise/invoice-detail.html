@@ -1,8 +1,8 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Detail Faktur — EquipRent Enterprise</title>
+  <title>Detail Invoice — EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -15,76 +15,79 @@
     <main class="app-main">
       <header class="app-header" id="appHeader"></header>
       <div class="app-content">
-        <div class="d-flex justify-content-end gap-2 mb-3 no-print">
-          <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak</button>
-          <button class="btn btn-outline-secondary btn-sm" onclick="showToast('PDF downloaded','success')"><i class="bi bi-file-pdf me-1"></i>Download PDF</button>
-          <span id="markPaidBtn"></span>
+        <div class="d-flex justify-content-end gap-2 mb-3 no-print" id="actions"></div>
+        <div class="invoice-paper mb-4" id="invoiceContent"></div>
+        <div class="er-card no-print">
+          <div class="er-card-header"><h5 class="er-card-title"><i class="bi bi-cash-coin me-1"></i>Riwayat Pembayaran</h5></div>
+          <div class="er-card-body"><div class="er-table-wrapper"><table class="er-table">
+            <thead><tr><th>No. Bayar</th><th>Tanggal</th><th>Jenis</th><th>Rekening</th><th>Metode / Ref</th><th class="num">Jumlah</th><th class="num">Sisa Setelah Bayar</th></tr></thead>
+            <tbody id="payBody"></tbody>
+          </table></div></div>
         </div>
-        <div class="invoice-paper" id="invoiceContent"></div>
       </div>
     </main>
   </div>
-  <!-- Mark as Paid Modal -->
-  <div class="modal fade" id="paidModal" tabindex="-1">
-    <div class="modal-dialog modal-sm">
-      <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title">Mark as Paid</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body">
-          <div class="mb-3"><label class="form-label form-label-er">Payment Date</label><input type="date" id="payDate" class="form-control" value="2026-09-04"></div>
-          <div class="mb-3">
-            <label class="form-label form-label-er">Payment Amount</label>
-            <div class="input-group">
-                <span class="input-group-text">Rp</span>
-                <input type="number" id="payAmount" class="form-control" placeholder="Amount">
-            </div>
+
+  <!-- Payment Modal -->
+  <div class="modal fade" id="payModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Catat Pembayaran</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="alert alert-light border py-2 fs-13">Sisa tagihan: <strong id="payRemaining"></strong></div>
+        <div class="mb-3">
+          <label class="form-label form-label-er">Jenis Pembayaran</label>
+          <div class="d-flex gap-3">
+            <label class="d-flex align-items-center gap-2"><input type="radio" class="form-check-input m-0" name="payKind" value="full" checked onchange="onKind()"> Lunas</label>
+            <label class="d-flex align-items-center gap-2"><input type="radio" class="form-check-input m-0" name="payKind" value="partial" onchange="onKind()"> Cicilan</label>
           </div>
-          <div class="mb-3"><label class="form-label form-label-er">Payment Account</label>
-            <select class="form-select" id="payAccount"></select>
-          </div>
-          <div class="mb-3"><label class="form-label form-label-er">Notes</label><textarea class="form-control" id="payNotes" rows="2"></textarea></div>
         </div>
-        <div class="modal-footer">
-          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-          <button class="btn btn-success" onclick="markAsPaid()"><i class="bi bi-check-lg me-1"></i>Confirm Payment</button>
+        <div class="row g-3">
+          <div class="col-6"><label class="form-label form-label-er">Tanggal Bayar</label><input type="date" id="payDate" class="form-control"></div>
+          <div class="col-6"><label class="form-label form-label-er">Jumlah</label><div class="input-group"><span class="input-group-text">Rp</span><input type="number" id="payAmount" class="form-control text-end"></div></div>
+          <div class="col-6"><label class="form-label form-label-er">Masuk ke Rekening</label><select class="form-select" id="payAccount"></select></div>
+          <div class="col-6"><label class="form-label form-label-er">Metode</label><select class="form-select" id="payMethod"><option>Transfer</option><option>Giro</option><option>Tunai</option></select></div>
+          <div class="col-12"><label class="form-label form-label-er">No. Referensi / Bukti</label><input type="text" id="payRef" class="form-control"></div>
+          <div class="col-12"><label class="form-label form-label-er">Catatan</label><textarea class="form-control" id="payNotes" rows="2"></textarea></div>
         </div>
       </div>
-    </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+        <button class="btn btn-success" onclick="submitPayment()"><i class="bi bi-check-lg me-1"></i>Simpan Pembayaran</button>
+      </div>
+    </div></div>
   </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
-    const invId = getUrlParam('id') || 'INV-001';
-    const inv = MockData.invoices.find(i => i.id === invId) || MockData.invoices[0];
-    initApp('invoices.html',[{label:'Billing',href:'#'},{label:'Faktur',href:'invoices.html'},{label:inv.id}],inv.id);
-
-    // Populate account select
-    const accSel = document.getElementById('payAccount');
-    if (!MockData.companyBanks) {
-      MockData.companyBanks = [
-        { id: 'BA-001', name: 'BCA Perusahaan', accountNumber: '1234567890' },
-        { id: 'BA-002', name: 'Mandiri Perusahaan', accountNumber: '0987654321' }
-      ];
-    }
-    MockData.companyBanks.forEach(a => { accSel.innerHTML += `<option value="${a.id}">${a.name} — ${a.accountNumber}</option>`; });
+    const Inv = BizLogic.Invoice;
+    const inv = MockData.invoices.find(i => i.id === getUrlParam('id')) || MockData.invoices[MockData.invoices.length - 1];
+    initApp('invoices.html', [{label:'Piutang',href:'#'},{label:'Invoice',href:'invoices.html'},{label:inv.id}], inv.id);
 
     const company = MockData.company;
     const customer = MockData.customers.find(c => c.id === inv.customerId);
-    
-    // Fallback amount logic based on original design
-    const tax = Math.round(inv.amount * 0.11);
-    const grandTotal = (inv.totalAmount || inv.amount + tax);
-    const totalPaid = inv.paidAmount || 0;
-    const remainingBalance = grandTotal - totalPaid;
+    const account = MockData.accounts.find(a => a.id === inv.accountId) || MockData.accounts[0];
+    const status = Inv.statusOf(inv);
+    const paid = Inv.paidAmount(inv);
+    const remaining = Inv.outstanding(inv);
+    const isRent = inv.type === 'Sewa';
 
-    // Set default payment amount to remaining balance
-    document.getElementById('payAmount').value = remainingBalance;
+    document.getElementById('actions').innerHTML = `
+      ${isRent ? `<a href="billing.html?project=${inv.projectId}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calculator me-1"></i>Rekap Tagihan</a>` : ''}
+      <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak</button>
+      ${paid === 0 && status !== 'Cancelled' ? '<button class="btn btn-outline-danger btn-sm" onclick="cancelInvoice()"><i class="bi bi-x-circle me-1"></i>Batalkan</button>' : ''}
+      ${remaining > 0 ? '<button class="btn btn-success btn-sm" onclick="openPay()"><i class="bi bi-cash me-1"></i>Catat Pembayaran</button>' : ''}`;
 
-    // Mark as paid button
-    if (remainingBalance > 0 && inv.status !== 'Paid') {
-      document.getElementById('markPaidBtn').innerHTML = `<button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#paidModal"><i class="bi bi-cash me-1"></i>Record Payment</button>`;
-    }
+    const itemsHead = isRent
+      ? '<tr><th>No</th><th>Nama Barang</th><th>SJ Kirim</th><th class="text-end">Qty</th><th>Awal</th><th>Akhir</th><th class="text-end">Hari</th><th class="text-end">Harga Satuan</th><th class="text-end">Total</th></tr>'
+      : '<tr><th>No</th><th style="width:55%">Deskripsi</th><th class="text-end">Qty</th><th class="text-end">Harga Satuan</th><th class="text-end">Total</th></tr>';
+    const itemsBody = inv.items.map((it, n) => isRent
+      ? `<tr><td>${n + 1}</td><td>${it.desc}</td><td class="text-mono fs-12">${it.sjDelivery}${it.sjReturn ? '<br><span class="text-muted">↩ ' + it.sjReturn + '</span>' : ''}</td><td class="text-end">${it.qty}</td><td>${formatDate(it.startDate)}</td><td>${formatDate(it.endDate)}${it.adjusted ? ' <i class="bi bi-pencil-square text-warning" title="Tanggal di-adjust"></i>' : ''}</td><td class="text-end">${it.days}</td><td class="text-end">${formatRupiah(it.unitPrice)}</td><td class="text-end">${formatRupiah(it.amount)}</td></tr>`
+      : `<tr><td>${n + 1}</td><td>${it.desc}</td><td class="text-end">${it.qty}</td><td class="text-end">${formatRupiah(it.unitPrice)}</td><td class="text-end">${formatRupiah(it.amount)}</td></tr>`
+    ).join('');
 
     document.getElementById('invoiceContent').innerHTML = `
       <div class="invoice-header">
@@ -92,94 +95,110 @@
           <h3><i class="bi bi-gear-wide-connected me-2"></i>${company.name}</h3>
           <p>${company.address}</p>
           <p>Tel: ${company.phone} | Email: ${company.email}</p>
-          <p>Tax ID: ${company.taxId}</p>
+          <p>NPWP: ${company.taxId}</p>
         </div>
         <div class="invoice-title-section">
           <h2>INVOICE</h2>
           <p class="text-mono" style="font-size:18px;font-weight:600">${inv.id}</p>
-          <p>${statusBadge(inv.status)}</p>
+          <p>${invoiceStatusBadge(status)}</p>
         </div>
       </div>
 
       <div class="invoice-info-grid">
         <div>
-          <h6 class="fw-600 mb-2">Bill To</h6>
+          <h6 class="fw-600 mb-2">Ditagihkan kepada</h6>
           <p class="fw-600 mb-1">${inv.customerName}</p>
           <p class="text-muted fs-12 mb-1">${customer?.address || '-'}</p>
-          <p class="text-muted fs-12 mb-1">${customer?.phone || '-'}</p>
-          <p class="text-muted fs-12">${customer?.email || '-'}</p>
+          <p class="text-muted fs-12 mb-1">${customer?.pic || ''} ${customer?.phone ? '· ' + customer.phone : ''}</p>
         </div>
         <div>
           <table class="w-100 fs-13">
-            <tr><td class="text-muted py-1">Invoice Number</td><td class="text-end py-1 fw-600 text-mono">${inv.id}</td></tr>
-            <tr><td class="text-muted py-1">Invoice Type</td><td class="text-end py-1">${inv.type}</td></tr>
-            <tr><td class="text-muted py-1">Invoice Date</td><td class="text-end py-1">${formatDate(inv.invoiceDate)}</td></tr>
-            <tr><td class="text-muted py-1">Due Date</td><td class="text-end py-1">${formatDate(inv.dueDate)}</td></tr>
-            <tr><td class="text-muted py-1">Project</td><td class="text-end py-1">${inv.projectName}</td></tr>
-            <tr><td class="text-muted py-1">Reference</td><td class="text-end py-1 text-mono">${inv.reference}</td></tr>
-            <tr><td class="text-muted py-1">Payment Account</td><td class="text-end py-1">${inv.accountName}</td></tr>
-            ${inv.paidDate ? `<tr><td class="text-muted py-1">Paid Date</td><td class="text-end py-1">${formatDate(inv.paidDate)}</td></tr>` : ''}
+            <tr><td class="text-muted py-1">Tipe</td><td class="text-end py-1">${inv.type}</td></tr>
+            <tr><td class="text-muted py-1">Proyek</td><td class="text-end py-1">${inv.projectId ? `<a href="project-detail.html?id=${inv.projectId}">${inv.projectName}</a>` : '-'}</td></tr>
+            ${isRent ? `<tr><td class="text-muted py-1">Periode Sewa</td><td class="text-end py-1">${formatDate(inv.periodStart)} — ${formatDate(inv.periodEnd)}</td></tr>
+            <tr><td class="text-muted py-1">Bulan Sewa</td><td class="text-end py-1">${inv.monthDays} hari</td></tr>` : `<tr><td class="text-muted py-1">Referensi</td><td class="text-end py-1 text-mono">${inv.reference || '-'}</td></tr>`}
+            <tr><td class="text-muted py-1">Tanggal Invoice</td><td class="text-end py-1">${formatDate(inv.invoiceDate)}</td></tr>
+            <tr><td class="text-muted py-1">Jatuh Tempo</td><td class="text-end py-1 ${status === 'Overdue' ? 'qty-minus' : ''}">${formatDate(inv.dueDate)}</td></tr>
           </table>
         </div>
       </div>
 
-      <table class="w-100 invoice-items-table mb-0">
-        <thead><tr><th style="width:50%">Description</th><th class="text-center">Qty</th><th class="text-end">Unit Price</th><th class="text-end">Amount</th></tr></thead>
-        <tbody>
-        ${inv.items.map(item => `<tr>
-          <td>${item.desc}</td>
-          <td class="text-center">${item.qty}</td>
-          <td class="text-end">${formatRupiah(Math.abs(item.price))}</td>
-          <td class="text-end ${item.price<0?'text-danger':''}">${item.price<0?'(':''}${formatRupiah(Math.abs(item.price))}${item.price<0?')':''}</td>
-        </tr>`).join('')}
-        </tbody>
-      </table>
+      <div class="er-table-wrapper"><table class="w-100 invoice-items-table mb-0 ${isRent ? 'rent' : ''}"><thead>${itemsHead}</thead><tbody>${itemsBody}</tbody></table></div>
+      ${isRent ? `<p class="fs-12 text-muted mt-2 mb-0">Total = Qty × Hari × Harga Satuan ÷ ${inv.monthDays}. Hari = Akhir − Awal + 1.</p>` : ''}
 
       <div class="invoice-summary mt-4">
-        <table style="width: 100%; max-width: 300px; margin-left: auto;">
-          <tr><td class="text-muted pb-1">Total Due</td><td class="text-end fw-600">${formatRupiah(grandTotal)}</td></tr>
-          <tr><td class="text-muted pb-1 border-bottom">Amount Paid</td><td class="text-end text-success border-bottom pb-1">- ${formatRupiah(totalPaid)}</td></tr>
-          <tr class="total-row"><td class="pt-2">Balance Due</td><td class="text-end pt-2" style="color:var(--primary)">${formatRupiah(remainingBalance)}</td></tr>
+        <table>
+          <tr><td class="text-muted">Subtotal</td><td class="text-end">${formatRupiah(inv.subtotal)}</td></tr>
+          ${inv.tax ? `<tr><td class="text-muted">PPN ${Math.round(inv.taxRate * 100)}%</td><td class="text-end">${formatRupiah(inv.tax)}</td></tr>` : ''}
+          <tr><td class="fw-600">Total Tagihan</td><td class="text-end fw-600">${formatRupiah(inv.amount)}</td></tr>
+          <tr><td class="text-muted border-bottom pb-2">Sudah Dibayar</td><td class="text-end text-success border-bottom pb-2">− ${formatRupiah(paid)}</td></tr>
+          <tr class="total-row"><td class="pt-2">Sisa Tagihan</td><td class="text-end pt-2" style="color:var(--primary)">${formatRupiah(remaining)}</td></tr>
         </table>
       </div>
 
       <div class="mt-4 pt-3 border-top">
         <div class="row">
           <div class="col-md-6">
-            <h6 class="fw-600 fs-12">Payment Information</h6>
-            <p class="fs-12 text-muted mb-1">Bank: ${MockData.companyBanks[0].name}</p>
-            <p class="fs-12 text-muted mb-1">Account: ${MockData.companyBanks[0].accountNumber}</p>
-            <p class="fs-12 text-muted">Holder: ${company.name}</p>
+            <h6 class="fw-600 fs-12">Pembayaran ke</h6>
+            <p class="fs-12 text-muted mb-1">${account.bank} — ${account.accountNumber}</p>
+            <p class="fs-12 text-muted">a.n. ${account.accountHolder}</p>
+            ${inv.notes ? `<p class="fs-12 mb-0"><strong>Catatan:</strong> ${inv.notes}</p>` : ''}
           </div>
           <div class="col-md-6 text-end">
-            <p class="fs-12 text-muted mt-4">Authorized Signature</p>
-            <div class="mt-4 pt-3 border-top d-inline-block" style="width:200px">
-              <p class="fs-12 fw-600 mb-0">${company.name}</p>
-            </div>
+            <p class="fs-12 text-muted mt-4">Hormat kami,</p>
+            <div class="mt-4 pt-3 border-top d-inline-block" style="width:200px"><p class="fs-12 fw-600 mb-0">${company.name}</p></div>
           </div>
         </div>
       </div>`;
 
-    function markAsPaid() {
-      const amt = document.getElementById('payAmount').value;
-      const bankId = document.getElementById('payAccount').value;
-      const notes = document.getElementById('payNotes').value;
-      
-      const res = BizLogic.Invoice.recordPayment(inv.id, amt, 'Transfer', bankId, notes);
-      
-      if(res.success) {
-        bootstrap.Modal.getInstance(document.getElementById('paidModal')).hide();
-        showToast('Payment recorded successfully', 'success');
-        setTimeout(() => location.reload(), 800);
-      } else {
-        showToast(res.error, 'danger');
-      }
+    // Riwayat pembayaran
+    let running = inv.amount;
+    document.getElementById('payBody').innerHTML = Inv.payments(inv.id).map(p => {
+      running -= p.amount;
+      const acc = MockData.accounts.find(a => a.id === p.accountId);
+      return `<tr><td class="text-mono">${p.id}</td><td>${formatDate(p.date)}</td><td>${statusBadge(p.kind === 'Lunas' ? 'Paid' : 'Partially Paid').replace(/>[^<]+</, '>' + p.kind + '<')}</td>
+        <td>${acc ? acc.name : p.accountId}</td><td class="fs-12">${p.method}${p.reference ? ' · <span class="text-mono">' + p.reference + '</span>' : ''}</td>
+        <td class="num fw-600">${formatRupiah(p.amount)}</td><td class="num">${formatRupiah(running)}</td></tr>`;
+    }).join('') || '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada pembayaran</td></tr>';
+
+    // Modal pembayaran
+    document.getElementById('payAccount').innerHTML = MockData.accounts.map(a => `<option value="${a.id}" ${a.id === inv.accountId ? 'selected' : ''}>${a.name} — ${a.accountNumber}</option>`).join('');
+    function onKind() {
+      const full = document.querySelector('input[name="payKind"]:checked').value === 'full';
+      const amt = document.getElementById('payAmount');
+      amt.value = full ? remaining : '';
+      amt.readOnly = full;
+      if (!full) amt.focus();
     }
+    function openPay() {
+      document.getElementById('payRemaining').textContent = formatRupiah(remaining);
+      document.getElementById('payDate').value = new Date().toISOString().split('T')[0];
+      onKind();
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('payModal')).show();
+    }
+    function submitPayment() {
+      const res = BizLogic.Payment.record(inv.id, {
+        date: document.getElementById('payDate').value,
+        amount: document.getElementById('payAmount').value,
+        accountId: document.getElementById('payAccount').value,
+        method: document.getElementById('payMethod').value,
+        reference: document.getElementById('payRef').value,
+        notes: document.getElementById('payNotes').value
+      });
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      bootstrap.Modal.getInstance(document.getElementById('payModal')).hide();
+      showToast(`Pembayaran ${res.payment.kind.toLowerCase()} ${formatRupiah(res.payment.amount)} tercatat`, 'success');
+      setTimeout(() => location.reload(), 700);
+    }
+    function cancelInvoice() {
+      const reason = prompt('Alasan pembatalan invoice ' + inv.id + ':');
+      if (reason === null) return;
+      const res = Inv.cancel(inv.id, reason);
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      showToast('Invoice dibatalkan', 'warning');
+      setTimeout(() => location.reload(), 700);
+    }
+    if (getUrlParam('pay') && remaining > 0) openPay();
   </script>
 </body>
 </html>
-
-
-
-
-

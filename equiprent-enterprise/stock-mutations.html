@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perpindahan Stok — EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h2 class="page-header-title">Perpindahan Stok</h2>
+            <p class="page-header-subtitle">Semua barang masuk / keluar gudang dan proyek, tercatat per dokumen (SJ)</p>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-download me-1"></i>Export CSV</button>
+            <div class="dropdown">
+              <button class="btn btn-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-plus-lg me-1"></i>Buat Perpindahan</button>
+              <ul class="dropdown-menu dropdown-menu-end" id="createMenu"></ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="type-tabs" id="typeTabs"></div>
+
+        <div class="er-card"><div class="er-card-body">
+          <div class="table-toolbar"><div class="table-toolbar-left">
+            <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Cari no. dokumen, alat, lokasi..." id="searchInput" oninput="render()"></div>
+            <select class="filter-select" id="whFilter" onchange="render()"><option value="">Semua Gudang</option></select>
+            <input type="date" class="filter-select" id="dateFrom" onchange="render()" title="Dari tanggal">
+            <input type="date" class="filter-select" id="dateTo" onchange="render()" title="Sampai tanggal">
+          </div></div>
+          <div class="er-table-wrapper"><table class="er-table">
+            <thead><tr><th>No. Dokumen</th><th>Tanggal</th><th>Jenis</th><th>Dari → Ke</th><th>Alat</th><th class="num">Qty</th><th class="num" id="effectHead">Efek Gudang</th><th></th></tr></thead>
+            <tbody id="tableBody"></tbody>
+          </table></div>
+        </div></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" id="detailTitle"></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body" id="detailBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-primary" onclick="printDoc()"><i class="bi bi-printer me-1"></i>Cetak</button>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- Create Modal -->
+  <div class="modal fade" id="createModal" tabindex="-1">
+    <div class="modal-dialog modal-xl"><div class="modal-content">
+      <form id="createForm" novalidate>
+        <div class="modal-header">
+          <h5 class="modal-title" id="createTitle">Buat Perpindahan</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-light border py-2 fs-13 mb-3" id="createHint"></div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-3">
+              <label class="form-label form-label-er">No. Dokumen</label>
+              <input type="text" class="form-control bg-light text-mono" id="fNo" readonly>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label form-label-er">Tanggal <span class="text-danger">*</span></label>
+              <input type="date" class="form-control" id="fDate" required onchange="refreshNo()">
+            </div>
+            <div class="col-md-6" id="fFromWrap"></div>
+            <div class="col-md-6" id="fToWrap"></div>
+            <div class="col-md-6">
+              <label class="form-label form-label-er" id="fRefLabel">Referensi</label>
+              <input type="text" class="form-control" id="fRef">
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-600 mb-0">Rincian Alat</h6>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addRow()"><i class="bi bi-plus-lg me-1"></i>Tambah Alat</button>
+          </div>
+          <div class="er-table-wrapper"><table class="er-table">
+            <thead id="itemHead"></thead>
+            <tbody id="itemBody"></tbody>
+          </table></div>
+
+          <div class="mt-3">
+            <label class="form-label form-label-er">Catatan</label>
+            <textarea class="form-control" id="fNotes" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Simpan & Posting</button>
+        </div>
+      </form>
+    </div></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    initApp('stock-mutations.html', [{label:'Rekap Stok',href:'#'},{label:'Perpindahan Stok'}], 'Perpindahan Stok');
+
+    const L = BizLogic.StockLedger;
+    const T = L.TYPES;
+    const MAIN_TYPES = ['PURCHASE', 'TRANSFER', 'DELIVERY', 'RETURN', 'SALE'];
+    const warehouses = L.warehouses();
+    let activeType = getUrlParam('type') || '';
+
+    document.getElementById('whFilter').innerHTML += warehouses.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+    document.getElementById('createMenu').innerHTML = MAIN_TYPES.map(k =>
+      `<li><a class="dropdown-item" href="#" onclick="openCreate('${k}');return false;"><i class="bi ${T[k].icon} me-2"></i>${T[k].code}. ${T[k].label}<div class="fs-11 text-muted ms-4">${T[k].effect}</div></a></li>`
+    ).join('');
+
+    // ---------- LIST ----------
+    function locChip(loc) {
+      const name = L.locName(loc);
+      const link = loc.type === 'project' ? `project-stock.html?id=${loc.id}` : loc.type === 'warehouse' ? `branch-detail.html?id=${loc.id}` : null;
+      const inner = `<i class="bi ${L.locIcon(loc)}"></i>${name}`;
+      return link ? `<a href="${link}" class="loc-chip text-decoration-none">${inner}</a>` : `<span class="loc-chip">${inner}</span>`;
+    }
+
+    function docQty(d) { return d.items.reduce((s, i) => s + i.qty, 0); }
+
+    // Efek ke stok gudang: jika filter gudang aktif, dihitung khusus gudang itu
+    function docEffect(d, whId) {
+      const q = docQty(d);
+      const outW = d.from.type === 'warehouse' && (!whId || d.from.id === whId);
+      const inW = d.to.type === 'warehouse' && (!whId || d.to.id === whId);
+      if (outW && inW) return { text: '±' + formatNumber(q), cls: 'text-muted' };
+      if (inW) return { text: '+' + formatNumber(q), cls: 'qty-plus' };
+      if (outW) return { text: '−' + formatNumber(q), cls: 'qty-minus' };
+      return { text: '0', cls: 'text-muted' };
+    }
+
+    function typeBadge(type) {
+      const t = T[type];
+      return `<span class="badge-status ${t.color}"><i class="bi ${t.icon} me-1"></i>${t.code ? t.code + '. ' : ''}${t.label}</span>`;
+    }
+
+    function filtered(ignoreType) {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const wh = document.getElementById('whFilter').value;
+      const df = document.getElementById('dateFrom').value;
+      const dt = document.getElementById('dateTo').value;
+      return MockData.stockMutations.filter(d => {
+        if (!ignoreType && activeType) {
+          if (activeType === 'OTHER' ? MAIN_TYPES.includes(d.type) : d.type !== activeType) return false;
+        }
+        if (wh && !((d.from.type === 'warehouse' && d.from.id === wh) || (d.to.type === 'warehouse' && d.to.id === wh))) return false;
+        if (df && d.date < df) return false;
+        if (dt && d.date > dt) return false;
+        if (q) {
+          const hay = [d.no, d.reference, d.notes, L.locName(d.from), L.locName(d.to), ...d.items.map(i => i.equipment)].join(' ').toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      }).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+    }
+
+    function renderTabs() {
+      const base = filtered(true);
+      const count = k => base.filter(d => k === '' ? true : k === 'OTHER' ? !MAIN_TYPES.includes(d.type) : d.type === k).length;
+      const tab = (k, label, extra) => `<button class="type-tab ${activeType === k ? 'active' : ''}" onclick="setType('${k}')">${extra || ''}${label}<span class="er-tab-count">${count(k)}</span></button>`;
+      document.getElementById('typeTabs').innerHTML =
+        tab('', 'Semua') +
+        MAIN_TYPES.map(k => tab(k, T[k].label, `<span class="type-code">${T[k].code}</span>`)).join('') +
+        tab('OTHER', 'Lainnya', '<i class="bi bi-three-dots"></i>');
+    }
+
+    function setType(k) { activeType = k; render(); }
+
+    function render() {
+      renderTabs();
+      const wh = document.getElementById('whFilter').value;
+      document.getElementById('effectHead').textContent = wh ? 'Efek ' + L.locName({ type: 'warehouse', id: wh }).replace(' Warehouse', '') : 'Efek Gudang';
+      const data = filtered();
+      document.getElementById('tableBody').innerHTML = data.map(d => {
+        const eff = docEffect(d, wh);
+        const names = [...new Set(d.items.map(i => i.equipment))];
+        const itemText = names.length === 1 ? names[0] : `${names[0]} <span class="text-muted">+${names.length - 1} alat</span>`;
+        return `<tr>
+          <td><a href="#" class="cell-link text-mono" onclick="showDetail('${d.id}');return false;">${d.no}</a>${d.reference ? `<div class="fs-11 text-muted text-mono text-nowrap">${d.reference}</div>` : ''}</td>
+          <td class="text-nowrap">${formatDate(d.date)}</td>
+          <td>${typeBadge(d.type)}</td>
+          <td><div class="d-flex flex-wrap align-items-center gap-1">${locChip(d.from)}<i class="bi bi-arrow-right text-muted"></i>${locChip(d.to)}</div></td>
+          <td class="fs-12" title="${names.join(', ').replace(/"/g, '&quot;')}" style="max-width:220px">${itemText}</td>
+          <td class="num fw-600">${formatNumber(docQty(d))}</td>
+          <td class="num ${eff.cls}">${eff.text}</td>
+          <td><button class="btn-action" onclick="showDetail('${d.id}')"><i class="bi bi-eye"></i></button></td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="8" class="text-center text-muted py-4">Tidak ada perpindahan stok</td></tr>';
+    }
+
+    // ---------- DETAIL ----------
+    let currentDoc = null;
+    function showDetail(id) {
+      const d = MockData.stockMutations.find(x => x.id === id);
+      if (!d) return;
+      currentDoc = d;
+      const isSale = d.type === 'SALE';
+      document.getElementById('detailTitle').innerHTML = `${d.no} &nbsp;${typeBadge(d.type)}`;
+      document.getElementById('detailBody').innerHTML = `
+        <div class="info-grid mb-3">
+          <div class="info-item"><span class="info-label">Tanggal</span><span class="info-value">${formatDate(d.date)}</span></div>
+          <div class="info-item"><span class="info-label">Dari</span><span class="info-value">${locChip(d.from)}</span></div>
+          <div class="info-item"><span class="info-label">Ke</span><span class="info-value">${locChip(d.to)}</span></div>
+          <div class="info-item"><span class="info-label">Referensi</span><span class="info-value text-mono">${d.reference || '-'}</span></div>
+          <div class="info-item"><span class="info-label">Dibuat oleh</span><span class="info-value">${d.user || '-'}</span></div>
+          <div class="info-item"><span class="info-label">Efek</span><span class="info-value">${T[d.type].effect}</span></div>
+        </div>
+        <div class="er-table-wrapper"><table class="er-table">
+          <thead><tr><th>No</th><th>Nama Alat</th><th class="num">Qty</th>${d.type === 'RETURN' ? '<th>Kondisi</th>' : ''}${isSale ? '<th class="num">Harga Satuan</th><th class="num">Subtotal</th>' : ''}</tr></thead>
+          <tbody>${d.items.map((i, idx) => `<tr>
+            <td class="text-muted">${idx + 1}</td><td class="fw-600">${i.equipment}</td><td class="num">${formatNumber(i.qty)}</td>
+            ${d.type === 'RETURN' ? `<td>${i.condition === 'damaged' ? '<span class="badge-status damaged">Rusak</span>' : '<span class="badge-status good">Baik</span>'}</td>` : ''}
+            ${isSale ? `<td class="num">${formatRupiah(i.unitPrice || 0)}</td><td class="num">${formatRupiah((i.unitPrice || 0) * i.qty)}</td>` : ''}
+          </tr>`).join('')}</tbody>
+          <tfoot><tr><td></td><td>TOTAL</td><td class="num">${formatNumber(docQty(d))}</td>${d.type === 'RETURN' ? '<td></td>' : ''}${isSale ? `<td></td><td class="num">${formatRupiah(d.items.reduce((s, i) => s + (i.unitPrice || 0) * i.qty, 0))}</td>` : ''}</tr></tfoot>
+        </table></div>
+        ${d.notes ? `<p class="fs-13 mt-3 mb-0"><strong>Catatan:</strong> ${d.notes}</p>` : ''}`;
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('detailModal')).show();
+    }
+
+    function printDoc() {
+      const d = currentDoc;
+      if (!d) return;
+      const title = d.type === 'DELIVERY' ? 'SURAT JALAN PENGIRIMAN' : d.type === 'RETURN' ? 'SURAT JALAN PEMULANGAN' : T[d.type].label.toUpperCase();
+      const w = window.open('', '_blank');
+      w.document.write(`<html><head><title>${d.no}</title><style>
+        body{font-family:Arial,sans-serif;font-size:13px;padding:24px;color:#111}
+        h2{margin:0 0 4px;font-size:18px} table{width:100%;border-collapse:collapse;margin-top:16px}
+        th,td{border:1px solid #999;padding:6px 8px;text-align:left} td.n{text-align:right}
+        .meta td{border:none;padding:2px 8px 2px 0} .sign{display:flex;justify-content:space-between;margin-top:48px}
+        .sign div{width:30%;text-align:center} .sign span{display:block;margin-top:56px;border-top:1px solid #333;padding-top:4px}
+      </style></head><body>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div><strong>${MockData.company.name}</strong><br>${MockData.company.address}</div>
+          <div style="text-align:right"><h2>${title}</h2><div>No: <strong>${d.no}</strong></div><div>Tanggal: ${formatDate(d.date)}</div></div>
+        </div>
+        <table class="meta"><tr><td>Dari</td><td>: ${L.locName(d.from)}</td></tr><tr><td>Ke</td><td>: ${L.locName(d.to)}</td></tr><tr><td>Referensi</td><td>: ${d.reference || '-'}</td></tr></table>
+        <table><thead><tr><th style="width:40px">No</th><th>Nama Alat</th><th style="width:80px">Qty</th><th>Keterangan</th></tr></thead>
+        <tbody>${d.items.map((i, idx) => `<tr><td>${idx + 1}</td><td>${i.equipment}</td><td class="n">${i.qty}</td><td>${i.condition === 'damaged' ? 'Rusak' : ''}</td></tr>`).join('')}</tbody></table>
+        ${d.notes ? `<p>Catatan: ${d.notes}</p>` : ''}
+        <div class="sign"><div>Dibuat oleh<span>${d.user || ''}</span></div><div>Pengirim / Driver<span>&nbsp;</span></div><div>Penerima<span>&nbsp;</span></div></div>
+        <script>window.onload=()=>window.print()<\/script>
+      </body></html>`);
+      w.document.close();
+    }
+
+    // ---------- CREATE ----------
+    let createType = null;
+    const today = new Date().toISOString().split('T')[0];
+    const activeProjects = MockData.projects.filter(p => !['Completed', 'Cancelled'].includes(p.status));
+    const whOptions = (sel) => warehouses.map(w => `<option value="${w.id}" ${w.id === sel ? 'selected' : ''}>${w.name}</option>`).join('');
+
+    function selectField(id, label, options, onchange) {
+      return `<label class="form-label form-label-er">${label} <span class="text-danger">*</span></label>
+        <select class="form-select" id="${id}" required onchange="${onchange || 'refreshRows()'}">${options}</select>`;
+    }
+
+    function openCreate(type, preset) {
+      preset = preset || {};
+      createType = type;
+      const t = T[type];
+      document.getElementById('createTitle').innerHTML = `<i class="bi ${t.icon} me-2"></i>${t.code}. ${t.label}`;
+      document.getElementById('createForm').reset();
+      document.getElementById('createForm').classList.remove('was-validated');
+      document.getElementById('fDate').value = today;
+      document.getElementById('fNotes').value = '';
+      const fromW = document.getElementById('fFromWrap'), toW = document.getElementById('fToWrap');
+      const refLabel = document.getElementById('fRefLabel');
+      const hint = document.getElementById('createHint');
+
+      if (type === 'PURCHASE') {
+        fromW.innerHTML = `<label class="form-label form-label-er">Sumber <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <select class="form-select" id="fSrcKind" style="max-width:150px"><option value="supplier">Pembelian</option><option value="production">Produksi</option></select>
+            <input type="text" class="form-control" id="fSrcName" required placeholder="Nama supplier / workshop produksi">
+          </div>`;
+        toW.innerHTML = selectField('fTo', 'Masuk ke Gudang', whOptions(preset.to));
+        refLabel.textContent = 'No. PO / No. Work Order';
+        hint.innerHTML = '<i class="bi bi-plus-circle text-success me-1"></i>Alat baru dari pembelian supplier atau hasil produksi internal. <strong>Menambah stok gudang tujuan.</strong>';
+      } else if (type === 'TRANSFER') {
+        fromW.innerHTML = selectField('fFrom', 'Gudang Asal', whOptions(preset.from || warehouses[0].id));
+        toW.innerHTML = selectField('fTo', 'Gudang Tujuan', whOptions(preset.to || (warehouses[1] || warehouses[0]).id), '');
+        refLabel.textContent = 'No. Kendaraan / Driver';
+        hint.innerHTML = '<i class="bi bi-arrow-left-right text-primary me-1"></i>Transit antar gudang. <strong>Mengurangi stok gudang asal dan menambah stok gudang tujuan.</strong>';
+      } else if (type === 'DELIVERY') {
+        fromW.innerHTML = selectField('fFrom', 'Gudang Asal', whOptions(preset.from));
+        toW.innerHTML = selectField('fTo', 'Proyek Tujuan', activeProjects.map(p => `<option value="${p.id}" ${p.id === preset.project ? 'selected' : ''}>${p.name} — ${p.customerName}</option>`).join(''), 'onProjectChange()');
+        refLabel.textContent = 'No. Kendaraan / Driver';
+        hint.innerHTML = '<i class="bi bi-truck text-danger me-1"></i>Surat Jalan pengiriman ke proyek. <strong>Mengurangi stok gudang</strong>, menambah stok di proyek. Sisa kebutuhan proyek ditampilkan sebagai acuan.';
+      } else if (type === 'RETURN') {
+        const withStock = MockData.projects.filter(p => L.projectSummary(p.id).some(r => r.onSite > 0));
+        fromW.innerHTML = selectField('fFrom', 'Dari Proyek', withStock.map(p => `<option value="${p.id}" ${p.id === preset.project ? 'selected' : ''}>${p.name} — ${p.customerName}</option>`).join('') || '<option value="">Tidak ada proyek dengan alat di lokasi</option>', 'onProjectChange()');
+        toW.innerHTML = selectField('fTo', 'Kembali ke Gudang', whOptions(preset.to), '');
+        refLabel.textContent = 'No. Kendaraan / Driver';
+        hint.innerHTML = '<i class="bi bi-box-arrow-in-left text-success me-1"></i>Surat Jalan pemulangan dari proyek. <strong>Menambah stok gudang.</strong> Alat rusak tetap masuk gudang dengan kondisi "Rusak".';
+      } else if (type === 'SALE') {
+        fromW.innerHTML = selectField('fFrom', 'Dari Gudang', whOptions(preset.from));
+        toW.innerHTML = selectField('fTo', 'Customer', MockData.customers.map(c => `<option value="${c.id}">${c.name}</option>`).join(''), '');
+        refLabel.textContent = 'No. Invoice / PO Customer';
+        hint.innerHTML = '<i class="bi bi-bag-check text-danger me-1"></i>Penjualan alat ke customer. <strong>Mengurangi stok gudang</strong> secara permanen.';
+      }
+
+      document.getElementById('itemHead').innerHTML = `<tr><th>Nama Alat</th><th class="num" style="width:120px">Qty</th>
+        ${type === 'RETURN' ? '<th style="width:140px">Kondisi</th>' : ''}
+        ${type === 'SALE' ? '<th class="num" style="width:170px">Harga Satuan</th>' : ''}
+        <th style="width:240px">Info</th><th style="width:40px"></th></tr>`;
+      document.getElementById('itemBody').innerHTML = '';
+      refreshNo();
+      if (type === 'DELIVERY' || type === 'RETURN') onProjectChange();
+      else addRow();
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('createModal')).show();
+    }
+
+    function refreshNo() {
+      if (!createType) return;
+      document.getElementById('fNo').value = L.nextNo(createType, document.getElementById('fDate').value || today);
+    }
+
+    function equipmentOptions(sel) {
+      let names = L.equipmentNames();
+      if (createType === 'RETURN') {
+        const pid = document.getElementById('fFrom').value;
+        names = L.projectSummary(pid).filter(r => r.onSite > 0).map(r => r.equipment);
+      }
+      return '<option value="">Pilih alat...</option>' + names.map(n => `<option ${n === sel ? 'selected' : ''}>${n.replace(/"/g, '&quot;')}</option>`).join('');
+    }
+
+    function addRow(preset) {
+      preset = preset || {};
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td><select class="form-select form-select-sm row-eq" onchange="refreshRows()">${equipmentOptions(preset.equipment)}</select></td>
+        <td><input type="number" class="form-control form-control-sm text-end row-qty" min="1" value="${preset.qty || 1}" oninput="refreshRows()"></td>
+        ${createType === 'RETURN' ? '<td><select class="form-select form-select-sm row-cond"><option value="good">Baik</option><option value="damaged">Rusak</option></select></td>' : ''}
+        ${createType === 'SALE' ? `<td><input type="number" class="form-control form-control-sm text-end row-price" min="0" value="${preset.unitPrice || 0}"></td>` : ''}
+        <td class="fs-12 row-info text-muted"></td>
+        <td><button type="button" class="btn-action text-danger" onclick="this.closest('tr').remove(); refreshRows();"><i class="bi bi-x-lg"></i></button></td>`;
+      document.getElementById('itemBody').appendChild(tr);
+      refreshRows();
+    }
+
+    function onProjectChange() {
+      const body = document.getElementById('itemBody');
+      body.innerHTML = '';
+      const pid = createType === 'DELIVERY' ? document.getElementById('fTo').value : document.getElementById('fFrom').value;
+      const summary = L.projectSummary(pid);
+      const rows = createType === 'DELIVERY'
+        ? summary.filter(r => r.remaining > 0).map(r => ({ equipment: r.equipment, qty: r.remaining }))
+        : summary.filter(r => r.onSite > 0).map(r => ({ equipment: r.equipment, qty: r.onSite }));
+      if (rows.length) rows.forEach(addRow); else addRow();
+    }
+
+    function refreshRows() {
+      const fromEl = document.getElementById('fFrom');
+      const toEl = document.getElementById('fTo');
+      document.querySelectorAll('#itemBody tr').forEach(tr => {
+        const eq = tr.querySelector('.row-eq').value;
+        const qty = Number(tr.querySelector('.row-qty').value) || 0;
+        const info = tr.querySelector('.row-info');
+        if (!eq) { info.textContent = ''; return; }
+        const parts = [];
+        let over = false;
+        if (['TRANSFER', 'DELIVERY', 'SALE'].includes(createType) && fromEl) {
+          const avail = BizLogic.Stock.getAvailable(eq, fromEl.value);
+          over = qty > avail;
+          parts.push(`Tersedia di gudang: <strong class="${over ? 'qty-minus' : ''}">${avail}</strong>`);
+        }
+        if (createType === 'DELIVERY' && toEl) {
+          const r = L.projectSummary(toEl.value).find(x => x.equipment === eq);
+          parts.push(r && r.required ? `Sisa kebutuhan: <strong class="${qty > r.remaining ? 'qty-warn' : ''}">${r.remaining}</strong>` : '<span class="qty-warn">Di luar kebutuhan proyek</span>');
+        }
+        if (createType === 'RETURN' && fromEl) {
+          const onSite = L.projectBalance(eq, fromEl.value);
+          over = qty > onSite;
+          parts.push(`Di lokasi proyek: <strong class="${over ? 'qty-minus' : ''}">${onSite}</strong>`);
+        }
+        if (createType === 'SALE') {
+          const price = tr.querySelector('.row-price');
+          if (price && !Number(price.value)) price.value = L.defaultRate(eq) * 10;
+        }
+        info.innerHTML = parts.join(' · ');
+      });
+    }
+
+    function readLoc(which) {
+      const el = document.getElementById(which === 'from' ? 'fFrom' : 'fTo');
+      if (createType === 'PURCHASE' && which === 'from') {
+        return { type: document.getElementById('fSrcKind').value, name: document.getElementById('fSrcName').value.trim() };
+      }
+      const kind = {
+        PURCHASE: { to: 'warehouse' },
+        TRANSFER: { from: 'warehouse', to: 'warehouse' },
+        DELIVERY: { from: 'warehouse', to: 'project' },
+        RETURN: { from: 'project', to: 'warehouse' },
+        SALE: { from: 'warehouse', to: 'customer' }
+      }[createType][which];
+      return { type: kind, id: el.value };
+    }
+
+    document.getElementById('createForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (!this.checkValidity()) { this.classList.add('was-validated'); return; }
+      const items = [...document.querySelectorAll('#itemBody tr')].map(tr => {
+        const it = { equipment: tr.querySelector('.row-eq').value, qty: Number(tr.querySelector('.row-qty').value) || 0 };
+        const cond = tr.querySelector('.row-cond');
+        if (cond && cond.value === 'damaged') it.condition = 'damaged';
+        const price = tr.querySelector('.row-price');
+        if (price) it.unitPrice = Number(price.value) || 0;
+        return it;
+      });
+      const res = L.post({
+        type: createType,
+        date: document.getElementById('fDate').value,
+        from: readLoc('from'),
+        to: readLoc('to'),
+        reference: document.getElementById('fRef').value.trim(),
+        notes: document.getElementById('fNotes').value.trim(),
+        items: items
+      });
+      if (!res.success) { showToast(res.error.replace(/\n/g, '<br>'), 'error'); return; }
+      bootstrap.Modal.getInstance(document.getElementById('createModal')).hide();
+      showToast(`${T[createType].label} ${res.mutation.no} berhasil diposting`, 'success');
+      activeType = createType;
+      render();
+    });
+
+    function exportCSV() {
+      const rows = [['No. Dokumen', 'Tanggal', 'Jenis', 'Dari', 'Ke', 'Nama Alat', 'Qty', 'Kondisi', 'Referensi', 'Catatan']];
+      filtered().forEach(d => d.items.forEach(i => rows.push([
+        d.no, d.date, T[d.type].label, L.locName(d.from), L.locName(d.to), i.equipment, i.qty, i.condition === 'damaged' ? 'Rusak' : '', d.reference, d.notes
+      ])));
+      downloadCSV('perpindahan-stok-' + today + '.csv', rows);
+    }
+
+    render();
+
+    // Deep link: stock-mutations.html?new=DELIVERY&project=PRJ-001
+    const newType = getUrlParam('new');
+    if (newType && T[newType]) openCreate(newType, { project: getUrlParam('project'), from: getUrlParam('from'), to: getUrlParam('to') });
+  </script>
+</body>
+</html>

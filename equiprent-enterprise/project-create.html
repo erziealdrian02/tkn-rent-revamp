@@ -81,7 +81,22 @@
               </div>
 
               <div class="er-card mb-4">
-                <div class="er-card-header"><h5 class="er-card-title">3. Optional Information</h5></div>
+                <div class="er-card-header d-flex justify-content-between align-items-center">
+                  <h5 class="er-card-title">3. Kebutuhan Alat</h5>
+                  <button type="button" class="btn btn-outline-primary btn-sm" onclick="addReqRow()"><i class="bi bi-plus-lg me-1"></i>Tambah Alat</button>
+                </div>
+                <div class="er-card-body">
+                  <p class="fs-12 text-muted">Masukkan qty kebutuhan alat dan harga satuan. Pengiriman (SJ) ke proyek akan dibandingkan dengan kebutuhan ini di menu <strong>Stok Proyek</strong>.</p>
+                  <div class="er-table-wrapper"><table class="er-table">
+                    <thead><tr><th>Nama Alat</th><th class="num" style="width:110px">Qty</th><th class="num" style="width:180px">Harga Satuan</th><th class="num" style="width:160px">Nilai</th><th style="width:40px"></th></tr></thead>
+                    <tbody id="reqBody"></tbody>
+                    <tfoot><tr><td>TOTAL</td><td class="num" id="reqQtyTotal">0</td><td></td><td class="num" id="reqTotal">Rp 0</td><td></td></tr></tfoot>
+                  </table></div>
+                </div>
+              </div>
+
+              <div class="er-card mb-4">
+                <div class="er-card-header"><h5 class="er-card-title">4. Optional Information</h5></div>
                 <div class="er-card-body">
                   <div class="row g-3">
                     <div class="col-12">
@@ -127,8 +142,12 @@
                       <span class="info-value">0</span>
                     </div>
                     <div class="info-item">
-                      <span class="info-label">Equipment</span>
-                      <span class="info-value">0</span>
+                      <span class="info-label">Kebutuhan Alat</span>
+                      <span class="info-value" id="sumReq">0 unit</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="info-label">Nilai Kebutuhan</span>
+                      <span class="info-value fw-600" id="sumValue">Rp 0</span>
                     </div>
                   </div>
                   <hr>
@@ -151,6 +170,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
     initApp('project-create.html', [{label:'Penyewaan',href:'#'},{label:'Proyek',href:'projects.html'},{label:'New Project'}], 'Create New Project');
@@ -185,6 +205,46 @@
       document.getElementById('sumStatus').innerHTML = statusBadge(st);
     }
 
+    // ---- Kebutuhan alat ----
+    const equipNames = BizLogic.StockLedger.equipmentNames();
+    function addReqRow() {
+      const opts = '<option value="">Pilih alat...</option>' + equipNames.map(n => `<option>${n.replace(/"/g, '&quot;')}</option>`).join('');
+      document.getElementById('reqBody').insertAdjacentHTML('beforeend', `<tr>
+        <td><select class="form-select form-select-sm rq-eq" onchange="onReqEq(this)">${opts}</select></td>
+        <td><input type="number" class="form-control form-control-sm text-end rq-qty" min="1" value="1" oninput="calcReq()"></td>
+        <td><input type="number" class="form-control form-control-sm text-end rq-price" min="0" value="0" oninput="calcReq()"></td>
+        <td class="num rq-sub">Rp 0</td>
+        <td><button type="button" class="btn-action text-danger" onclick="this.closest('tr').remove(); calcReq();"><i class="bi bi-x-lg"></i></button></td>
+      </tr>`);
+      calcReq();
+    }
+    function onReqEq(sel) {
+      const price = sel.closest('tr').querySelector('.rq-price');
+      if (!Number(price.value)) price.value = BizLogic.StockLedger.defaultRate(sel.value);
+      calcReq();
+    }
+    function readRequirements() {
+      return [...document.querySelectorAll('#reqBody tr')].map(tr => ({
+        equipment: tr.querySelector('.rq-eq').value,
+        qty: Number(tr.querySelector('.rq-qty').value) || 0,
+        unitPrice: Number(tr.querySelector('.rq-price').value) || 0
+      })).filter(r => r.equipment && r.qty > 0);
+    }
+    function calcReq() {
+      let qty = 0, total = 0;
+      document.querySelectorAll('#reqBody tr').forEach(tr => {
+        const q = Number(tr.querySelector('.rq-qty').value) || 0;
+        const sub = q * (Number(tr.querySelector('.rq-price').value) || 0);
+        tr.querySelector('.rq-sub').textContent = formatRupiah(sub);
+        if (tr.querySelector('.rq-eq').value) { qty += q; total += sub; }
+      });
+      document.getElementById('reqQtyTotal').textContent = formatNumber(qty);
+      document.getElementById('reqTotal').textContent = formatRupiah(total);
+      document.getElementById('sumReq').textContent = formatNumber(qty) + ' unit';
+      document.getElementById('sumValue').textContent = formatRupiah(total);
+    }
+    addReqRow();
+
     function cancelCreate() {
       if (formDirty && !confirm("Are you sure you want to leave? Your unsaved changes will be lost.")) {
         return;
@@ -201,6 +261,13 @@
       }
 
       // Create new project object
+      const requirements = readRequirements();
+      const reqNames = requirements.map(r => r.equipment);
+      if (new Set(reqNames).size !== reqNames.length) {
+        showToast('Ada alat yang diinput lebih dari sekali di kebutuhan alat', 'warning');
+        return;
+      }
+
       const custId = custSelect.value;
       const custName = MockData.customers.find(c => c.id === custId)?.name || '';
 
@@ -213,7 +280,9 @@
         endDate: document.getElementById('endDate').value,
         totalRentals: 0,
         activeEquipment: 0,
-        status: document.getElementById('projectStatus').value
+        status: document.getElementById('projectStatus').value,
+        location: document.getElementById('projectLocation').value,
+        requirements: requirements
       };
 
       // Add to mock state

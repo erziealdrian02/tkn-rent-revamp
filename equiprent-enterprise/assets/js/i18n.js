@@ -13,14 +13,17 @@ const Translations = {
     demo_login_as: 'Masuk sebagai (Demo)', all_rights_reserved: 'Semua hak dilindungi.',
 
     rental_section: 'PENYEWAAN', inventory: 'INVENTARIS', master_data: 'DATA MASTER',
-    finance_billing: 'KEUANGAN & PENAGIHAN', administration: 'ADMINISTRASI',
+    finance_billing: 'PIUTANG & KEUANGAN', administration: 'ADMINISTRASI',
 
     dashboard: 'Dasbor', rentals: 'Penyewaan', projects: 'Proyek', deliveries: 'Pengiriman',
-    returns: 'Pengembalian', claims: 'Klaim', equipment: 'Alat Berat', branches: 'Cabang',
-    stock: 'Stok', stock_transfer: 'Transfer Stok', movements: 'Pergerakan',
+    returns: 'Pengembalian', claims: 'Klaim', equipment: 'Alat Berat', branches: 'Gudang',
+    stock: 'Stok', stock_transfer: 'Transfer Stok', movements: 'Log Pergerakan Aset',
+    stock_recap_section: 'REKAP STOK', warehouse_stock: 'Stok Gudang', stock_mutations: 'Perpindahan Stok',
+    project_stock: 'Stok Proyek', stock_report: 'Laporan Stok',
+    billing_recap: 'Rekap Tagihan', payments: 'Pembayaran Tagihan', receivables_report: 'Laporan Piutang',
     purchases: 'Pembelian', goods_receipts: 'Penerimaan Barang', repairs: 'Perbaikan',
     maintenance: 'Perawatan', customers: 'Pelanggan', drivers: 'Pengemudi',
-    vehicles: 'Kendaraan', company_accounts: 'Rekening Perusahaan', invoices: 'Faktur',
+    vehicles: 'Kendaraan', company_accounts: 'Rekening Perusahaan', invoices: 'Invoice',
     bank_ledger: 'Buku Bank', users: 'Pengguna', roles: 'Peran',
     my_deliveries: 'Pengiriman Saya', profile: 'Profil',
 
@@ -50,7 +53,7 @@ const Translations = {
     save_vehicle: 'Simpan Kendaraan',
 
     all_status: 'Semua Status', all_categories: 'Semua Kategori',
-    all_branches: 'Semua Cabang', all_customers: 'Semua Pelanggan',
+    all_branches: 'Semua Gudang', all_customers: 'Semua Pelanggan',
     select_category: 'Pilih kategori...', select_branch: 'Pilih cabang...',
     select_vehicle: 'Pilih kendaraan...', status: 'Status', actions: 'Aksi',
     date: 'Tanggal', name: 'Nama', description: 'Deskripsi', notes: 'Catatan',
@@ -169,8 +172,11 @@ const Translations = {
     finance_billing: 'FINANCE & BILLING', administration: 'ADMINISTRATION',
 
     dashboard: 'Dashboard', rentals: 'Rentals', projects: 'Projects', deliveries: 'Deliveries',
-    returns: 'Returns', claims: 'Claims', equipment: 'Equipment', branches: 'Branches',
-    stock: 'Stock', stock_transfer: 'Stock Transfer', movements: 'Movements',
+    returns: 'Returns', claims: 'Claims', equipment: 'Equipment', branches: 'Warehouses',
+    stock: 'Stock', stock_transfer: 'Stock Transfer', movements: 'Asset Movement Log',
+    stock_recap_section: 'STOCK RECAP', warehouse_stock: 'Warehouse Stock', stock_mutations: 'Stock Movements',
+    project_stock: 'Project Stock', stock_report: 'Stock Report',
+    billing_recap: 'Billing Recap', payments: 'Payments', receivables_report: 'Receivables Report',
     purchases: 'Purchases', goods_receipts: 'Goods Receipts', repairs: 'Repairs',
     maintenance: 'Maintenance', customers: 'Customers', drivers: 'Drivers',
     vehicles: 'Vehicles', company_accounts: 'Company Accounts', invoices: 'Invoices',
@@ -203,7 +209,7 @@ const Translations = {
     save_vehicle: 'Save Vehicle',
 
     all_status: 'All Status', all_categories: 'All Categories',
-    all_branches: 'All Branches', all_customers: 'All Customers',
+    all_branches: 'All Warehouses', all_customers: 'All Customers',
     select_category: 'Select category...', select_branch: 'Select branch...',
     select_vehicle: 'Select vehicle...', status: 'Status', actions: 'Actions',
     date: 'Date', name: 'Name', description: 'Description', notes: 'Notes',

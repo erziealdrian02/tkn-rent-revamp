@@ -1,8 +1,8 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stok — EquipRent Enterprise</title>
+  <title>Stok Gudang — EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -15,48 +15,165 @@
     <main class="app-main">
       <header class="app-header" id="appHeader"></header>
       <div class="app-content">
-        <div class="page-header"><div class="page-header-left"><h2 class="page-header-title">Stock Monitoring</h2><p class="page-header-subtitle">Equipment stock levels across branches</p></div></div>
-        <div class="er-card"><div class="er-card-body">
-          <div class="table-toolbar"><div class="table-toolbar-left">
-            <select class="filter-select" id="branchFilter" onchange="filterData()"><option value="">Semua Cabang</option><option>Jakarta</option><option>Bekasi</option></select>
-            <select class="filter-select" id="equipFilter" onchange="filterData()"><option value="">All Equipment</option></select>
-          </div></div>
-          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Equipment</th><th>Cabang</th><th>Total</th><th>Tersedia</th><th>Reserved</th><th>Di Sewa</th><th>Rusak</th><th>Perawatan</th><th>Lost</th></tr></thead>
-          <tbody id="tableBody"></tbody></table></div>
-        </div></div>
+        <div class="page-header">
+          <div class="page-header-left">
+            <h2 class="page-header-title">Stok Gudang</h2>
+            <p class="page-header-subtitle">Nama alat + qty per gudang dan stok keseluruhan gudang</p>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-download me-1"></i>Export CSV</button>
+            <a href="stock-mutations.html" class="btn btn-primary btn-sm"><i class="bi bi-arrow-left-right me-1"></i>Perpindahan Stok</a>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4" id="whCards"></div>
+
+        <div class="er-card">
+          <div class="er-tabs">
+            <button class="er-tab active" data-tab="recap" onclick="switchTab('recap')">Rekap per Gudang</button>
+            <button class="er-tab" data-tab="condition" onclick="switchTab('condition')">Rincian Kondisi</button>
+          </div>
+
+          <div class="er-tab-content active" id="tab-recap">
+            <div class="er-card-body">
+              <div class="table-toolbar"><div class="table-toolbar-left">
+                <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Cari nama alat..." id="searchRecap" oninput="renderRecap()"></div>
+                <label class="d-flex align-items-center gap-2 fs-13 text-muted"><input type="checkbox" class="form-check-input m-0" id="hideZero" onchange="renderRecap()"> Sembunyikan stok 0</label>
+              </div></div>
+              <div class="er-table-wrapper"><table class="er-table" id="recapTable"></table></div>
+              <p class="fs-12 text-muted mt-3 mb-0"><i class="bi bi-info-circle me-1"></i>Qty = stok fisik di gudang (termasuk yang dipesan, rusak & perawatan). Alat yang sedang di proyek tidak termasuk — lihat <a href="project-stock.html">Stok Proyek</a> atau <a href="stock-report.html">Laporan Stok</a>.</p>
+            </div>
+          </div>
+
+          <div class="er-tab-content" id="tab-condition">
+            <div class="er-card-body">
+              <div class="table-toolbar"><div class="table-toolbar-left">
+                <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Cari nama alat..." id="searchCond" oninput="renderCondition()"></div>
+                <select class="filter-select" id="whFilter" onchange="renderCondition(); renderCards();"><option value="">Semua Gudang</option></select>
+              </div></div>
+              <div class="er-table-wrapper"><table class="er-table">
+                <thead><tr><th>Nama Alat</th><th>Gudang</th><th class="num">Stok Fisik</th><th class="num">Tersedia</th><th class="num">Dipesan</th><th class="num">Rusak</th><th class="num">Perawatan</th></tr></thead>
+                <tbody id="condBody"></tbody>
+              </table></div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
-    initApp('stock.html',[{label:'Inventaris',href:'#'},{label:'Stok'}],'Stock Monitoring');
-    const ef=document.getElementById('equipFilter');
-    [...new Set(MockData.stock.map(s=>s.equipment))].forEach(e=>{const o=document.createElement('option');o.value=e;o.textContent=e;ef.appendChild(o);});
-    function filterData(){
-      const b=document.getElementById('branchFilter').value;
-      const e=document.getElementById('equipFilter').value;
-      const data=MockData.stock.filter(s=>{
-        if(b&&s.branch!==b)return false;if(e&&s.equipment!==e)return false;return true;
-      });
-      document.getElementById('tableBody').innerHTML=data.map(s=>`<tr>
-        <td class="fw-600">${s.equipment}</td><td>${s.branch}</td><td class="fw-600">${s.total}</td>
-        <td><span class="badge-status available">${s.available}</span></td><td>${s.reserved}</td>
-        <td><span class="badge-status on-rental">${s.onRental}</span></td>
-        <td>${s.damaged?`<span class="badge-status damaged">${s.damaged}</span>`:0}</td>
-        <td>${s.maintenance||0}</td>
-        <td>${s.lost?`<span class="badge-status lost">${s.lost}</span>`:0}</td>
-      </tr>`).join('');
+    initApp('stock.html', [{label:'Rekap Stok',href:'#'},{label:'Stok Gudang'}], 'Stok Gudang');
+
+    const L = BizLogic.StockLedger;
+    const warehouses = L.warehouses();
+    const letters = 'ABCDEFGHIJ';
+    const bal = L.balances();
+    const qtyOf = (eq, wh) => (bal['warehouse:' + wh.id] || {})[eq] || 0;
+    const equipment = L.equipmentNames();
+
+    document.getElementById('whFilter').innerHTML += warehouses.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+
+    function whTotal(wh) { return equipment.reduce((s, eq) => s + qtyOf(eq, wh), 0); }
+    function whTypes(wh) { return equipment.filter(eq => qtyOf(eq, wh) > 0).length; }
+
+    function renderCards() {
+      const sel = document.getElementById('whFilter').value;
+      const grand = warehouses.reduce((s, w) => s + whTotal(w), 0);
+      const col = Math.max(2, Math.floor(12 / (warehouses.length + 1)));
+      document.getElementById('whCards').innerHTML = warehouses.map((w, i) => `
+        <div class="col-sm-6 col-lg-${col}">
+          <div class="kpi-card wh-card ${sel === w.id ? 'active' : ''}" onclick="pickWarehouse('${w.id}')">
+            <div class="kpi-icon blue"><span class="fw-600">${letters[i]}</span></div>
+            <div class="kpi-content">
+              <div class="kpi-value">${formatNumber(whTotal(w))}</div>
+              <div class="kpi-label">Gudang <strong>${L.warehouseShort(w)}</strong> · ${whTypes(w)} jenis alat</div>
+            </div>
+          </div>
+        </div>`).join('') + `
+        <div class="col-sm-6 col-lg-${col}">
+          <div class="kpi-card wh-card ${sel === '' ? 'active' : ''}" onclick="pickWarehouse('')">
+            <div class="kpi-icon green"><i class="bi bi-boxes"></i></div>
+            <div class="kpi-content">
+              <div class="kpi-value">${formatNumber(grand)}</div>
+              <div class="kpi-label">Total Gudang <strong>${warehouses.map((w, i) => letters[i]).join('+')}</strong></div>
+            </div>
+          </div>
+        </div>`;
     }
-    filterData();
+
+    function pickWarehouse(id) {
+      document.getElementById('whFilter').value = id;
+      renderCards();
+      renderCondition();
+      switchTab('condition');
+    }
+
+    function recapRows() {
+      const q = document.getElementById('searchRecap').value.toLowerCase();
+      const hideZero = document.getElementById('hideZero').checked;
+      return equipment
+        .map(eq => ({ eq, per: warehouses.map(w => qtyOf(eq, w)) }))
+        .map(r => Object.assign(r, { total: r.per.reduce((a, b) => a + b, 0) }))
+        .filter(r => (!q || r.eq.toLowerCase().includes(q)) && (!hideZero || r.total > 0));
+    }
+
+    function cell(v, extra) { return `<td class="num ${v === 0 ? 'zero' : ''} ${extra || ''}">${formatNumber(v)}</td>`; }
+
+    function renderRecap() {
+      const rows = recapRows();
+      const totals = warehouses.map((w, i) => rows.reduce((s, r) => s + r.per[i], 0));
+      const grand = totals.reduce((a, b) => a + b, 0);
+      document.getElementById('recapTable').innerHTML = `
+        <thead><tr>
+          <th style="width:48px">No</th><th>Nama Alat</th>
+          ${warehouses.map((w, i) => `<th class="num">${letters[i]}. ${L.warehouseShort(w)}</th>`).join('')}
+          <th class="num">Total (${warehouses.map((w, i) => letters[i]).join('+')})</th>
+        </tr></thead>
+        <tbody>${rows.map((r, idx) => `<tr>
+          <td class="text-muted">${idx + 1}</td><td class="fw-600">${r.eq}</td>
+          ${r.per.map(v => cell(v)).join('')}
+          ${cell(r.total, 'col-strong')}
+        </tr>`).join('') || `<tr><td colspan="${warehouses.length + 3}" class="text-center text-muted py-4">Tidak ada data</td></tr>`}</tbody>
+        <tfoot><tr><td></td><td>TOTAL</td>${totals.map(v => `<td class="num">${formatNumber(v)}</td>`).join('')}<td class="num">${formatNumber(grand)}</td></tr></tfoot>`;
+    }
+
+    function renderCondition() {
+      const q = document.getElementById('searchCond').value.toLowerCase();
+      const wh = document.getElementById('whFilter').value;
+      const rows = [];
+      equipment.forEach(eq => warehouses.forEach(w => {
+        if (wh && w.id !== wh) return;
+        if (q && !eq.toLowerCase().includes(q)) return;
+        const s = BizLogic.Stock.find(eq, w.id) || { available: 0, reserved: 0, damaged: 0, maintenance: 0 };
+        const qty = qtyOf(eq, w);
+        if (!qty && !s.reserved) return;
+        rows.push(`<tr>
+          <td class="fw-600">${eq}</td><td>${L.warehouseShort(w)}</td>
+          <td class="num fw-600">${formatNumber(qty)}</td>
+          <td class="num"><span class="badge-status available">${s.available}</span></td>
+          ${cell(s.reserved || 0)}
+          <td class="num">${s.damaged ? `<span class="badge-status damaged">${s.damaged}</span>` : '<span class="text-muted">0</span>'}</td>
+          <td class="num">${s.maintenance ? `<span class="badge-status maintenance">${s.maintenance}</span>` : '<span class="text-muted">0</span>'}</td>
+        </tr>`);
+      }));
+      document.getElementById('condBody').innerHTML = rows.join('') || '<tr><td colspan="7" class="text-center text-muted py-4">Tidak ada data</td></tr>';
+    }
+
+    function exportCSV() {
+      const rows = recapRows();
+      const head = ['No', 'Nama Alat', ...warehouses.map((w, i) => letters[i] + '. ' + L.warehouseShort(w)), 'Total Gudang'];
+      downloadCSV('stok-gudang-' + new Date().toISOString().split('T')[0] + '.csv',
+        [head, ...rows.map((r, i) => [i + 1, r.eq, ...r.per, r.total])]);
+    }
+
+    renderCards();
+    renderRecap();
+    renderCondition();
   </script>
 </body>
 </html>
-
-
-
-
-
-

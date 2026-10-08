@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rekap Tagihan — EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h2 class="page-header-title">Rekap Tagihan</h2>
+            <p class="page-header-subtitle">Rekapitulasi tagihan sewa per proyek — periode ditarik dari SJ kirim &amp; SJ pulang</p>
+          </div>
+        </div>
+
+        <div class="er-card mb-4">
+          <div class="er-card-header"><h5 class="er-card-title"><i class="bi bi-hourglass-split me-1"></i>Belum Ditagih (s/d hari ini)</h5></div>
+          <div class="er-card-body">
+            <div class="er-table-wrapper"><table class="er-table">
+              <thead><tr><th>Proyek</th><th>Customer</th><th>Ditagih s/d</th><th class="num">Unit di Lokasi</th><th class="num">Estimasi Belum Ditagih</th><th></th></tr></thead>
+              <tbody id="unbilledBody"></tbody>
+            </table></div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header"><h5 class="er-card-title"><i class="bi bi-calculator me-1"></i>Rekapitulasi Tagihan</h5></div>
+          <div class="er-card-body">
+            <div class="row g-3 mb-3">
+              <div class="col-md-5">
+                <label class="form-label form-label-er">Proyek</label>
+                <select class="form-select" id="fProject" onchange="onProjectChange()"></select>
+              </div>
+              <div class="col-6 col-md-2">
+                <label class="form-label form-label-er">Periode Awal</label>
+                <input type="date" class="form-control" id="fStart" onchange="render()">
+              </div>
+              <div class="col-6 col-md-2">
+                <label class="form-label form-label-er">Periode Akhir</label>
+                <input type="date" class="form-control" id="fEnd" onchange="render()">
+              </div>
+              <div class="col-6 col-md-1">
+                <label class="form-label form-label-er" title="Pembagi harga satuan per bulan">Bulan Sewa</label>
+                <input type="number" class="form-control text-end" id="fMonthDays" min="1" onchange="render()">
+              </div>
+              <div class="col-6 col-md-2 d-flex align-items-end">
+                <label class="d-flex align-items-center gap-2 fs-13 mb-2"><input type="checkbox" class="form-check-input m-0" id="fTax" checked onchange="render()"> PPN <span id="taxPct"></span></label>
+              </div>
+            </div>
+
+            <div id="overlapAlert"></div>
+
+            <div class="er-table-wrapper"><table class="er-table">
+              <thead><tr>
+                <th>No</th><th>A. Nama Barang</th><th>SJ Kirim</th><th>SJ Pulang</th>
+                <th class="num">Qty</th><th class="num">Harga Satuan</th>
+                <th>B. Awal</th><th>B. Akhir</th><th class="num">C. Hari</th><th class="num">E. Total</th>
+              </tr></thead>
+              <tbody id="recapBody"></tbody>
+              <tfoot id="recapFoot"></tfoot>
+            </table></div>
+
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mt-3">
+              <div class="fs-12 text-muted" style="max-width:640px">
+                <div><strong>C. Hari</strong> = Tanggal Akhir − Tanggal Awal + 1 &nbsp;·&nbsp; <strong>D. Bulan Sewa</strong> = <span id="mdText">30</span> hari &nbsp;·&nbsp; <strong>E. Total</strong> = Qty × Hari × Harga Satuan ÷ Bulan Sewa</div>
+                <div class="mt-1"><i class="bi bi-info-circle me-1"></i>Alat yang <strong>belum dipulangkan</strong> memakai tanggal akhir periode; tanggalnya bisa di-adjust di kolom Akhir.</div>
+              </div>
+              <div class="d-flex flex-wrap gap-2 align-items-end">
+                <div>
+                  <label class="form-label form-label-er">Tgl Invoice</label>
+                  <input type="date" class="form-control form-control-sm" id="fInvDate">
+                </div>
+                <div>
+                  <label class="form-label form-label-er">Jatuh Tempo (hari)</label>
+                  <input type="number" class="form-control form-control-sm text-end" id="fDue" style="width:110px">
+                </div>
+                <div>
+                  <label class="form-label form-label-er">Rekening</label>
+                  <select class="form-select form-select-sm" id="fAccount"></select>
+                </div>
+                <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-download me-1"></i>CSV</button>
+                <button class="btn btn-primary btn-sm" id="btnCreate" onclick="createInvoice()"><i class="bi bi-receipt me-1"></i>Buat Invoice</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    initApp('billing.html', [{label:'Piutang',href:'#'},{label:'Rekap Tagihan'}], 'Rekap Tagihan');
+
+    const Bill = BizLogic.Billing;
+    const L = BizLogic.StockLedger;
+    const settings = MockData.settings;
+    const today = new Date().toISOString().split('T')[0];
+    let overrides = {};
+    let currentLines = [];
+
+    const billable = MockData.projects.filter(p => Bill.segments(p.id).length);
+    document.getElementById('fProject').innerHTML = billable.map(p => `<option value="${p.id}">${p.name} — ${p.customerName}</option>`).join('');
+    document.getElementById('fAccount').innerHTML = MockData.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+    document.getElementById('fMonthDays').value = Bill.monthDays();
+    document.getElementById('fInvDate').value = today;
+    document.getElementById('fDue').value = settings.paymentTermDays;
+    document.getElementById('taxPct').textContent = Math.round(settings.taxRate * 100) + '%';
+
+    // ---------- Belum ditagih ----------
+    function renderUnbilled() {
+      const rows = billable.map(p => {
+        const last = Bill.lastBilledEnd(p.id);
+        const start = last ? Bill.addDays(last, 1) : Bill.suggestPeriod(p.id).start;
+        const lines = start <= today ? Bill.recap(p.id, start, today) : [];
+        const est = lines.reduce((s, l) => s + l.amount, 0);
+        const onSite = L.projectSummary(p.id).reduce((s, r) => s + r.onSite, 0);
+        return { p, last, start, est, onSite };
+      }).filter(r => r.est > 0 || r.onSite > 0);
+      document.getElementById('unbilledBody').innerHTML = rows.map(r => `<tr>
+        <td class="fw-600">${r.p.name}</td><td>${r.p.customerName}</td>
+        <td>${r.last ? formatDate(r.last) : '<span class="text-muted">Belum pernah</span>'}</td>
+        <td class="num">${formatNumber(r.onSite)}</td>
+        <td class="num fw-600">${formatRupiah(r.est)} <div class="fs-11 text-muted">${formatDate(r.start)} — ${formatDate(today)}, sebelum PPN</div></td>
+        <td class="text-end"><button class="btn btn-outline-primary btn-sm" onclick="pickProject('${r.p.id}')"><i class="bi bi-calculator me-1"></i>Rekap</button></td>
+      </tr>`).join('') || '<tr><td colspan="6" class="text-center text-muted py-4">Semua proyek sudah ditagih</td></tr>';
+    }
+
+    function pickProject(id) {
+      document.getElementById('fProject').value = id;
+      onProjectChange();
+      document.getElementById('fProject').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function onProjectChange() {
+      overrides = {};
+      const per = Bill.suggestPeriod(document.getElementById('fProject').value);
+      document.getElementById('fStart').value = per.start;
+      document.getElementById('fEnd').value = per.end;
+      render();
+    }
+
+    function setOverride(key, value) {
+      if (value) overrides[key] = value; else delete overrides[key];
+      render();
+    }
+
+    function opts() {
+      return { monthDays: Number(document.getElementById('fMonthDays').value) || Bill.monthDays(), endOverrides: overrides };
+    }
+
+    // ---------- Rekap ----------
+    function render() {
+      const pid = document.getElementById('fProject').value;
+      const ps = document.getElementById('fStart').value;
+      const pe = document.getElementById('fEnd').value;
+      const md = opts().monthDays;
+      document.getElementById('mdText').textContent = md;
+      if (!pid || !ps || !pe) return;
+
+      const clash = Bill.overlaps(pid, ps, pe);
+      document.getElementById('overlapAlert').innerHTML = clash.length
+        ? `<div class="alert alert-warning py-2 fs-13"><i class="bi bi-exclamation-triangle me-1"></i>Periode ini sudah ditagih di ${clash.map(i => `<a href="invoice-detail.html?id=${i.id}">${i.id}</a> (${formatDate(i.periodStart)} — ${formatDate(i.periodEnd)})`).join(', ')}. Ubah periode untuk membuat invoice baru.</div>`
+        : (pe < ps ? '<div class="alert alert-danger py-2 fs-13">Periode akhir sebelum periode awal.</div>' : '');
+
+      currentLines = pe >= ps ? Bill.recap(pid, ps, pe, opts()) : [];
+      document.getElementById('recapBody').innerHTML = currentLines.map((l, i) => `<tr>
+        <td class="text-muted">${i + 1}</td>
+        <td class="fw-600 text-nowrap">${l.equipment}</td>
+        <td class="text-mono fs-12">${l.sjDelivery}</td>
+        <td class="text-mono fs-12">${l.sjReturn ? `${l.sjReturn}${l.endType === 'LOST' ? ' <span class="badge-status lost">hilang</span>' : ''}` : '<span class="badge-status waiting">belum pulang</span>'}</td>
+        <td class="num">${formatNumber(l.qty)}</td>
+        <td class="num">${formatRupiah(l.unitPrice)}</td>
+        <td class="text-nowrap">${formatDate(l.start)}</td>
+        <td class="text-nowrap">${l.adjustable
+          ? `<input type="date" class="form-control form-control-sm ${l.adjusted ? 'border-warning' : ''}" style="width:150px" value="${l.end}" min="${l.start}" max="${pe}" onchange="setOverride('${l.key.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', this.value)">`
+          : formatDate(l.end)}</td>
+        <td class="num">${l.days}</td>
+        <td class="num fw-600">${formatRupiah(l.amount)}</td>
+      </tr>`).join('') || '<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada alat yang disewa pada periode ini</td></tr>';
+
+      const subtotal = currentLines.reduce((s, l) => s + l.amount, 0);
+      const taxRate = document.getElementById('fTax').checked ? settings.taxRate : 0;
+      const tax = Math.round(subtotal * taxRate);
+      document.getElementById('recapFoot').innerHTML = `
+        <tr><td colspan="9" class="text-end">Subtotal</td><td class="num">${formatRupiah(subtotal)}</td></tr>
+        ${taxRate ? `<tr><td colspan="9" class="text-end">PPN ${Math.round(taxRate * 100)}%</td><td class="num">${formatRupiah(tax)}</td></tr>` : ''}
+        <tr><td colspan="9" class="text-end">TOTAL TAGIHAN</td><td class="num">${formatRupiah(subtotal + tax)}</td></tr>`;
+
+      document.getElementById('btnCreate').disabled = !currentLines.length || clash.length > 0 || pe < ps;
+    }
+
+    function createInvoice() {
+      const pid = document.getElementById('fProject').value;
+      const res = BizLogic.Invoice.createFromRecap(pid, document.getElementById('fStart').value, document.getElementById('fEnd').value, Object.assign(opts(), {
+        taxRate: document.getElementById('fTax').checked ? settings.taxRate : 0,
+        invoiceDate: document.getElementById('fInvDate').value,
+        dueDays: document.getElementById('fDue').value,
+        accountId: document.getElementById('fAccount').value
+      }));
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      showToast('Invoice ' + res.invoice.id + ' berhasil dibuat', 'success');
+      setTimeout(() => window.location.href = 'invoice-detail.html?id=' + res.invoice.id, 700);
+    }
+
+    function exportCSV() {
+      const p = MockData.projects.find(x => x.id === document.getElementById('fProject').value);
+      const rows = [['Nama Barang', 'SJ Kirim', 'SJ Pulang', 'Qty', 'Harga Satuan', 'Awal', 'Akhir', 'Hari', 'Bulan Sewa', 'Total']];
+      currentLines.forEach(l => rows.push([l.equipment, l.sjDelivery, l.sjReturn || 'belum pulang', l.qty, l.unitPrice, l.start, l.end, l.days, l.monthDays, l.amount]));
+      downloadCSV(`rekap-tagihan-${p.id}-${document.getElementById('fStart').value}.csv`, rows);
+    }
+
+    renderUnbilled();
+    const preset = getUrlParam('project');
+    if (preset && billable.find(p => p.id === preset)) document.getElementById('fProject').value = preset;
+    onProjectChange();
+  </script>
+</body>
+</html>

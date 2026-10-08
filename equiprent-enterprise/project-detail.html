@@ -26,6 +26,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
     const pid = getUrlParam('id') || 'PRJ-001';
@@ -61,7 +62,8 @@
       if(t==='Deliveries')count=`<span class="er-tab-count">${deliveries.length}</span>`;
       if(t==='Returns')count=`<span class="er-tab-count">${returns.length}</span>`;
       if(t==='Invoices')count=`<span class="er-tab-count">${invoices.length}</span>`;
-      return `<button class="er-tab ${i===0?'active':''}" data-tab="${t.toLowerCase()}" onclick="switchTab('${t.toLowerCase()}')">${t}${count}</button>`;
+      const label = t==='Equipment' ? 'Kebutuhan & Stok Alat' : t;
+      return `<button class="er-tab ${i===0?'active':''}" data-tab="${t.toLowerCase()}" onclick="switchTab('${t.toLowerCase()}')">${label}${count}</button>`;
     }).join('');
 
     let tc = '';
@@ -104,12 +106,17 @@
       </div>` : '<p class="text-muted">No customer data</p>'}
     </div>`;
 
-    // Equipment
-    const equipItems = [];
-    rentals.forEach(r => r.items.forEach(it => { if(!equipItems.find(e=>e.name===it.name)) equipItems.push(it); }));
+    // Kebutuhan & stok alat (dari ledger perpindahan stok)
+    const stockSummary = BizLogic.StockLedger.projectSummary(project.id);
+    const reqValue = stockSummary.reduce((s, r) => s + r.required * r.unitPrice, 0);
+    const n = (v, cls) => `<td class="num ${v === 0 ? 'zero' : ''} ${cls || ''}">${formatNumber(v)}</td>`;
     tc += `<div class="er-tab-content" id="tab-equipment">
-      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Equipment</th><th>Qty</th><th>Rate/Month</th></tr></thead><tbody>
-      ${equipItems.map(e=>`<tr><td>${e.name}</td><td>${e.quantity}</td><td>${formatRupiah(e.rate)}</td></tr>`).join('')}
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div class="fs-13 text-muted">Nilai kebutuhan alat: <strong class="text-body">${formatRupiah(reqValue)}</strong></div>
+        <a href="project-stock.html?id=${project.id}" class="btn btn-outline-primary btn-sm"><i class="bi bi-folder-check me-1"></i>Kelola Stok Proyek</a>
+      </div>
+      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Nama Alat</th><th class="num">Harga Satuan</th><th class="num">A. Kebutuhan</th><th class="num">B. Terkirim</th><th class="num">C. Sisa (A−B)</th><th class="num">D. Dipulangkan</th><th class="num">Di Lokasi</th></tr></thead><tbody>
+      ${stockSummary.map(r => `<tr><td class="fw-600">${r.equipment}</td><td class="num">${r.unitPrice ? formatRupiah(r.unitPrice) : '-'}</td>${n(r.required, 'fw-600')}${n(r.delivered)}<td class="num ${r.remaining > 0 ? 'qty-warn' : r.remaining < 0 ? 'qty-minus' : 'zero'}">${r.remaining < 0 ? 'lebih ' + formatNumber(-r.remaining) : formatNumber(r.remaining)}</td>${n(r.returned)}${n(r.onSite, 'col-strong')}</tr>`).join('') || '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada kebutuhan alat</td></tr>'}
       </tbody></table></div>
     </div>`;
 
@@ -129,8 +136,8 @@
 
     // Invoices
     tc += `<div class="er-tab-content" id="tab-invoices">
-      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No. Faktur</th><th>Tipe</th><th>Tanggal</th><th>Jumlah</th><th>Status</th><th>Aksi</th></tr></thead><tbody>
-      ${invoices.map(i=>`<tr><td><a href="invoice-detail.html?id=${i.id}" class="cell-link text-mono">${i.id}</a></td><td>${i.type}</td><td>${formatDate(i.invoiceDate)}</td><td class="fw-600">${formatRupiah(i.amount)}</td><td>${statusBadge(i.status)}</td><td><a href="invoice-detail.html?id=${i.id}" class="btn-action"><i class="bi bi-eye"></i></a></td></tr>`).join('')}
+      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No. Invoice</th><th>Tipe</th><th>Periode</th><th>Tanggal</th><th class="num">Jumlah</th><th class="num">Sisa</th><th>Status</th><th>Aksi</th></tr></thead><tbody>
+      ${invoices.map(i=>`<tr><td><a href="invoice-detail.html?id=${i.id}" class="cell-link text-mono">${i.id}</a></td><td>${i.type}</td><td class="fs-12">${i.periodStart ? formatDate(i.periodStart) + ' — ' + formatDate(i.periodEnd) : '-'}</td><td>${formatDate(i.invoiceDate)}</td><td class="num fw-600">${formatRupiah(i.amount)}</td><td class="num">${formatRupiah(BizLogic.Invoice.outstanding(i))}</td><td>${invoiceStatusBadge(BizLogic.Invoice.statusOf(i))}</td><td><a href="invoice-detail.html?id=${i.id}" class="btn-action"><i class="bi bi-eye"></i></a></td></tr>`).join('')}
       </tbody></table></div>
     </div>`;
 

@@ -1,8 +1,8 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Faktur — EquipRent Enterprise</title>
+  <title>Invoice — EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -15,15 +15,30 @@
     <main class="app-main">
       <header class="app-header" id="appHeader"></header>
       <div class="app-content">
-        <div class="page-header"><div class="page-header-left"><h2 class="page-header-title">Faktur</h2><p class="page-header-subtitle">Invoice management</p></div></div>
+        <div class="page-header">
+          <div class="page-header-left"><h2 class="page-header-title">Invoice</h2><p class="page-header-subtitle">Tagihan yang sudah diterbitkan dari rekap tagihan dan klaim</p></div>
+          <div class="page-header-actions">
+            <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-download me-1"></i>Export CSV</button>
+            <a href="billing.html" class="btn btn-primary btn-sm"><i class="bi bi-calculator me-1"></i>Buat dari Rekap Tagihan</a>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4" id="kpis"></div>
+
         <div class="er-card"><div class="er-card-body">
           <div class="table-toolbar"><div class="table-toolbar-left">
-            <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Cari faktur..." id="searchInput" oninput="filterData()"></div>
-            <select class="filter-select" id="typeFilter" onchange="filterData()"><option value="">All Types</option><option>Delivery</option><option>Return</option></select>
-            <select class="filter-select" id="statusFilter" onchange="filterData()"><option value="">Semua Status</option><option>Draft</option><option>Issued</option><option>Paid</option><option>Partially Paid</option><option>Overdue</option><option>Cancelled</option></select>
+            <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Cari invoice, proyek, customer..." id="searchInput" oninput="render()"></div>
+            <select class="filter-select" id="typeFilter" onchange="render()"><option value="">Semua Tipe</option><option>Sewa</option><option>Klaim</option></select>
+            <select class="filter-select" id="statusFilter" onchange="render()">
+              <option value="">Semua Status</option><option value="Issued">Belum Dibayar</option><option value="Partially Paid">Dibayar Sebagian</option>
+              <option value="Overdue">Jatuh Tempo</option><option value="Paid">Lunas</option><option value="Cancelled">Dibatalkan</option>
+            </select>
+            <select class="filter-select" id="customerFilter" onchange="render()"><option value="">Semua Customer</option></select>
           </div></div>
-          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No. Faktur</th><th>Tipe</th><th>Proyek</th><th>Pelanggan</th><th>Reference</th><th>Tanggal</th><th>Jatuh Tempo</th><th>Jumlah</th><th>Account</th><th>Status</th><th>Aksi</th></tr></thead>
-          <tbody id="tableBody"></tbody></table></div>
+          <div class="er-table-wrapper"><table class="er-table">
+            <thead><tr><th>No. Invoice</th><th>Tipe</th><th>Proyek / Customer</th><th>Periode</th><th>Tgl Invoice</th><th>Jatuh Tempo</th><th class="num">Total</th><th class="num">Dibayar</th><th class="num">Sisa</th><th>Status</th><th></th></tr></thead>
+            <tbody id="tableBody"></tbody>
+          </table></div>
         </div></div>
       </div>
     </main>
@@ -31,36 +46,69 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
-    initApp('invoices.html',[{label:'Billing',href:'#'},{label:'Faktur'}],'Faktur');
-    function filterData(){
-      const q=document.getElementById('searchInput').value.toLowerCase();
-      const t=document.getElementById('typeFilter').value;
-      const s=document.getElementById('statusFilter').value;
-      const data=MockData.invoices.filter(i=>{
-        if(q&&!i.id.toLowerCase().includes(q)&&!i.customerName.toLowerCase().includes(q)&&!i.projectName.toLowerCase().includes(q))return false;
-        if(t&&i.type!==t)return false;if(s&&i.status!==s)return false;return true;
-      });
-      document.getElementById('tableBody').innerHTML=data.map(i=>`<tr>
-        <td><a href="invoice-detail.html?id=${i.id}" class="cell-link text-mono">${i.id}</a></td>
-        <td><span class="badge bg-${i.type==='Delivery'?'primary':'warning'} bg-opacity-10 text-${i.type==='Delivery'?'primary':'warning'}" style="font-size:11px">${i.type}</span></td>
-        <td>${i.projectName}</td><td>${i.customerName}</td><td class="text-mono fs-12">${i.reference}</td>
-        <td>${formatDate(i.invoiceDate)}</td><td>${formatDate(i.dueDate)}</td>
-        <td class="fw-600">${formatRupiah(i.amount)}</td><td class="fs-12">${i.accountName}</td>
-        <td>${statusBadge(i.status)}</td>
-        <td><a href="invoice-detail.html?id=${i.id}" class="btn-action"><i class="bi bi-eye"></i></a><button class="btn-action" onclick="showToast('Print invoice ${i.id}','info')"><i class="bi bi-printer"></i></button></td>
-      </tr>`).join('')||'<tr><td colspan="11" class="text-center text-muted py-4">Tidak ada faktur ditemukan</td></tr>';
+    initApp('invoices.html', [{label:'Piutang',href:'#'},{label:'Invoice'}], 'Invoice');
+    const Inv = BizLogic.Invoice;
+
+    const custSel = document.getElementById('customerFilter');
+    [...new Set(MockData.invoices.map(i => i.customerId))].forEach(id => {
+      const c = MockData.customers.find(x => x.id === id);
+      custSel.innerHTML += `<option value="${id}">${c ? c.name : id}</option>`;
+    });
+    if (getUrlParam('customer')) custSel.value = getUrlParam('customer');
+    if (getUrlParam('status')) document.getElementById('statusFilter').value = getUrlParam('status');
+
+    function rows() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const t = document.getElementById('typeFilter').value;
+      const s = document.getElementById('statusFilter').value;
+      const c = custSel.value;
+      return MockData.invoices.map(i => ({ i, status: Inv.statusOf(i), paid: Inv.paidAmount(i), rest: Inv.outstanding(i) }))
+        .filter(r => {
+          if (q && !(r.i.id + ' ' + r.i.customerName + ' ' + (r.i.projectName || '') + ' ' + (r.i.reference || '')).toLowerCase().includes(q)) return false;
+          if (t && r.i.type !== t) return false;
+          if (s && r.status !== s) return false;
+          if (c && r.i.customerId !== c) return false;
+          return true;
+        })
+        .sort((a, b) => b.i.invoiceDate.localeCompare(a.i.invoiceDate) || b.i.id.localeCompare(a.i.id));
     }
-    filterData();
+
+    function render() {
+      const data = rows();
+      const active = data.filter(r => r.status !== 'Cancelled');
+      const sum = f => active.reduce((s, r) => s + f(r), 0);
+      const overdue = active.filter(r => r.status === 'Overdue');
+      document.getElementById('kpis').innerHTML = `
+        <div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon blue"><i class="bi bi-receipt"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${formatRupiah(sum(r => r.i.amount))}</div><div class="kpi-label">Total Invoice (${active.length})</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon green"><i class="bi bi-cash-coin"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${formatRupiah(sum(r => r.paid))}</div><div class="kpi-label">Sudah Dibayar</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon orange"><i class="bi bi-hourglass-split"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${formatRupiah(sum(r => r.rest))}</div><div class="kpi-label">Sisa Piutang</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon red"><i class="bi bi-exclamation-triangle"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${formatRupiah(overdue.reduce((s, r) => s + r.rest, 0))}</div><div class="kpi-label">Jatuh Tempo (${overdue.length})</div></div></div></div>`;
+
+      document.getElementById('tableBody').innerHTML = data.map(({ i, status, paid, rest }) => `<tr>
+        <td><a href="invoice-detail.html?id=${i.id}" class="cell-link text-mono">${i.id}</a></td>
+        <td><span class="badge-status ${i.type === 'Sewa' ? 'issued' : 'partial'}">${i.type}</span></td>
+        <td><div class="fw-600">${i.projectName || '-'}</div><div class="fs-12 text-muted">${i.customerName}</div></td>
+        <td class="fs-12 text-nowrap">${i.periodStart ? formatDate(i.periodStart) + ' —<br>' + formatDate(i.periodEnd) : '<span class="text-muted">' + (i.reference || '-') + '</span>'}</td>
+        <td class="text-nowrap">${formatDate(i.invoiceDate)}</td>
+        <td class="text-nowrap ${status === 'Overdue' ? 'qty-minus' : ''}">${formatDate(i.dueDate)}</td>
+        <td class="num fw-600">${formatRupiah(i.amount)}</td>
+        <td class="num ${paid ? 'qty-plus' : 'zero'}">${formatRupiah(paid)}</td>
+        <td class="num ${rest ? 'fw-600' : 'zero'}">${formatRupiah(rest)}</td>
+        <td>${invoiceStatusBadge(status)}</td>
+        <td><a href="invoice-detail.html?id=${i.id}" class="btn-action"><i class="bi bi-eye"></i></a></td>
+      </tr>`).join('') || '<tr><td colspan="11" class="text-center text-muted py-4">Tidak ada invoice</td></tr>';
+    }
+
+    function exportCSV() {
+      const out = [['No. Invoice', 'Tipe', 'Proyek', 'Customer', 'Periode Awal', 'Periode Akhir', 'Tgl Invoice', 'Jatuh Tempo', 'Total', 'Dibayar', 'Sisa', 'Status']];
+      rows().forEach(({ i, status, paid, rest }) => out.push([i.id, i.type, i.projectName, i.customerName, i.periodStart || '', i.periodEnd || '', i.invoiceDate, i.dueDate, i.amount, paid, rest, INVOICE_STATUS_LABEL[status]]));
+      downloadCSV('invoice-' + new Date().toISOString().split('T')[0] + '.csv', out);
+    }
+
+    render();
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-

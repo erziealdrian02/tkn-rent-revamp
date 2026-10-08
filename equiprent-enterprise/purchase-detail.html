@@ -30,7 +30,7 @@
         <div class="modal-body">
           <div class="mb-3"><label class="form-label form-label-er">Receipt Date</label><input type="date" class="form-control" value="2026-09-04"></div>
           <div class="mb-3"><label class="form-label form-label-er">Target Branch</label>
-            <select class="form-select" id="recvBranch"><option>Jakarta Warehouse</option><option>Bekasi Warehouse</option></select>
+            <select class="form-select" id="recvBranch"><option>Cileungsi Warehouse</option><option>Bekasi Warehouse</option><option>Balikpapan Warehouse</option></select>
           </div>
           <div id="recvItems"></div>
           <div class="mb-3"><label class="form-label form-label-er">Notes</label><textarea class="form-control" rows="2"></textarea></div>
@@ -45,6 +45,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
     const pid = getUrlParam('id') || 'PO-001';

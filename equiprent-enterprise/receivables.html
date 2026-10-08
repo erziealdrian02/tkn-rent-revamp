@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Piutang — EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header">
+          <div class="page-header-left"><h2 class="page-header-title">Laporan Piutang</h2><p class="page-header-subtitle" id="subtitle">Total invoice dikurangi total pembayaran tagihan</p></div>
+          <div class="page-header-actions">
+            <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-download me-1"></i>Export CSV</button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak</button>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4" id="kpis"></div>
+
+        <div class="er-card"><div class="er-card-body">
+          <div class="table-toolbar"><div class="table-toolbar-left">
+            <label class="fs-13 text-muted d-flex align-items-center gap-2">Per tanggal <input type="date" class="filter-select" id="asOf" onchange="render()"></label>
+            <label class="d-flex align-items-center gap-2 fs-13 text-muted"><input type="checkbox" class="form-check-input m-0" id="hidePaid" checked onchange="render()"> Sembunyikan customer tanpa piutang</label>
+          </div></div>
+          <div class="er-table-wrapper"><table class="er-table">
+            <thead>
+              <tr>
+                <th rowspan="2" style="min-width:280px">Customer</th><th rowspan="2" class="num">Total Invoice</th><th rowspan="2" class="num">Total Pembayaran</th><th rowspan="2" class="num">Sisa Piutang</th>
+                <th colspan="5" class="group">Umur Piutang (dari jatuh tempo)</th><th rowspan="2"></th>
+              </tr>
+              <tr><th class="num">Belum JT</th><th class="num">1–30 hr</th><th class="num">31–60 hr</th><th class="num">61–90 hr</th><th class="num">&gt; 90 hr</th></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+            <tfoot id="tableFoot"></tfoot>
+          </table></div>
+          <p class="fs-12 text-muted mt-3 mb-0"><i class="bi bi-info-circle me-1"></i>Sisa Piutang = Total Invoice − Total Pembayaran (invoice dibatalkan tidak dihitung). Klik baris untuk melihat rincian invoice.</p>
+        </div></div>
+      </div>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    initApp('receivables.html', [{label:'Piutang',href:'#'},{label:'Laporan Piutang'}], 'Laporan Piutang');
+    const Inv = BizLogic.Invoice;
+    const BUCKETS = ['current', 'd30', 'd60', 'd90', 'd90plus'];
+    const expanded = {};
+    document.getElementById('asOf').value = new Date().toISOString().split('T')[0];
+
+    function build() {
+      const asOf = document.getElementById('asOf').value;
+      const invoices = MockData.invoices.filter(i => i.status !== 'Cancelled' && i.invoiceDate <= asOf);
+      const byCust = {};
+      invoices.forEach(i => {
+        const c = byCust[i.customerId] = byCust[i.customerId] || { id: i.customerId, name: i.customerName, total: 0, paid: 0, rest: 0, aging: { current: 0, d30: 0, d60: 0, d90: 0, d90plus: 0 }, invoices: [] };
+        const paid = Inv.paidAmount(i, asOf), rest = Inv.outstanding(i, asOf);
+        c.total += i.amount; c.paid += paid; c.rest += rest;
+        if (rest > 0) c.aging[Inv.agingBucket(i, asOf)] += rest;
+        c.invoices.push({ i, paid, rest, status: Inv.statusOf(i, asOf) });
+      });
+      return { asOf, rows: Object.values(byCust).sort((a, b) => b.rest - a.rest || a.name.localeCompare(b.name)) };
+    }
+
+    const money = (v, cls) => `<td class="num ${v === 0 ? 'zero' : ''} ${cls || ''}">${formatRupiah(v)}</td>`;
+
+    function toggle(id) { expanded[id] = !expanded[id]; render(); }
+
+    function render() {
+      const { asOf, rows } = build();
+      const hidePaid = document.getElementById('hidePaid').checked;
+      const visible = rows.filter(r => !hidePaid || r.rest > 0);
+      document.getElementById('subtitle').textContent = 'Total invoice dikurangi total pembayaran tagihan, per ' + formatDate(asOf);
+
+      const sum = f => rows.reduce((s, r) => s + f(r), 0);
+      const total = sum(r => r.total), paid = sum(r => r.paid), rest = sum(r => r.rest);
+      const overdue = rest - sum(r => r.aging.current);
+      document.getElementById('kpis').innerHTML = `
+        <div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon blue"><i class="bi bi-receipt"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${formatRupiah(total)}</div><div class="kpi-label">Total Invoice</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon green"><i class="bi bi-cash-coin"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${formatRupiah(paid)}</div><div class="kpi-label">Total Pembayaran</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon orange"><i class="bi bi-hourglass-split"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${formatRupiah(rest)}</div><div class="kpi-label">Sisa Piutang</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon red"><i class="bi bi-exclamation-triangle"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${formatRupiah(overdue)}</div><div class="kpi-label">Sudah Jatuh Tempo</div></div></div></div>`;
+
+      document.getElementById('tableBody').innerHTML = visible.map(r => {
+        let html = `<tr class="cursor-pointer" onclick="toggle('${r.id}')">
+          <td class="fw-600"><i class="bi bi-chevron-${expanded[r.id] ? 'down' : 'right'} me-1 text-muted"></i>${r.name}</td>
+          ${money(r.total)}${money(r.paid, 'qty-plus')}${money(r.rest, 'col-strong')}
+          ${BUCKETS.map((b, i) => money(r.aging[b], i >= 2 && r.aging[b] ? 'qty-minus' : '')).join('')}
+          <td><a href="invoices.html?customer=${r.id}" class="btn-action" onclick="event.stopPropagation()"><i class="bi bi-box-arrow-up-right"></i></a></td>
+        </tr>`;
+        if (expanded[r.id]) {
+          html += r.invoices.sort((a, b) => a.i.dueDate.localeCompare(b.i.dueDate)).map(x => `<tr class="fs-12" style="background:var(--bg-table-stripe)">
+            <td class="ps-5"><a href="invoice-detail.html?id=${x.i.id}" class="text-mono">${x.i.id}</a> · ${x.i.type}${x.i.periodStart ? ' · ' + formatDate(x.i.periodStart) + ' — ' + formatDate(x.i.periodEnd) : ''}<div class="text-muted">JT ${formatDate(x.i.dueDate)} · ${invoiceStatusBadge(x.status)}</div></td>
+            ${money(x.i.amount)}${money(x.paid)}${money(x.rest, 'fw-600')}
+            ${BUCKETS.map(b => money(x.rest && Inv.agingBucket(x.i, asOf) === b ? x.rest : 0)).join('')}
+            <td>${x.rest ? `<a href="payments.html?invoice=${x.i.id}" class="btn-action" title="Catat pembayaran"><i class="bi bi-cash"></i></a>` : ''}</td>
+          </tr>`).join('');
+        }
+        return html;
+      }).join('') || '<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada piutang</td></tr>';
+
+      document.getElementById('tableFoot').innerHTML = `<tr><td>TOTAL</td>
+        <td class="num">${formatRupiah(total)}</td><td class="num">${formatRupiah(paid)}</td><td class="num">${formatRupiah(rest)}</td>
+        ${BUCKETS.map(b => `<td class="num">${formatRupiah(sum(r => r.aging[b]))}</td>`).join('')}<td></td></tr>`;
+    }
+
+    function exportCSV() {
+      const { asOf, rows } = build();
+      const out = [['Customer', 'No. Invoice', 'Tipe', 'Tgl Invoice', 'Jatuh Tempo', 'Total Invoice', 'Total Pembayaran', 'Sisa Piutang', 'Umur']];
+      rows.forEach(r => r.invoices.forEach(x => out.push([r.name, x.i.id, x.i.type, x.i.invoiceDate, x.i.dueDate, x.i.amount, x.paid, x.rest, x.rest ? Inv.agingBucket(x.i, asOf) : ''])));
+      downloadCSV('laporan-piutang-' + asOf + '.csv', out);
+    }
+
+    render();
+  </script>
+</body>
+</html>

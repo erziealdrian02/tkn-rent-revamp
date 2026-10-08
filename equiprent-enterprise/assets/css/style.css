@@ -501,6 +501,7 @@ h1, h2, h3, h4, h5, h6 {
   flex: 1;
   margin-left: var(--sidebar-width);
   min-height: 100vh;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   transition: margin-left var(--transition-normal);
@@ -1712,3 +1713,65 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ---------- Rekap Stok ---------- */
+.er-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.er-table thead th.num { text-align: right; }
+.er-table thead th.group { text-align: center; border-bottom: 1px solid var(--border-color); }
+.er-table tfoot td {
+  padding: 10px 12px;
+  font-weight: 700;
+  background: var(--bg-table-stripe);
+  border-top: 2px solid var(--border-color);
+  color: var(--text-primary);
+}
+.er-table .col-strong { background: var(--primary-light); font-weight: 700; }
+.er-table tbody td.zero { color: var(--text-muted); }
+.qty-plus { color: var(--success); font-weight: 600; }
+.qty-minus { color: var(--danger); font-weight: 600; }
+.qty-warn { color: var(--warning); font-weight: 600; }
+
+.wh-card { cursor: pointer; transition: border-color var(--transition-fast), box-shadow var(--transition-fast); }
+.wh-card:hover { border-color: var(--primary); }
+.wh-card.active { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-light); }
+.wh-card .kpi-label strong { color: var(--text-primary); }
+
+.loc-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; padding: 2px 8px; border-radius: 999px;
+  background: var(--bg-table-stripe); border: 1px solid var(--border-color);
+  color: var(--text-secondary); white-space: nowrap;
+}
+
+.progress-thin { height: 6px; background: var(--border-light); border-radius: 999px; overflow: hidden; min-width: 80px; }
+.progress-thin > span { display: block; height: 100%; background: var(--primary); border-radius: 999px; }
+.progress-thin > span.done { background: var(--success); }
+
+.type-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.type-tab {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-secondary);
+  border-radius: var(--border-radius); padding: 6px 12px; font-size: 13px; cursor: pointer;
+}
+.type-tab:hover { border-color: var(--primary); color: var(--primary); }
+.type-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.type-tab .type-code { font-weight: 700; }
+.type-tab .er-tab-count { margin-left: 0; }
+.type-tab.active .er-tab-count { background: rgba(255,255,255,.25); color: #fff; }
+
+.sj-card { border: 1px solid var(--border-color); border-radius: var(--border-radius); margin-bottom: 12px; }
+.sj-card-header {
+  display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center;
+  padding: 10px 12px; background: var(--bg-table-stripe); border-bottom: 1px solid var(--border-color);
+  font-size: 13px;
+}
+.sj-card .er-table tbody tr:last-child td { border-bottom: none; }
+
+
+@media print {
+  .app-sidebar, .app-header, .page-header-actions, .table-toolbar, .no-print { display: none !important; }
+  .app-main { margin: 0 !important; }
+  .er-card { box-shadow: none !important; border: none !important; }
+}
+.invoice-items-table.rent th, .invoice-items-table.rent td { white-space: nowrap; padding: 8px 8px; font-size: 12px; }
+.invoice-items-table.rent td:nth-child(2) { white-space: normal; }

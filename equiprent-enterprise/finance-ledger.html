@@ -55,21 +55,17 @@
   <script>
     initApp('finance-ledger.html',[{label:'Finance',href:'#'},{label:'Ledger'}],'Ledger');
     
-    if (!MockData.companyBanks) {
-      MockData.companyBanks = [
-        { id: 'BA-001', name: 'BCA Perusahaan', accountNumber: '1234567890', openingBalance: 500000000 },
-        { id: 'BA-002', name: 'Mandiri Perusahaan', accountNumber: '0987654321', openingBalance: 250000000 }
-      ];
-    }
-    if (!MockData.ledger) MockData.ledger = [];
+    // Rekening perusahaan + jurnal masuk dari Pembayaran Tagihan (BizLogic.Payment.record)
+    const banks = MockData.accounts.map(a => Object.assign({ openingBalance: 0 }, a));
+    MockData.ledger.sort((a, b) => a.date.localeCompare(b.date));
 
     // Populate Account Filter
     const accFilter = document.getElementById('accountFilter');
-    MockData.companyBanks.forEach(b => { accFilter.innerHTML += `<option value="${b.id}">${b.name} (${b.accountNumber})</option>`; });
+    banks.forEach(b => { accFilter.innerHTML += `<option value="${b.id}">${b.name} (${b.accountNumber})</option>`; });
 
     function renderBankCards() {
         let html = '';
-        MockData.companyBanks.forEach(bank => {
+        banks.forEach(bank => {
             // Calculate current balance based on ledger
             let balance = bank.openingBalance;
             MockData.ledger.forEach(l => {
@@ -105,7 +101,7 @@
       const m=document.getElementById('monthFilter').value; // format: YYYY-MM
       
       let runningBalances = {};
-      MockData.companyBanks.forEach(b => runningBalances[b.id] = b.openingBalance);
+      banks.forEach(b => runningBalances[b.id] = b.openingBalance);
 
       // We need to calculate running balance sequentially from oldest to newest
       // MockData.ledger is assumed to be ordered chronologically
@@ -126,7 +122,7 @@
       document.getElementById('tableBody').innerHTML=data.map(r=>`<tr>
         <td>${formatDate(r.date)}</td>
         <td class="text-mono">${r.id}</td>
-        <td>${MockData.companyBanks.find(b=>b.id===r.bankAccountId)?.name || r.bankAccountId}</td>
+        <td>${banks.find(b=>b.id===r.bankAccountId)?.name || r.bankAccountId}</td>
         <td>${r.reference.startsWith('INV-')?`<a href="invoice-detail.html?id=${r.reference}">${r.reference}</a>`:r.reference}</td>
         <td>${r.description}</td>
         <td>${r.type === 'IN' ? '<span class="badge bg-success-subtle text-success">IN</span>' : '<span class="badge bg-danger-subtle text-danger">OUT</span>'}</td>

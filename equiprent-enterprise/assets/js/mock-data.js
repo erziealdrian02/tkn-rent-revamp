@@ -14,13 +14,50 @@ const MockData = {
   ],
 
   // ---- PROJECTS ----
+  // requirements = kebutuhan alat proyek (qty + harga satuan), diinput langsung saat buat proyek
   projects: [
-    { id: 'PRJ-001', name: 'Project Data Center Jakarta', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', startDate: '2026-07-01', endDate: '2026-12-31', totalRentals: 3, activeEquipment: 15, status: 'Active' },
-    { id: 'PRJ-002', name: 'Project Data Center Bekasi', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', startDate: '2026-08-01', endDate: '2027-02-28', totalRentals: 2, activeEquipment: 8, status: 'Active' },
-    { id: 'PRJ-003', name: 'Project Infrastructure Expansion', customerId: 'CUS-002', customerName: 'PT Infrastruktur Nusantara', startDate: '2026-06-15', endDate: '2026-11-30', totalRentals: 2, activeEquipment: 12, status: 'Active' },
-    { id: 'PRJ-004', name: 'Project Warehouse Renovation', customerId: 'CUS-003', customerName: 'PT Mitra Teknologi', startDate: '2026-08-15', endDate: '2026-10-31', totalRentals: 1, activeEquipment: 5, status: 'Active' },
-    { id: 'PRJ-005', name: 'Project Bridge Construction', customerId: 'CUS-004', customerName: 'PT Karya Engineering', startDate: '2026-05-01', endDate: '2026-08-31', totalRentals: 2, activeEquipment: 0, status: 'Completed' },
-    { id: 'PRJ-006', name: 'Project Office Tower', customerId: 'CUS-002', customerName: 'PT Infrastruktur Nusantara', startDate: '2026-09-01', endDate: '2027-06-30', totalRentals: 0, activeEquipment: 0, status: 'Planning' },
+    { id: 'PRJ-001', name: 'Project Data Center Jakarta', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', startDate: '2026-07-01', endDate: '2026-12-31', totalRentals: 3, activeEquipment: 15, status: 'Active',
+      requirements: [
+        { equipment: 'Generator 50 KVA', qty: 4, unitPrice: 5000000 },
+        { equipment: 'Power Cable 50m', qty: 15, unitPrice: 500000 },
+        { equipment: 'Aluminium Ladder 6m', qty: 3, unitPrice: 300000 },
+        { equipment: 'Tower Light 4x1000W', qty: 4, unitPrice: 2500000 },
+        { equipment: 'Air Compressor 10HP', qty: 2, unitPrice: 4000000 },
+        { equipment: 'Submersible Pump 4"', qty: 3, unitPrice: 3000000 },
+        { equipment: 'Welding Machine 400A', qty: 2, unitPrice: 3500000 },
+      ] },
+    { id: 'PRJ-002', name: 'Project Data Center Bekasi', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', startDate: '2026-08-01', endDate: '2027-02-28', totalRentals: 2, activeEquipment: 8, status: 'Active',
+      requirements: [
+        { equipment: 'Generator 100 KVA', qty: 3, unitPrice: 8500000 },
+        { equipment: 'Power Cable 100m', qty: 10, unitPrice: 900000 },
+      ] },
+    { id: 'PRJ-003', name: 'Project Infrastructure Expansion', customerId: 'CUS-002', customerName: 'PT Infrastruktur Nusantara', startDate: '2026-06-15', endDate: '2026-11-30', totalRentals: 2, activeEquipment: 12, status: 'Active',
+      requirements: [
+        { equipment: 'Generator 100 KVA', qty: 2, unitPrice: 8500000 },
+        { equipment: 'Aluminium Ladder 8m', qty: 5, unitPrice: 450000 },
+        { equipment: 'Submersible Pump 4"', qty: 2, unitPrice: 3000000 },
+        { equipment: 'Welding Machine 400A', qty: 3, unitPrice: 3500000 },
+        { equipment: 'Air Compressor 10HP', qty: 1, unitPrice: 4000000 },
+      ] },
+    { id: 'PRJ-004', name: 'Project Warehouse Renovation', customerId: 'CUS-003', customerName: 'PT Mitra Teknologi', startDate: '2026-08-15', endDate: '2026-10-31', totalRentals: 1, activeEquipment: 5, status: 'Active',
+      requirements: [
+        { equipment: 'Air Compressor 10HP', qty: 2, unitPrice: 4000000 },
+        { equipment: 'Welding Machine 400A', qty: 1, unitPrice: 3500000 },
+        { equipment: 'Generator 50 KVA', qty: 1, unitPrice: 5000000 },
+      ] },
+    { id: 'PRJ-005', name: 'Project Bridge Construction', customerId: 'CUS-004', customerName: 'PT Karya Engineering', startDate: '2026-05-01', endDate: '2026-08-31', totalRentals: 2, activeEquipment: 0, status: 'Completed',
+      requirements: [
+        { equipment: 'Generator 100 KVA', qty: 1, unitPrice: 8500000 },
+        { equipment: 'Power Cable 100m', qty: 5, unitPrice: 900000 },
+        { equipment: 'Submersible Pump 4"', qty: 2, unitPrice: 3000000 },
+        { equipment: 'Aluminium Ladder 8m', qty: 4, unitPrice: 450000 },
+      ] },
+    { id: 'PRJ-006', name: 'Project Office Tower', customerId: 'CUS-002', customerName: 'PT Infrastruktur Nusantara', startDate: '2026-09-01', endDate: '2027-06-30', totalRentals: 0, activeEquipment: 0, status: 'Planning',
+      requirements: [
+        { equipment: 'Generator 100 KVA', qty: 4, unitPrice: 8500000 },
+        { equipment: 'Tower Light 4x1000W', qty: 6, unitPrice: 2500000 },
+        { equipment: 'Power Cable 100m', qty: 12, unitPrice: 900000 },
+      ] },
   ],
 
   // ---- EQUIPMENT CATEGORIES ----
@@ -28,31 +65,31 @@ const MockData = {
 
   // ---- EQUIPMENT ----
   equipment: [
-    { id: 'GEN-001', name: 'Generator 50 KVA', category: 'Generator', serial: 'GN-2024-001', condition: 'Good', branch: 'Jakarta', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-001', status: 'On Rental', rate: 5000000 },
-    { id: 'GEN-002', name: 'Generator 50 KVA', category: 'Generator', serial: 'GN-2024-002', condition: 'Good', branch: 'Jakarta', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 5000000 },
-    { id: 'GEN-003', name: 'Generator 100 KVA', category: 'Generator', serial: 'GN-2024-003', condition: 'Good', branch: 'Jakarta', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-003', status: 'On Rental', rate: 8500000 },
+    { id: 'GEN-001', name: 'Generator 50 KVA', category: 'Generator', serial: 'GN-2024-001', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-001', status: 'On Rental', rate: 5000000 },
+    { id: 'GEN-002', name: 'Generator 50 KVA', category: 'Generator', serial: 'GN-2024-002', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 5000000 },
+    { id: 'GEN-003', name: 'Generator 100 KVA', category: 'Generator', serial: 'GN-2024-003', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-003', status: 'On Rental', rate: 8500000 },
     { id: 'GEN-004', name: 'Generator 100 KVA', category: 'Generator', serial: 'GN-2024-004', condition: 'Good', branch: 'Bekasi', branchId: 'BR-002', availability: 'Available', project: null, status: 'Available', rate: 8500000 },
-    { id: 'GEN-005', name: 'Generator 50 KVA', category: 'Generator', serial: 'GN-2024-005', condition: 'Maintenance', branch: 'Jakarta', branchId: 'BR-001', availability: 'Maintenance', project: null, status: 'Maintenance', rate: 5000000 },
-    { id: 'CAB-001', name: 'Power Cable 50m', category: 'Cable', serial: 'CB-2024-001', condition: 'Good', branch: 'Jakarta', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-001', status: 'On Rental', rate: 500000 },
-    { id: 'CAB-002', name: 'Power Cable 50m', category: 'Cable', serial: 'CB-2024-002', condition: 'Good', branch: 'Jakarta', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 500000 },
+    { id: 'GEN-005', name: 'Generator 50 KVA', category: 'Generator', serial: 'GN-2024-005', condition: 'Maintenance', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Maintenance', project: null, status: 'Maintenance', rate: 5000000 },
+    { id: 'CAB-001', name: 'Power Cable 50m', category: 'Cable', serial: 'CB-2024-001', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-001', status: 'On Rental', rate: 500000 },
+    { id: 'CAB-002', name: 'Power Cable 50m', category: 'Cable', serial: 'CB-2024-002', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 500000 },
     { id: 'CAB-003', name: 'Power Cable 100m', category: 'Cable', serial: 'CB-2024-003', condition: 'Good', branch: 'Bekasi', branchId: 'BR-002', availability: 'On Rental', project: 'PRJ-002', status: 'On Rental', rate: 900000 },
-    { id: 'LAD-001', name: 'Aluminium Ladder 6m', category: 'Ladder', serial: 'LD-2024-001', condition: 'Good', branch: 'Jakarta', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 300000 },
-    { id: 'LAD-002', name: 'Aluminium Ladder 6m', category: 'Ladder', serial: 'LD-2024-002', condition: 'Damaged', branch: 'Jakarta', branchId: 'BR-001', availability: 'Damaged', project: null, status: 'Damaged', rate: 300000 },
+    { id: 'LAD-001', name: 'Aluminium Ladder 6m', category: 'Ladder', serial: 'LD-2024-001', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 300000 },
+    { id: 'LAD-002', name: 'Aluminium Ladder 6m', category: 'Ladder', serial: 'LD-2024-002', condition: 'Damaged', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Damaged', project: null, status: 'Damaged', rate: 300000 },
     { id: 'LAD-003', name: 'Aluminium Ladder 8m', category: 'Ladder', serial: 'LD-2024-003', condition: 'Good', branch: 'Bekasi', branchId: 'BR-002', availability: 'On Rental', project: 'PRJ-003', status: 'On Rental', rate: 450000 },
-    { id: 'WLD-001', name: 'Welding Machine 400A', category: 'Welding', serial: 'WL-2024-001', condition: 'Good', branch: 'Jakarta', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 3500000 },
+    { id: 'WLD-001', name: 'Welding Machine 400A', category: 'Welding', serial: 'WL-2024-001', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 3500000 },
     { id: 'WLD-002', name: 'Welding Machine 400A', category: 'Welding', serial: 'WL-2024-002', condition: 'Good', branch: 'Bekasi', branchId: 'BR-002', availability: 'Reserved', project: null, status: 'Reserved', rate: 3500000 },
-    { id: 'CMP-001', name: 'Air Compressor 10HP', category: 'Compressor', serial: 'AC-2024-001', condition: 'Good', branch: 'Jakarta', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-004', status: 'On Rental', rate: 4000000 },
-    { id: 'CMP-002', name: 'Air Compressor 10HP', category: 'Compressor', serial: 'AC-2024-002', condition: 'Good', branch: 'Jakarta', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 4000000 },
-    { id: 'LGT-001', name: 'Tower Light 4x1000W', category: 'Lighting', serial: 'TL-2024-001', condition: 'Good', branch: 'Jakarta', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-001', status: 'On Rental', rate: 2500000 },
+    { id: 'CMP-001', name: 'Air Compressor 10HP', category: 'Compressor', serial: 'AC-2024-001', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-004', status: 'On Rental', rate: 4000000 },
+    { id: 'CMP-002', name: 'Air Compressor 10HP', category: 'Compressor', serial: 'AC-2024-002', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 4000000 },
+    { id: 'LGT-001', name: 'Tower Light 4x1000W', category: 'Lighting', serial: 'TL-2024-001', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-001', status: 'On Rental', rate: 2500000 },
     { id: 'PMP-001', name: 'Submersible Pump 4"', category: 'Pump', serial: 'SP-2024-001', condition: 'Good', branch: 'Bekasi', branchId: 'BR-002', availability: 'Available', project: null, status: 'Available', rate: 3000000 },
-    { id: 'PMP-002', name: 'Submersible Pump 4"', category: 'Pump', serial: 'SP-2024-002', condition: 'Good', branch: 'Jakarta', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-003', status: 'On Rental', rate: 3000000 },
+    { id: 'PMP-002', name: 'Submersible Pump 4"', category: 'Pump', serial: 'SP-2024-002', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-003', status: 'On Rental', rate: 3000000 },
   ],
 
   // ---- RENTALS ----
   rentals: [
     {
       id: 'RNT-001', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', projectId: 'PRJ-001', projectName: 'Project Data Center Jakarta',
-      rentalDate: '2026-08-01', returnDate: '2026-10-31', branch: 'Jakarta', branchId: 'BR-001',
+      rentalDate: '2026-08-01', returnDate: '2026-10-31', branch: 'Cileungsi', branchId: 'BR-001',
       totalItems: 3, deliveryStatus: 'Completed', status: 'On Rental', invoiceStatus: 'Issued',
       notes: 'Priority delivery needed',
       items: [
@@ -65,7 +102,7 @@ const MockData = {
     },
     {
       id: 'RNT-002', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', projectId: 'PRJ-001', projectName: 'Project Data Center Jakarta',
-      rentalDate: '2026-08-15', returnDate: '2026-11-15', branch: 'Jakarta', branchId: 'BR-001',
+      rentalDate: '2026-08-15', returnDate: '2026-11-15', branch: 'Cileungsi', branchId: 'BR-001',
       totalItems: 2, deliveryStatus: 'Completed', status: 'On Rental', invoiceStatus: 'Paid',
       notes: '',
       items: [
@@ -77,7 +114,7 @@ const MockData = {
     },
     {
       id: 'RNT-003', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', projectId: 'PRJ-001', projectName: 'Project Data Center Jakarta',
-      rentalDate: '2026-09-01', returnDate: '2026-11-30', branch: 'Jakarta', branchId: 'BR-001',
+      rentalDate: '2026-09-01', returnDate: '2026-11-30', branch: 'Cileungsi', branchId: 'BR-001',
       totalItems: 2, deliveryStatus: 'Preparing', status: 'Approved', invoiceStatus: 'Draft',
       notes: 'Additional equipment for phase 2',
       items: [
@@ -89,7 +126,7 @@ const MockData = {
     },
     {
       id: 'RNT-004', customerId: 'CUS-002', customerName: 'PT Infrastruktur Nusantara', projectId: 'PRJ-003', projectName: 'Project Infrastructure Expansion',
-      rentalDate: '2026-07-15', returnDate: '2026-10-15', branch: 'Jakarta', branchId: 'BR-001',
+      rentalDate: '2026-07-15', returnDate: '2026-10-15', branch: 'Cileungsi', branchId: 'BR-001',
       totalItems: 3, deliveryStatus: 'Completed', status: 'On Rental', invoiceStatus: 'Partially Paid',
       notes: '',
       items: [
@@ -102,7 +139,7 @@ const MockData = {
     },
     {
       id: 'RNT-005', customerId: 'CUS-002', customerName: 'PT Infrastruktur Nusantara', projectId: 'PRJ-003', projectName: 'Project Infrastructure Expansion',
-      rentalDate: '2026-08-20', returnDate: '2026-11-20', branch: 'Jakarta', branchId: 'BR-001',
+      rentalDate: '2026-08-20', returnDate: '2026-11-20', branch: 'Cileungsi', branchId: 'BR-001',
       totalItems: 2, deliveryStatus: 'Shipped', status: 'Shipped', invoiceStatus: 'Issued',
       notes: 'Rush delivery',
       items: [
@@ -114,7 +151,7 @@ const MockData = {
     },
     {
       id: 'RNT-006', customerId: 'CUS-003', customerName: 'PT Mitra Teknologi', projectId: 'PRJ-004', projectName: 'Project Warehouse Renovation',
-      rentalDate: '2026-08-20', returnDate: '2026-10-20', branch: 'Jakarta', branchId: 'BR-001',
+      rentalDate: '2026-08-20', returnDate: '2026-10-20', branch: 'Cileungsi', branchId: 'BR-001',
       totalItems: 2, deliveryStatus: 'Completed', status: 'On Rental', invoiceStatus: 'Issued',
       notes: '',
       items: [
@@ -150,7 +187,7 @@ const MockData = {
     },
     {
       id: 'RNT-009', customerId: 'CUS-003', customerName: 'PT Mitra Teknologi', projectId: 'PRJ-004', projectName: 'Project Warehouse Renovation',
-      rentalDate: '2026-09-10', returnDate: '2026-10-31', branch: 'Jakarta', branchId: 'BR-001',
+      rentalDate: '2026-09-10', returnDate: '2026-10-31', branch: 'Cileungsi', branchId: 'BR-001',
       totalItems: 1, deliveryStatus: 'Pending', status: 'Waiting Approval', invoiceStatus: 'Draft',
       notes: 'Waiting for manager approval',
       items: [
@@ -175,19 +212,21 @@ const MockData = {
 
   // ---- DELIVERIES ----
   deliveries: [
-    { id: 'DLV-001', rentalId: 'RNT-001', projectId: 'PRJ-001', projectName: 'Project Data Center Jakarta', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', driverId: 'DRV-001', driverName: 'Budi Santoso', vehicleId: 'VHC-001', vehiclePlate: 'B 1234 XYZ', deliveryDate: '2026-08-02', destination: 'Jl. Sudirman No. 45, Jakarta Selatan', status: 'Completed', notes: 'Gate access card needed', items: [{name:'Generator 50 KVA', qty:2},{name:'Power Cable 50m', qty:10},{name:'Aluminium Ladder 6m', qty:3}] },
-    { id: 'DLV-002', rentalId: 'RNT-002', projectId: 'PRJ-001', projectName: 'Project Data Center Jakarta', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', driverId: 'DRV-002', driverName: 'Andi Pratama', vehicleId: 'VHC-002', vehiclePlate: 'B 5678 ABC', deliveryDate: '2026-08-16', destination: 'Jl. Sudirman No. 45, Jakarta Selatan', status: 'Completed', notes: '', items: [{name:'Tower Light 4x1000W', qty:4},{name:'Air Compressor 10HP', qty:2}] },
-    { id: 'DLV-003', rentalId: 'RNT-004', projectId: 'PRJ-003', projectName: 'Project Infrastructure Expansion', customerId: 'CUS-002', customerName: 'PT Infrastruktur Nusantara', driverId: 'DRV-001', driverName: 'Budi Santoso', vehicleId: 'VHC-001', vehiclePlate: 'B 1234 XYZ', deliveryDate: '2026-07-16', destination: 'Jl. Gatot Subroto No. 12, Jakarta Selatan', status: 'Completed', notes: '', items: [{name:'Generator 100 KVA', qty:2},{name:'Aluminium Ladder 8m', qty:5},{name:'Submersible Pump 4"', qty:2}] },
-    { id: 'DLV-004', rentalId: 'RNT-005', projectId: 'PRJ-003', projectName: 'Project Infrastructure Expansion', customerId: 'CUS-002', customerName: 'PT Infrastruktur Nusantara', driverId: 'DRV-003', driverName: 'Dimas Saputra', vehicleId: 'VHC-003', vehiclePlate: 'B 9012 DEF', deliveryDate: '2026-08-21', destination: 'Jl. Gatot Subroto No. 12, Jakarta Selatan', status: 'Departed', notes: 'Rush delivery', items: [{name:'Welding Machine 400A', qty:3},{name:'Air Compressor 10HP', qty:1}] },
-    { id: 'DLV-005', rentalId: 'RNT-006', projectId: 'PRJ-004', projectName: 'Project Warehouse Renovation', customerId: 'CUS-003', customerName: 'PT Mitra Teknologi', driverId: 'DRV-002', driverName: 'Andi Pratama', vehicleId: 'VHC-002', vehiclePlate: 'B 5678 ABC', deliveryDate: '2026-08-21', destination: 'Jl. TB Simatupang No. 88, Jakarta Timur', status: 'Completed', notes: '', items: [{name:'Air Compressor 10HP', qty:2},{name:'Welding Machine 400A', qty:1}] },
-    { id: 'DLV-006', rentalId: 'RNT-008', projectId: 'PRJ-002', projectName: 'Project Data Center Bekasi', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', driverId: 'DRV-001', driverName: 'Budi Santoso', vehicleId: 'VHC-001', vehiclePlate: 'B 1234 XYZ', deliveryDate: '2026-08-11', destination: 'Jl. Raya Industri No. 5, Bekasi', status: 'Completed', notes: '', items: [{name:'Generator 100 KVA', qty:2},{name:'Power Cable 100m', qty:8}] },
-    { id: 'DLV-007', rentalId: 'RNT-003', projectId: 'PRJ-001', projectName: 'Project Data Center Jakarta', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', driverId: null, driverName: null, vehicleId: null, vehiclePlate: null, deliveryDate: '2026-09-05', destination: 'Jl. Sudirman No. 45, Jakarta Selatan', status: 'Preparing', notes: 'Phase 2 equipment', items: [{name:'Submersible Pump 4"', qty:3},{name:'Welding Machine 400A', qty:2}] },
+    { id: 'DLV-001', sjNo: 'SJK-2608-001', rentalId: 'RNT-001', projectId: 'PRJ-001', projectName: 'Project Data Center Jakarta', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', driverId: 'DRV-001', driverName: 'Budi Santoso', vehicleId: 'VHC-001', vehiclePlate: 'B 1234 XYZ', deliveryDate: '2026-08-02', destination: 'Jl. Sudirman No. 45, Jakarta Selatan', status: 'Completed', notes: 'Gate access card needed', items: [{name:'Generator 50 KVA', qty:2},{name:'Power Cable 50m', qty:10},{name:'Aluminium Ladder 6m', qty:3}] },
+    { id: 'DLV-002', sjNo: 'SJK-2608-003', rentalId: 'RNT-002', projectId: 'PRJ-001', projectName: 'Project Data Center Jakarta', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', driverId: 'DRV-002', driverName: 'Andi Pratama', vehicleId: 'VHC-002', vehiclePlate: 'B 5678 ABC', deliveryDate: '2026-08-16', destination: 'Jl. Sudirman No. 45, Jakarta Selatan', status: 'Completed', notes: '', items: [{name:'Tower Light 4x1000W', qty:4},{name:'Air Compressor 10HP', qty:2}] },
+    { id: 'DLV-003', sjNo: 'SJK-2607-001', rentalId: 'RNT-004', projectId: 'PRJ-003', projectName: 'Project Infrastructure Expansion', customerId: 'CUS-002', customerName: 'PT Infrastruktur Nusantara', driverId: 'DRV-001', driverName: 'Budi Santoso', vehicleId: 'VHC-001', vehiclePlate: 'B 1234 XYZ', deliveryDate: '2026-07-16', destination: 'Jl. Gatot Subroto No. 12, Jakarta Selatan', status: 'Completed', notes: '', items: [{name:'Generator 100 KVA', qty:2},{name:'Aluminium Ladder 8m', qty:5},{name:'Submersible Pump 4"', qty:2}] },
+    { id: 'DLV-004', sjNo: 'SJK-2608-005', rentalId: 'RNT-005', projectId: 'PRJ-003', projectName: 'Project Infrastructure Expansion', customerId: 'CUS-002', customerName: 'PT Infrastruktur Nusantara', driverId: 'DRV-003', driverName: 'Dimas Saputra', vehicleId: 'VHC-003', vehiclePlate: 'B 9012 DEF', deliveryDate: '2026-08-21', destination: 'Jl. Gatot Subroto No. 12, Jakarta Selatan', status: 'Departed', notes: 'Rush delivery', items: [{name:'Welding Machine 400A', qty:3},{name:'Air Compressor 10HP', qty:1}] },
+    { id: 'DLV-005', sjNo: 'SJK-2608-004', rentalId: 'RNT-006', projectId: 'PRJ-004', projectName: 'Project Warehouse Renovation', customerId: 'CUS-003', customerName: 'PT Mitra Teknologi', driverId: 'DRV-002', driverName: 'Andi Pratama', vehicleId: 'VHC-002', vehiclePlate: 'B 5678 ABC', deliveryDate: '2026-08-21', destination: 'Jl. TB Simatupang No. 88, Jakarta Timur', status: 'Completed', notes: '', items: [{name:'Air Compressor 10HP', qty:2},{name:'Welding Machine 400A', qty:1}] },
+    { id: 'DLV-006', sjNo: 'SJK-2608-002', rentalId: 'RNT-008', projectId: 'PRJ-002', projectName: 'Project Data Center Bekasi', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', driverId: 'DRV-001', driverName: 'Budi Santoso', vehicleId: 'VHC-001', vehiclePlate: 'B 1234 XYZ', deliveryDate: '2026-08-11', destination: 'Jl. Raya Industri No. 5, Bekasi', status: 'Completed', notes: '', items: [{name:'Generator 100 KVA', qty:2},{name:'Power Cable 100m', qty:8}] },
+    { id: 'DLV-007', sjNo: 'SJK-2609-001', rentalId: 'RNT-003', projectId: 'PRJ-001', projectName: 'Project Data Center Jakarta', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', driverId: null, driverName: null, vehicleId: null, vehiclePlate: null, deliveryDate: '2026-09-05', destination: 'Jl. Sudirman No. 45, Jakarta Selatan', status: 'Preparing', notes: 'Phase 2 equipment', items: [{name:'Submersible Pump 4"', qty:3},{name:'Welding Machine 400A', qty:2}] },
+    { id: 'DLV-008', sjNo: 'SJK-2605-001', rentalId: 'RNT-007', projectId: 'PRJ-005', projectName: 'Project Bridge Construction', customerId: 'CUS-004', customerName: 'PT Karya Engineering', driverId: 'DRV-004', driverName: 'Rizky Fauzan', vehicleId: 'VHC-001', vehiclePlate: 'B 1234 XYZ', deliveryDate: '2026-05-16', destination: 'Jl. Raya Bekasi No. 23, Bekasi', status: 'Completed', notes: '', items: [{name:'Generator 100 KVA', qty:1},{name:'Power Cable 100m', qty:5}] },
+    { id: 'DLV-009', sjNo: 'SJK-2606-001', rentalId: 'RNT-010', projectId: 'PRJ-005', projectName: 'Project Bridge Construction', customerId: 'CUS-004', customerName: 'PT Karya Engineering', driverId: 'DRV-004', driverName: 'Rizky Fauzan', vehicleId: 'VHC-002', vehiclePlate: 'B 5678 ABC', deliveryDate: '2026-06-02', destination: 'Jl. Raya Bekasi No. 23, Bekasi', status: 'Completed', notes: '', items: [{name:'Submersible Pump 4"', qty:2},{name:'Aluminium Ladder 8m', qty:4}] },
   ],
 
   // ---- RETURNS ----
   returns: [
     {
-      id: 'RET-001', rentalId: 'RNT-007', projectId: 'PRJ-005', projectName: 'Project Bridge Construction', customerId: 'CUS-004', customerName: 'PT Karya Engineering',
+      id: 'RET-001', sjNo: 'SJR-2608-001', rentalId: 'RNT-007', projectId: 'PRJ-005', projectName: 'Project Bridge Construction', customerId: 'CUS-004', customerName: 'PT Karya Engineering',
       returnDate: '2026-08-16', status: 'Completed', inspectedBy: 'Warehouse Staff',
       items: [
         { name: 'Generator 100 KVA', sent: 1, good: 1, damaged: 0, lost: 0, missing: 0 },
@@ -195,7 +234,7 @@ const MockData = {
       ]
     },
     {
-      id: 'RET-002', rentalId: 'RNT-010', projectId: 'PRJ-005', projectName: 'Project Bridge Construction', customerId: 'CUS-004', customerName: 'PT Karya Engineering',
+      id: 'RET-002', sjNo: 'SJR-2608-002', rentalId: 'RNT-010', projectId: 'PRJ-005', projectName: 'Project Bridge Construction', customerId: 'CUS-004', customerName: 'PT Karya Engineering',
       returnDate: '2026-08-31', status: 'Completed', inspectedBy: 'Warehouse Staff',
       items: [
         { name: 'Submersible Pump 4"', sent: 2, good: 2, damaged: 0, lost: 0, missing: 0 },
@@ -203,7 +242,7 @@ const MockData = {
       ]
     },
     {
-      id: 'RET-003', rentalId: 'RNT-001', projectId: 'PRJ-001', projectName: 'Project Data Center Jakarta', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia',
+      id: 'RET-003', sjNo: 'SJR-2609-001', rentalId: 'RNT-001', projectId: 'PRJ-001', projectName: 'Project Data Center Jakarta', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia',
       returnDate: '2026-09-04', status: 'Inspection', inspectedBy: null,
       items: [
         { name: 'Generator 50 KVA', sent: 2, good: 1, damaged: 0, lost: 0, missing: 1 },
@@ -216,40 +255,112 @@ const MockData = {
   // ---- CLAIMS ----
   claims: [
     { id: 'CLM-001', returnId: 'RET-001', projectId: 'PRJ-005', projectName: 'Project Bridge Construction', customerId: 'CUS-004', customerName: 'PT Karya Engineering', equipment: 'Power Cable 100m', quantity: 1, reason: 'Lost during project', customerConfirmation: 'Confirmed', claimAmount: 900000, status: 'Invoiced', invoiceId: 'INV-005', invoiceStatus: 'Paid', createdDate: '2026-08-18' },
-    { id: 'CLM-002', returnId: 'RET-002', projectId: 'PRJ-005', projectName: 'Project Bridge Construction', customerId: 'CUS-004', customerName: 'PT Karya Engineering', equipment: 'Aluminium Ladder 8m', quantity: 1, reason: 'Damaged - bent middle section', customerConfirmation: 'Confirmed', claimAmount: 450000, status: 'Invoiced', invoiceId: 'INV-006', invoiceStatus: 'Issued', createdDate: '2026-09-02' },
+    { id: 'CLM-002', returnId: 'RET-002', projectId: 'PRJ-005', projectName: 'Project Bridge Construction', customerId: 'CUS-004', customerName: 'PT Karya Engineering', equipment: 'Aluminium Ladder 8m', quantity: 1, reason: 'Damaged - bent middle section', customerConfirmation: 'Confirmed', claimAmount: 450000, status: 'Invoiced', invoiceId: 'INV-011', invoiceStatus: 'Issued', createdDate: '2026-09-02' },
     { id: 'CLM-003', returnId: 'RET-003', projectId: 'PRJ-001', projectName: 'Project Data Center Jakarta', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', equipment: 'Generator 50 KVA', quantity: 1, reason: 'Missing from project site', customerConfirmation: 'Waiting', claimAmount: 25000000, status: 'Waiting Customer Confirmation', invoiceId: null, invoiceStatus: null, createdDate: '2026-09-04' },
     { id: 'CLM-004', returnId: 'RET-003', projectId: 'PRJ-001', projectName: 'Project Data Center Jakarta', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', equipment: 'Power Cable 50m', quantity: 2, reason: 'Lost - cannot be located', customerConfirmation: 'Waiting', claimAmount: 1000000, status: 'Waiting Customer Confirmation', invoiceId: null, invoiceStatus: null, createdDate: '2026-09-04' },
   ],
 
   // ---- BRANCHES ----
+  // Gudang. Angka stok tidak disimpan di sini — dihitung dari stockMutations.
   branches: [
-    { id: 'BR-001', code: 'JKT', name: 'Jakarta Warehouse', address: 'Jl. Raya Industri No. 10, Jakarta Utara', capacity: 500, totalEquipment: 120, available: 65, onRental: 45, status: 'Active' },
-    { id: 'BR-002', code: 'BKS', name: 'Bekasi Warehouse', address: 'Jl. Raya Industri No. 5, Bekasi', capacity: 300, totalEquipment: 80, available: 50, onRental: 25, status: 'Active' },
-    { id: 'BR-003', code: 'SBY', name: 'Surabaya Warehouse', address: 'Jl. Rungkut Industri No. 22, Surabaya', capacity: 200, totalEquipment: 45, available: 35, onRental: 8, status: 'Active' },
+    { id: 'BR-001', code: 'CLS', name: 'Cileungsi Warehouse', address: 'Jl. Raya Narogong KM 15, Cileungsi, Bogor', capacity: 500, status: 'Active' },
+    { id: 'BR-002', code: 'BKS', name: 'Bekasi Warehouse', address: 'Jl. Raya Industri No. 5, Bekasi', capacity: 300, status: 'Active' },
+    { id: 'BR-003', code: 'BPN', name: 'Balikpapan Warehouse', address: 'Jl. Mulawarman No. 21, Balikpapan Timur', capacity: 200, status: 'Active' },
   ],
 
-  // ---- STOCK ----
+  // ---- STOCK MUTATIONS (Perpindahan Stok / ledger) ----
+  // Sumber kebenaran qty: stok gudang & stok proyek dihitung dari sini.
+  // type: OPENING | PURCHASE | TRANSFER | DELIVERY | RETURN | SALE | LOST | DISPOSAL
+  // from/to: { type: 'warehouse'|'project'|'customer'|'supplier'|'production'|'opening'|'lost'|'disposed', id?, name? }
+  stockMutations: [
+    { id: 'MUT-001', no: 'SA-2605-001', date: '2026-05-01', type: 'OPENING', from: { type: 'opening' }, to: { type: 'warehouse', id: 'BR-001' }, reference: '', notes: 'Saldo awal stock opname', user: 'Joko Warehouse',
+      items: [
+        { equipment: 'Generator 50 KVA', qty: 15 }, { equipment: 'Generator 100 KVA', qty: 10 }, { equipment: 'Power Cable 50m', qty: 50 },
+        { equipment: 'Power Cable 100m', qty: 20 }, { equipment: 'Aluminium Ladder 6m', qty: 25 }, { equipment: 'Aluminium Ladder 8m', qty: 15 },
+        { equipment: 'Welding Machine 400A', qty: 10 }, { equipment: 'Air Compressor 10HP', qty: 8 }, { equipment: 'Tower Light 4x1000W', qty: 10 },
+        { equipment: 'Submersible Pump 4"', qty: 10 },
+      ] },
+    { id: 'MUT-002', no: 'SA-2605-002', date: '2026-05-01', type: 'OPENING', from: { type: 'opening' }, to: { type: 'warehouse', id: 'BR-002' }, reference: '', notes: 'Saldo awal stock opname', user: 'Hendra Bekasi',
+      items: [
+        { equipment: 'Generator 50 KVA', qty: 10 }, { equipment: 'Generator 100 KVA', qty: 8 }, { equipment: 'Power Cable 50m', qty: 50 },
+        { equipment: 'Power Cable 100m', qty: 30 }, { equipment: 'Aluminium Ladder 6m', qty: 15 }, { equipment: 'Aluminium Ladder 8m', qty: 10 },
+        { equipment: 'Welding Machine 400A', qty: 5 }, { equipment: 'Air Compressor 10HP', qty: 5 }, { equipment: 'Tower Light 4x1000W', qty: 6 },
+        { equipment: 'Submersible Pump 4"', qty: 6 },
+      ] },
+    { id: 'MUT-003', no: 'SA-2605-003', date: '2026-05-01', type: 'OPENING', from: { type: 'opening' }, to: { type: 'warehouse', id: 'BR-003' }, reference: '', notes: 'Saldo awal stock opname', user: 'Joko Warehouse',
+      items: [
+        { equipment: 'Generator 50 KVA', qty: 6 }, { equipment: 'Generator 100 KVA', qty: 4 }, { equipment: 'Power Cable 50m', qty: 30 },
+        { equipment: 'Power Cable 100m', qty: 15 }, { equipment: 'Aluminium Ladder 6m', qty: 10 }, { equipment: 'Aluminium Ladder 8m', qty: 6 },
+        { equipment: 'Welding Machine 400A', qty: 4 }, { equipment: 'Air Compressor 10HP', qty: 3 }, { equipment: 'Tower Light 4x1000W', qty: 4 },
+        { equipment: 'Submersible Pump 4"', qty: 5 },
+      ] },
+    { id: 'MUT-004', no: 'SJK-2605-001', date: '2026-05-16', type: 'DELIVERY', from: { type: 'warehouse', id: 'BR-002' }, to: { type: 'project', id: 'PRJ-005' }, reference: 'DLV-008 / RNT-007', notes: '', user: 'Rizky Fauzan',
+      items: [{ equipment: 'Generator 100 KVA', qty: 1 }, { equipment: 'Power Cable 100m', qty: 5 }] },
+    { id: 'MUT-005', no: 'SJK-2606-001', date: '2026-06-02', type: 'DELIVERY', from: { type: 'warehouse', id: 'BR-002' }, to: { type: 'project', id: 'PRJ-005' }, reference: 'DLV-009 / RNT-010', notes: '', user: 'Rizky Fauzan',
+      items: [{ equipment: 'Submersible Pump 4"', qty: 2 }, { equipment: 'Aluminium Ladder 8m', qty: 4 }] },
+    { id: 'MUT-006', no: 'PB-2607-001', date: '2026-07-05', type: 'PURCHASE', from: { type: 'supplier', name: 'PT Sumber Generator' }, to: { type: 'warehouse', id: 'BR-001' }, reference: 'PO-001', notes: '', user: 'Joko Warehouse',
+      items: [{ equipment: 'Generator 50 KVA', qty: 5 }, { equipment: 'Generator 100 KVA', qty: 3 }] },
+    { id: 'MUT-007', no: 'PB-2607-002', date: '2026-07-10', type: 'PURCHASE', from: { type: 'production', name: 'Workshop Balikpapan' }, to: { type: 'warehouse', id: 'BR-003' }, reference: 'WO-001', notes: 'Produksi / perakitan internal', user: 'Joko Warehouse',
+      items: [{ equipment: 'Tower Light 4x1000W', qty: 2 }] },
+    { id: 'MUT-008', no: 'SJK-2607-001', date: '2026-07-16', type: 'DELIVERY', from: { type: 'warehouse', id: 'BR-001' }, to: { type: 'project', id: 'PRJ-003' }, reference: 'DLV-003 / RNT-004', notes: '', user: 'Budi Santoso',
+      items: [{ equipment: 'Generator 100 KVA', qty: 2 }, { equipment: 'Aluminium Ladder 8m', qty: 5 }, { equipment: 'Submersible Pump 4"', qty: 2 }] },
+    { id: 'MUT-009', no: 'PB-2607-003', date: '2026-07-18', type: 'PURCHASE', from: { type: 'supplier', name: 'PT Kabel Nusantara' }, to: { type: 'warehouse', id: 'BR-001' }, reference: 'PO-002', notes: '', user: 'Joko Warehouse',
+      items: [{ equipment: 'Power Cable 50m', qty: 50 }, { equipment: 'Power Cable 100m', qty: 20 }] },
+    { id: 'MUT-010', no: 'SJK-2608-001', date: '2026-08-02', type: 'DELIVERY', from: { type: 'warehouse', id: 'BR-001' }, to: { type: 'project', id: 'PRJ-001' }, reference: 'DLV-001 / RNT-001', notes: 'Gate access card needed', user: 'Budi Santoso',
+      items: [{ equipment: 'Generator 50 KVA', qty: 2 }, { equipment: 'Power Cable 50m', qty: 10 }, { equipment: 'Aluminium Ladder 6m', qty: 3 }] },
+    { id: 'MUT-011', no: 'SJK-2608-002', date: '2026-08-11', type: 'DELIVERY', from: { type: 'warehouse', id: 'BR-002' }, to: { type: 'project', id: 'PRJ-002' }, reference: 'DLV-006 / RNT-008', notes: '', user: 'Budi Santoso',
+      items: [{ equipment: 'Generator 100 KVA', qty: 2 }, { equipment: 'Power Cable 100m', qty: 8 }] },
+    { id: 'MUT-012', no: 'SJK-2608-003', date: '2026-08-16', type: 'DELIVERY', from: { type: 'warehouse', id: 'BR-001' }, to: { type: 'project', id: 'PRJ-001' }, reference: 'DLV-002 / RNT-002', notes: '', user: 'Andi Pratama',
+      items: [{ equipment: 'Tower Light 4x1000W', qty: 4 }, { equipment: 'Air Compressor 10HP', qty: 2 }] },
+    { id: 'MUT-013', no: 'SJR-2608-001', date: '2026-08-16', type: 'RETURN', from: { type: 'project', id: 'PRJ-005' }, to: { type: 'warehouse', id: 'BR-002' }, reference: 'RET-001 / RNT-007', notes: '', user: 'Warehouse Staff',
+      items: [{ equipment: 'Generator 100 KVA', qty: 1 }, { equipment: 'Power Cable 100m', qty: 4 }] },
+    { id: 'MUT-014', no: 'HL-2608-001', date: '2026-08-16', type: 'LOST', from: { type: 'project', id: 'PRJ-005' }, to: { type: 'lost' }, reference: 'RET-001 / CLM-001', notes: 'Hilang di lokasi proyek, diklaim ke customer', user: 'Warehouse Staff',
+      items: [{ equipment: 'Power Cable 100m', qty: 1 }] },
+    { id: 'MUT-015', no: 'SJK-2608-004', date: '2026-08-21', type: 'DELIVERY', from: { type: 'warehouse', id: 'BR-001' }, to: { type: 'project', id: 'PRJ-004' }, reference: 'DLV-005 / RNT-006', notes: '', user: 'Andi Pratama',
+      items: [{ equipment: 'Air Compressor 10HP', qty: 2 }, { equipment: 'Welding Machine 400A', qty: 1 }] },
+    { id: 'MUT-016', no: 'SJR-2608-002', date: '2026-08-31', type: 'RETURN', from: { type: 'project', id: 'PRJ-005' }, to: { type: 'warehouse', id: 'BR-002' }, reference: 'RET-002 / RNT-010', notes: '1 tangga bengkok di bagian tengah', user: 'Warehouse Staff',
+      items: [{ equipment: 'Submersible Pump 4"', qty: 2 }, { equipment: 'Aluminium Ladder 8m', qty: 3 }, { equipment: 'Aluminium Ladder 8m', qty: 1, condition: 'damaged' }] },
+    { id: 'MUT-017', no: 'TG-2609-001', date: '2026-09-01', type: 'TRANSFER', from: { type: 'warehouse', id: 'BR-001' }, to: { type: 'warehouse', id: 'BR-002' }, reference: 'TRF-001', notes: 'Penyeimbangan stok', user: 'Joko Warehouse',
+      items: [{ equipment: 'Welding Machine 400A', qty: 1 }] },
+    { id: 'MUT-018', no: 'TG-2609-002', date: '2026-09-02', type: 'TRANSFER', from: { type: 'warehouse', id: 'BR-001' }, to: { type: 'warehouse', id: 'BR-003' }, reference: '', notes: 'Persiapan proyek Kalimantan', user: 'Joko Warehouse',
+      items: [{ equipment: 'Generator 100 KVA', qty: 2 }] },
+    { id: 'MUT-019', no: 'PJ-2609-001', date: '2026-09-03', type: 'SALE', from: { type: 'warehouse', id: 'BR-002' }, to: { type: 'customer', id: 'CUS-003' }, reference: '', notes: 'Penjualan unit bekas', user: 'Maya Finance',
+      items: [{ equipment: 'Aluminium Ladder 6m', qty: 2, unitPrice: 1500000 }] },
+  ],
+
+  // ---- STOCK (kondisi fisik per gudang) ----
+  // total = qty fisik di gudang (harus sama dengan saldo ledger). available/reserved/damaged/maintenance = rinciannya.
   stock: [
-    { equipment: 'Generator 50 KVA', branch: 'Jakarta', total: 20, available: 12, reserved: 2, onRental: 4, damaged: 1, maintenance: 1, lost: 0, missing: 0 },
-    { equipment: 'Generator 50 KVA', branch: 'Bekasi', total: 10, available: 7, reserved: 1, onRental: 2, damaged: 0, maintenance: 0, lost: 0, missing: 0 },
-    { equipment: 'Generator 100 KVA', branch: 'Jakarta', total: 15, available: 8, reserved: 1, onRental: 5, damaged: 0, maintenance: 1, lost: 0, missing: 0 },
-    { equipment: 'Generator 100 KVA', branch: 'Bekasi', total: 8, available: 4, reserved: 1, onRental: 3, damaged: 0, maintenance: 0, lost: 0, missing: 0 },
-    { equipment: 'Power Cable 50m', branch: 'Jakarta', total: 100, available: 55, reserved: 5, onRental: 35, damaged: 3, maintenance: 0, lost: 2, missing: 0 },
-    { equipment: 'Power Cable 50m', branch: 'Bekasi', total: 50, available: 30, reserved: 5, onRental: 15, damaged: 0, maintenance: 0, lost: 0, missing: 0 },
-    { equipment: 'Power Cable 100m', branch: 'Jakarta', total: 40, available: 22, reserved: 3, onRental: 15, damaged: 0, maintenance: 0, lost: 0, missing: 0 },
-    { equipment: 'Power Cable 100m', branch: 'Bekasi', total: 30, available: 14, reserved: 2, onRental: 12, damaged: 1, maintenance: 0, lost: 1, missing: 0 },
-    { equipment: 'Aluminium Ladder 6m', branch: 'Jakarta', total: 30, available: 18, reserved: 2, onRental: 8, damaged: 2, maintenance: 0, lost: 0, missing: 0 },
-    { equipment: 'Aluminium Ladder 6m', branch: 'Bekasi', total: 15, available: 10, reserved: 1, onRental: 4, damaged: 0, maintenance: 0, lost: 0, missing: 0 },
-    { equipment: 'Aluminium Ladder 8m', branch: 'Jakarta', total: 20, available: 12, reserved: 0, onRental: 6, damaged: 1, maintenance: 1, lost: 0, missing: 0 },
-    { equipment: 'Aluminium Ladder 8m', branch: 'Bekasi', total: 10, available: 5, reserved: 1, onRental: 4, damaged: 0, maintenance: 0, lost: 0, missing: 0 },
-    { equipment: 'Welding Machine 400A', branch: 'Jakarta', total: 10, available: 5, reserved: 1, onRental: 3, damaged: 0, maintenance: 1, lost: 0, missing: 0 },
-    { equipment: 'Welding Machine 400A', branch: 'Bekasi', total: 6, available: 3, reserved: 1, onRental: 2, damaged: 0, maintenance: 0, lost: 0, missing: 0 },
-    { equipment: 'Air Compressor 10HP', branch: 'Jakarta', total: 8, available: 3, reserved: 1, onRental: 3, damaged: 0, maintenance: 1, lost: 0, missing: 0 },
-    { equipment: 'Air Compressor 10HP', branch: 'Bekasi', total: 5, available: 3, reserved: 0, onRental: 2, damaged: 0, maintenance: 0, lost: 0, missing: 0 },
-    { equipment: 'Tower Light 4x1000W', branch: 'Jakarta', total: 12, available: 5, reserved: 1, onRental: 5, damaged: 0, maintenance: 1, lost: 0, missing: 0 },
-    { equipment: 'Tower Light 4x1000W', branch: 'Bekasi', total: 6, available: 4, reserved: 0, onRental: 2, damaged: 0, maintenance: 0, lost: 0, missing: 0 },
-    { equipment: 'Submersible Pump 4"', branch: 'Jakarta', total: 10, available: 4, reserved: 1, onRental: 4, damaged: 0, maintenance: 1, lost: 0, missing: 0 },
-    { equipment: 'Submersible Pump 4"', branch: 'Bekasi', total: 6, available: 3, reserved: 1, onRental: 2, damaged: 0, maintenance: 0, lost: 0, missing: 0 },
+    { equipment: 'Generator 50 KVA', branch: 'Cileungsi', total: 18, available: 17, reserved: 0, damaged: 0, maintenance: 1 },
+    { equipment: 'Generator 50 KVA', branch: 'Bekasi', total: 10, available: 10, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Generator 50 KVA', branch: 'Balikpapan', total: 6, available: 6, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Generator 100 KVA', branch: 'Cileungsi', total: 9, available: 9, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Generator 100 KVA', branch: 'Bekasi', total: 6, available: 6, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Generator 100 KVA', branch: 'Balikpapan', total: 6, available: 6, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Power Cable 50m', branch: 'Cileungsi', total: 90, available: 88, reserved: 0, damaged: 2, maintenance: 0 },
+    { equipment: 'Power Cable 50m', branch: 'Bekasi', total: 50, available: 50, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Power Cable 50m', branch: 'Balikpapan', total: 30, available: 30, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Power Cable 100m', branch: 'Cileungsi', total: 40, available: 40, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Power Cable 100m', branch: 'Bekasi', total: 21, available: 21, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Power Cable 100m', branch: 'Balikpapan', total: 15, available: 15, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Aluminium Ladder 6m', branch: 'Cileungsi', total: 22, available: 21, reserved: 0, damaged: 1, maintenance: 0 },
+    { equipment: 'Aluminium Ladder 6m', branch: 'Bekasi', total: 13, available: 13, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Aluminium Ladder 6m', branch: 'Balikpapan', total: 10, available: 10, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Aluminium Ladder 8m', branch: 'Cileungsi', total: 10, available: 10, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Aluminium Ladder 8m', branch: 'Bekasi', total: 10, available: 9, reserved: 0, damaged: 1, maintenance: 0 },
+    { equipment: 'Aluminium Ladder 8m', branch: 'Balikpapan', total: 6, available: 6, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Welding Machine 400A', branch: 'Cileungsi', total: 8, available: 3, reserved: 5, damaged: 0, maintenance: 0 },
+    { equipment: 'Welding Machine 400A', branch: 'Bekasi', total: 6, available: 6, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Welding Machine 400A', branch: 'Balikpapan', total: 4, available: 4, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Air Compressor 10HP', branch: 'Cileungsi', total: 4, available: 3, reserved: 1, damaged: 0, maintenance: 0 },
+    { equipment: 'Air Compressor 10HP', branch: 'Bekasi', total: 5, available: 5, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Air Compressor 10HP', branch: 'Balikpapan', total: 3, available: 3, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Tower Light 4x1000W', branch: 'Cileungsi', total: 6, available: 6, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Tower Light 4x1000W', branch: 'Bekasi', total: 6, available: 6, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Tower Light 4x1000W', branch: 'Balikpapan', total: 6, available: 6, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Submersible Pump 4\"', branch: 'Cileungsi', total: 8, available: 5, reserved: 3, damaged: 0, maintenance: 0 },
+    { equipment: 'Submersible Pump 4\"', branch: 'Bekasi', total: 6, available: 6, reserved: 0, damaged: 0, maintenance: 0 },
+    { equipment: 'Submersible Pump 4\"', branch: 'Balikpapan', total: 5, available: 5, reserved: 0, damaged: 0, maintenance: 0 },
   ],
 
   // ---- DRIVERS ----
@@ -272,60 +383,97 @@ const MockData = {
 
   // ---- PURCHASES ----
   purchases: [
-    { id: 'PO-001', supplier: 'PT Sumber Generator', purchaseDate: '2026-07-01', branch: 'Jakarta', branchId: 'BR-001', totalItems: 2, totalAmount: 750000000, accountId: 'ACC-001', accountName: 'BCA Operational', status: 'Completed', items: [{name:'Generator 50 KVA', qty:5, price:100000000},{name:'Generator 100 KVA', qty:3, price:150000000}] },
-    { id: 'PO-002', supplier: 'PT Kabel Nusantara', purchaseDate: '2026-07-15', branch: 'Jakarta', branchId: 'BR-001', totalItems: 2, totalAmount: 125000000, accountId: 'ACC-002', accountName: 'Mandiri Corporate', status: 'Completed', items: [{name:'Power Cable 50m', qty:50, price:1500000},{name:'Power Cable 100m', qty:20, price:2500000}] },
+    { id: 'PO-001', supplier: 'PT Sumber Generator', purchaseDate: '2026-07-01', branch: 'Cileungsi', branchId: 'BR-001', totalItems: 2, totalAmount: 750000000, accountId: 'ACC-001', accountName: 'BCA Operational', status: 'Completed', items: [{name:'Generator 50 KVA', qty:5, price:100000000},{name:'Generator 100 KVA', qty:3, price:150000000}] },
+    { id: 'PO-002', supplier: 'PT Kabel Nusantara', purchaseDate: '2026-07-15', branch: 'Cileungsi', branchId: 'BR-001', totalItems: 2, totalAmount: 125000000, accountId: 'ACC-002', accountName: 'Mandiri Corporate', status: 'Completed', items: [{name:'Power Cable 50m', qty:50, price:1500000},{name:'Power Cable 100m', qty:20, price:2500000}] },
     { id: 'PO-003', supplier: 'PT Alat Berat Indonesia', purchaseDate: '2026-08-20', branch: 'Bekasi', branchId: 'BR-002', totalItems: 3, totalAmount: 245000000, accountId: 'ACC-001', accountName: 'BCA Operational', status: 'Arrived', items: [{name:'Welding Machine 400A', qty:4, price:35000000},{name:'Air Compressor 10HP', qty:3, price:40000000},{name:'Submersible Pump 4"', qty:2, price:30000000}] },
-    { id: 'PO-004', supplier: 'PT Sumber Generator', purchaseDate: '2026-09-01', branch: 'Jakarta', branchId: 'BR-001', totalItems: 1, totalAmount: 150000000, accountId: 'ACC-001', accountName: 'BCA Operational', status: 'In Transit', items: [{name:'Generator 100 KVA', qty:2, price:150000000}] },
-    { id: 'PO-005', supplier: 'PT Tangga Jaya', purchaseDate: '2026-09-03', branch: 'Jakarta', branchId: 'BR-001', totalItems: 2, totalAmount: 22000000, accountId: 'ACC-002', accountName: 'Mandiri Corporate', status: 'Ordered', items: [{name:'Aluminium Ladder 6m', qty:10, price:1200000},{name:'Aluminium Ladder 8m', qty:5, price:2000000}] },
+    { id: 'PO-004', supplier: 'PT Sumber Generator', purchaseDate: '2026-09-01', branch: 'Cileungsi', branchId: 'BR-001', totalItems: 1, totalAmount: 150000000, accountId: 'ACC-001', accountName: 'BCA Operational', status: 'In Transit', items: [{name:'Generator 100 KVA', qty:2, price:150000000}] },
+    { id: 'PO-005', supplier: 'PT Tangga Jaya', purchaseDate: '2026-09-03', branch: 'Cileungsi', branchId: 'BR-001', totalItems: 2, totalAmount: 22000000, accountId: 'ACC-002', accountName: 'Mandiri Corporate', status: 'Ordered', items: [{name:'Aluminium Ladder 6m', qty:10, price:1200000},{name:'Aluminium Ladder 8m', qty:5, price:2000000}] },
   ],
 
   // ---- MOVEMENTS ----
   movements: [
-    { id: 'MOV-001', date: '2026-07-05', equipment: 'Generator 50 KVA', assetId: 'GEN-001', from: 'Supplier', to: 'Jakarta Warehouse', type: 'Purchase', reference: 'PO-001', user: 'Warehouse Staff', status: 'Completed' },
-    { id: 'MOV-002', date: '2026-08-02', equipment: 'Generator 50 KVA', assetId: 'GEN-001', from: 'Jakarta Warehouse', to: 'Project Data Center Jakarta', type: 'Rental Out', reference: 'RNT-001', user: 'Admin', status: 'Completed' },
-    { id: 'MOV-003', date: '2026-08-02', equipment: 'Power Cable 50m', assetId: 'CAB-001', from: 'Jakarta Warehouse', to: 'Project Data Center Jakarta', type: 'Rental Out', reference: 'RNT-001', user: 'Admin', status: 'Completed' },
-    { id: 'MOV-004', date: '2026-08-16', equipment: 'Generator 100 KVA', assetId: 'GEN-003', from: 'Jakarta Warehouse', to: 'Project Infrastructure Expansion', type: 'Rental Out', reference: 'RNT-004', user: 'Admin', status: 'Completed' },
+    { id: 'MOV-001', date: '2026-07-05', equipment: 'Generator 50 KVA', assetId: 'GEN-001', from: 'Supplier', to: 'Cileungsi Warehouse', type: 'Purchase', reference: 'PO-001', user: 'Warehouse Staff', status: 'Completed' },
+    { id: 'MOV-002', date: '2026-08-02', equipment: 'Generator 50 KVA', assetId: 'GEN-001', from: 'Cileungsi Warehouse', to: 'Project Data Center Jakarta', type: 'Rental Out', reference: 'RNT-001', user: 'Admin', status: 'Completed' },
+    { id: 'MOV-003', date: '2026-08-02', equipment: 'Power Cable 50m', assetId: 'CAB-001', from: 'Cileungsi Warehouse', to: 'Project Data Center Jakarta', type: 'Rental Out', reference: 'RNT-001', user: 'Admin', status: 'Completed' },
+    { id: 'MOV-004', date: '2026-08-16', equipment: 'Generator 100 KVA', assetId: 'GEN-003', from: 'Cileungsi Warehouse', to: 'Project Infrastructure Expansion', type: 'Rental Out', reference: 'RNT-004', user: 'Admin', status: 'Completed' },
     { id: 'MOV-005', date: '2026-08-16', equipment: 'Generator 100 KVA', assetId: 'GEN-004', from: 'Bekasi Warehouse', to: 'Project Bridge Construction', type: 'Return', reference: 'RET-001', user: 'Warehouse Staff', status: 'Completed' },
-    { id: 'MOV-006', date: '2026-08-25', equipment: 'Generator 50 KVA', assetId: 'GEN-005', from: 'Jakarta Warehouse', to: 'Maintenance', type: 'Maintenance', reference: 'MNT-001', user: 'Warehouse Staff', status: 'In Progress' },
-    { id: 'MOV-007', date: '2026-09-01', equipment: 'Welding Machine 400A', assetId: 'WLD-002', from: 'Jakarta Warehouse', to: 'Bekasi Warehouse', type: 'Transfer', reference: 'TRF-001', user: 'Warehouse Staff', status: 'Completed' },
-    { id: 'MOV-008', date: '2026-09-03', equipment: 'Aluminium Ladder 6m', assetId: 'LAD-002', from: 'Project Data Center Jakarta', to: 'Jakarta Warehouse', type: 'Return', reference: 'RET-003', user: 'Warehouse Staff', status: 'Completed' },
+    { id: 'MOV-006', date: '2026-08-25', equipment: 'Generator 50 KVA', assetId: 'GEN-005', from: 'Cileungsi Warehouse', to: 'Maintenance', type: 'Maintenance', reference: 'MNT-001', user: 'Warehouse Staff', status: 'In Progress' },
+    { id: 'MOV-007', date: '2026-09-01', equipment: 'Welding Machine 400A', assetId: 'WLD-002', from: 'Cileungsi Warehouse', to: 'Bekasi Warehouse', type: 'Transfer', reference: 'TRF-001', user: 'Warehouse Staff', status: 'Completed' },
+    { id: 'MOV-008', date: '2026-09-03', equipment: 'Aluminium Ladder 6m', assetId: 'LAD-002', from: 'Project Data Center Jakarta', to: 'Cileungsi Warehouse', type: 'Return', reference: 'RET-003', user: 'Warehouse Staff', status: 'Completed' },
     { id: 'MOV-009', date: '2026-09-04', equipment: 'Power Cable 50m', assetId: 'CAB-001', from: 'Project Data Center Jakarta', to: 'Lost', type: 'Lost', reference: 'RET-003', user: 'Warehouse Staff', status: 'Completed' },
     { id: 'MOV-010', date: '2026-08-20', equipment: 'Air Compressor 10HP', assetId: 'CMP-002', from: 'Supplier', to: 'Bekasi Warehouse', type: 'Purchase', reference: 'PO-003', user: 'Warehouse Staff', status: 'Completed' },
   ],
 
   // ---- INVOICES ----
+  // Sewa: hasil rekap tagihan (qty × hari × harga satuan ÷ bulan sewa) per periode; Klaim: dari claim
   invoices: [
-    { id: 'INV-001', type: 'Delivery', projectId: 'PRJ-001', projectName: 'Project Data Center Jakarta', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', reference: 'RNT-001', invoiceDate: '2026-08-05', dueDate: '2026-09-05', amount: 45000000, accountId: 'ACC-001', accountName: 'BCA Operational', status: 'Issued', items: [{desc:'Generator 50 KVA × 2 (3 months)', qty:1, price:30000000},{desc:'Power Cable 50m × 10 (3 months)', qty:1, price:15000000},{desc:'Aluminium Ladder 6m × 3 (3 months)', qty:1, price:2700000},{desc:'Discount', qty:1, price:-2700000}] },
-    { id: 'INV-002', type: 'Delivery', projectId: 'PRJ-001', projectName: 'Project Data Center Jakarta', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', reference: 'RNT-002', invoiceDate: '2026-08-18', dueDate: '2026-09-18', amount: 54000000, accountId: 'ACC-001', accountName: 'BCA Operational', status: 'Paid', paidDate: '2026-09-01', items: [{desc:'Tower Light 4x1000W × 4 (3 months)', qty:1, price:30000000},{desc:'Air Compressor 10HP × 2 (3 months)', qty:1, price:24000000}] },
-    { id: 'INV-003', type: 'Delivery', projectId: 'PRJ-003', projectName: 'Project Infrastructure Expansion', customerId: 'CUS-002', customerName: 'PT Infrastruktur Nusantara', reference: 'RNT-004', invoiceDate: '2026-07-20', dueDate: '2026-08-20', amount: 70000000, accountId: 'ACC-002', accountName: 'Mandiri Corporate', status: 'Partially Paid', items: [{desc:'Generator 100 KVA × 2 (3 months)', qty:1, price:51000000},{desc:'Aluminium Ladder 8m × 5 (3 months)', qty:1, price:6750000},{desc:'Submersible Pump 4" × 2 (3 months)', qty:1, price:18000000},{desc:'Discount', qty:1, price:-5750000}] },
-    { id: 'INV-004', type: 'Delivery', projectId: 'PRJ-005', projectName: 'Project Bridge Construction', customerId: 'CUS-004', customerName: 'PT Karya Engineering', reference: 'RNT-007', invoiceDate: '2026-05-20', dueDate: '2026-06-20', amount: 39000000, accountId: 'ACC-001', accountName: 'BCA Operational', status: 'Paid', paidDate: '2026-06-15', items: [{desc:'Generator 100 KVA × 1 (3 months)', qty:1, price:25500000},{desc:'Power Cable 100m × 5 (3 months)', qty:1, price:13500000}] },
-    { id: 'INV-005', type: 'Return', projectId: 'PRJ-005', projectName: 'Project Bridge Construction', customerId: 'CUS-004', customerName: 'PT Karya Engineering', reference: 'RET-001 / CLM-001', invoiceDate: '2026-08-22', dueDate: '2026-09-22', amount: 900000, accountId: 'ACC-001', accountName: 'BCA Operational', status: 'Paid', paidDate: '2026-09-01', items: [{desc:'Lost: Power Cable 100m × 1', qty:1, price:900000}] },
-    { id: 'INV-006', type: 'Return', projectId: 'PRJ-005', projectName: 'Project Bridge Construction', customerId: 'CUS-004', customerName: 'PT Karya Engineering', reference: 'RET-002 / CLM-002', invoiceDate: '2026-09-02', dueDate: '2026-10-02', amount: 450000, accountId: 'ACC-002', accountName: 'Mandiri Corporate', status: 'Issued', items: [{desc:'Damaged: Aluminium Ladder 8m × 1', qty:1, price:450000}] },
-    { id: 'INV-007', type: 'Delivery', projectId: 'PRJ-004', projectName: 'Project Warehouse Renovation', customerId: 'CUS-003', customerName: 'PT Mitra Teknologi', reference: 'RNT-006', invoiceDate: '2026-08-25', dueDate: '2026-09-25', amount: 23000000, accountId: 'ACC-001', accountName: 'BCA Operational', status: 'Issued', items: [{desc:'Air Compressor 10HP × 2 (2 months)', qty:1, price:16000000},{desc:'Welding Machine 400A × 1 (2 months)', qty:1, price:7000000}] },
-    { id: 'INV-008', type: 'Delivery', projectId: 'PRJ-002', projectName: 'Project Data Center Bekasi', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', reference: 'RNT-008', invoiceDate: '2026-08-12', dueDate: '2026-09-12', amount: 70000000, accountId: 'ACC-002', accountName: 'Mandiri Corporate', status: 'Issued', items: [{desc:'Generator 100 KVA × 2 (3 months)', qty:1, price:51000000},{desc:'Power Cable 100m × 8 (3 months)', qty:1, price:21600000},{desc:'Discount', qty:1, price:-2600000}] },
-    { id: 'INV-009', type: 'Delivery', projectId: 'PRJ-003', projectName: 'Project Infrastructure Expansion', customerId: 'CUS-002', customerName: 'PT Infrastruktur Nusantara', reference: 'RNT-005', invoiceDate: '2026-08-22', dueDate: '2026-09-22', amount: 43500000, accountId: 'ACC-001', accountName: 'BCA Operational', status: 'Issued', items: [{desc:'Welding Machine 400A × 3 (3 months)', qty:1, price:31500000},{desc:'Air Compressor 10HP × 1 (3 months)', qty:1, price:12000000}] },
-    { id: 'INV-010', type: 'Delivery', projectId: 'PRJ-005', projectName: 'Project Bridge Construction', customerId: 'CUS-004', customerName: 'PT Karya Engineering', reference: 'RNT-010', invoiceDate: '2026-06-05', dueDate: '2026-07-05', amount: 23000000, accountId: 'ACC-001', accountName: 'BCA Operational', status: 'Paid', paidDate: '2026-07-01', items: [{desc:'Submersible Pump 4" × 2 (3 months)', qty:1, price:18000000},{desc:'Aluminium Ladder 8m × 4 (3 months)', qty:1, price:5400000},{desc:'Discount', qty:1, price:-400000}] },
+    {"id":"INV-001","type":"Sewa","projectId":"PRJ-005","projectName":"Project Bridge Construction","customerId":"CUS-004","customerName":"PT Karya Engineering","reference":"Sewa 2026-05-01 s/d 2026-05-31","invoiceDate":"2026-06-01","dueDate":"2026-07-01","periodStart":"2026-05-01","periodEnd":"2026-05-31","monthDays":30,"items":[{"desc":"Generator 100 KVA","equipment":"Generator 100 KVA","qty":1,"unitPrice":8500000,"startDate":"2026-05-16","endDate":"2026-05-31","days":16,"amount":4533333,"sjDelivery":"SJK-2605-001","sjReturn":null,"adjusted":false},{"desc":"Power Cable 100m","equipment":"Power Cable 100m","qty":1,"unitPrice":900000,"startDate":"2026-05-16","endDate":"2026-05-31","days":16,"amount":480000,"sjDelivery":"SJK-2605-001","sjReturn":null,"adjusted":false},{"desc":"Power Cable 100m","equipment":"Power Cable 100m","qty":4,"unitPrice":900000,"startDate":"2026-05-16","endDate":"2026-05-31","days":16,"amount":1920000,"sjDelivery":"SJK-2605-001","sjReturn":null,"adjusted":false}],"status":"Paid","notes":"","createdBy":"Maya Finance","subtotal":6933333,"taxRate":0.11,"tax":762667,"amount":7696000,"accountId":"ACC-004","accountName":"BCA Bekasi","paidDate":"2026-06-20"},
+    {"id":"INV-002","type":"Sewa","projectId":"PRJ-005","projectName":"Project Bridge Construction","customerId":"CUS-004","customerName":"PT Karya Engineering","reference":"Sewa 2026-06-01 s/d 2026-06-30","invoiceDate":"2026-07-01","dueDate":"2026-07-31","periodStart":"2026-06-01","periodEnd":"2026-06-30","monthDays":30,"items":[{"desc":"Aluminium Ladder 8m","equipment":"Aluminium Ladder 8m","qty":3,"unitPrice":450000,"startDate":"2026-06-02","endDate":"2026-06-30","days":29,"amount":1305000,"sjDelivery":"SJK-2606-001","sjReturn":null,"adjusted":false},{"desc":"Aluminium Ladder 8m","equipment":"Aluminium Ladder 8m","qty":1,"unitPrice":450000,"startDate":"2026-06-02","endDate":"2026-06-30","days":29,"amount":435000,"sjDelivery":"SJK-2606-001","sjReturn":null,"adjusted":false},{"desc":"Generator 100 KVA","equipment":"Generator 100 KVA","qty":1,"unitPrice":8500000,"startDate":"2026-06-01","endDate":"2026-06-30","days":30,"amount":8500000,"sjDelivery":"SJK-2605-001","sjReturn":null,"adjusted":false},{"desc":"Power Cable 100m","equipment":"Power Cable 100m","qty":1,"unitPrice":900000,"startDate":"2026-06-01","endDate":"2026-06-30","days":30,"amount":900000,"sjDelivery":"SJK-2605-001","sjReturn":null,"adjusted":false},{"desc":"Power Cable 100m","equipment":"Power Cable 100m","qty":4,"unitPrice":900000,"startDate":"2026-06-01","endDate":"2026-06-30","days":30,"amount":3600000,"sjDelivery":"SJK-2605-001","sjReturn":null,"adjusted":false},{"desc":"Submersible Pump 4\"","equipment":"Submersible Pump 4\"","qty":2,"unitPrice":3000000,"startDate":"2026-06-02","endDate":"2026-06-30","days":29,"amount":5800000,"sjDelivery":"SJK-2606-001","sjReturn":null,"adjusted":false}],"status":"Paid","notes":"","createdBy":"Maya Finance","subtotal":20540000,"taxRate":0.11,"tax":2259400,"amount":22799400,"accountId":"ACC-004","accountName":"BCA Bekasi","paidDate":"2026-07-18"},
+    {"id":"INV-003","type":"Sewa","projectId":"PRJ-003","projectName":"Project Infrastructure Expansion","customerId":"CUS-002","customerName":"PT Infrastruktur Nusantara","reference":"Sewa 2026-07-01 s/d 2026-07-31","invoiceDate":"2026-08-01","dueDate":"2026-08-31","periodStart":"2026-07-01","periodEnd":"2026-07-31","monthDays":30,"items":[{"desc":"Aluminium Ladder 8m","equipment":"Aluminium Ladder 8m","qty":5,"unitPrice":450000,"startDate":"2026-07-16","endDate":"2026-07-31","days":16,"amount":1200000,"sjDelivery":"SJK-2607-001","sjReturn":null,"adjusted":false},{"desc":"Generator 100 KVA","equipment":"Generator 100 KVA","qty":2,"unitPrice":8500000,"startDate":"2026-07-16","endDate":"2026-07-31","days":16,"amount":9066667,"sjDelivery":"SJK-2607-001","sjReturn":null,"adjusted":false},{"desc":"Submersible Pump 4\"","equipment":"Submersible Pump 4\"","qty":2,"unitPrice":3000000,"startDate":"2026-07-16","endDate":"2026-07-31","days":16,"amount":3200000,"sjDelivery":"SJK-2607-001","sjReturn":null,"adjusted":false}],"status":"Paid","notes":"","createdBy":"Maya Finance","subtotal":13466667,"taxRate":0.11,"tax":1481333,"amount":14948000,"accountId":"ACC-002","accountName":"Mandiri Corporate","paidDate":"2026-08-25"},
+    {"id":"INV-004","type":"Sewa","projectId":"PRJ-005","projectName":"Project Bridge Construction","customerId":"CUS-004","customerName":"PT Karya Engineering","reference":"Sewa 2026-07-01 s/d 2026-07-31","invoiceDate":"2026-08-01","dueDate":"2026-08-31","periodStart":"2026-07-01","periodEnd":"2026-07-31","monthDays":30,"items":[{"desc":"Aluminium Ladder 8m","equipment":"Aluminium Ladder 8m","qty":3,"unitPrice":450000,"startDate":"2026-07-01","endDate":"2026-07-31","days":31,"amount":1395000,"sjDelivery":"SJK-2606-001","sjReturn":null,"adjusted":false},{"desc":"Aluminium Ladder 8m","equipment":"Aluminium Ladder 8m","qty":1,"unitPrice":450000,"startDate":"2026-07-01","endDate":"2026-07-31","days":31,"amount":465000,"sjDelivery":"SJK-2606-001","sjReturn":null,"adjusted":false},{"desc":"Generator 100 KVA","equipment":"Generator 100 KVA","qty":1,"unitPrice":8500000,"startDate":"2026-07-01","endDate":"2026-07-31","days":31,"amount":8783333,"sjDelivery":"SJK-2605-001","sjReturn":null,"adjusted":false},{"desc":"Power Cable 100m","equipment":"Power Cable 100m","qty":1,"unitPrice":900000,"startDate":"2026-07-01","endDate":"2026-07-31","days":31,"amount":930000,"sjDelivery":"SJK-2605-001","sjReturn":null,"adjusted":false},{"desc":"Power Cable 100m","equipment":"Power Cable 100m","qty":4,"unitPrice":900000,"startDate":"2026-07-01","endDate":"2026-07-31","days":31,"amount":3720000,"sjDelivery":"SJK-2605-001","sjReturn":null,"adjusted":false},{"desc":"Submersible Pump 4\"","equipment":"Submersible Pump 4\"","qty":2,"unitPrice":3000000,"startDate":"2026-07-01","endDate":"2026-07-31","days":31,"amount":6200000,"sjDelivery":"SJK-2606-001","sjReturn":null,"adjusted":false}],"status":"Paid","notes":"","createdBy":"Maya Finance","subtotal":21493333,"taxRate":0.11,"tax":2364267,"amount":23857600,"accountId":"ACC-004","accountName":"BCA Bekasi","paidDate":"2026-08-20"},
+    {"id":"INV-005","type":"Klaim","projectId":"PRJ-005","projectName":"Project Bridge Construction","customerId":"CUS-004","customerName":"PT Karya Engineering","reference":"RET-001 / CLM-001","invoiceDate":"2026-08-22","dueDate":"2026-09-05","items":[{"desc":"Klaim Lost during project: Power Cable 100m","qty":1,"unitPrice":900000,"amount":900000}],"status":"Paid","notes":"","createdBy":"System","subtotal":900000,"taxRate":0,"tax":0,"amount":900000,"accountId":"ACC-001","accountName":"BCA Operational","paidDate":"2026-09-01"},
+    {"id":"INV-006","type":"Sewa","projectId":"PRJ-001","projectName":"Project Data Center Jakarta","customerId":"CUS-001","customerName":"PT Data Center Indonesia","reference":"Sewa 2026-08-01 s/d 2026-08-31","invoiceDate":"2026-09-01","dueDate":"2026-10-01","periodStart":"2026-08-01","periodEnd":"2026-08-31","monthDays":30,"items":[{"desc":"Air Compressor 10HP","equipment":"Air Compressor 10HP","qty":2,"unitPrice":4000000,"startDate":"2026-08-16","endDate":"2026-08-31","days":16,"amount":4266667,"sjDelivery":"SJK-2608-003","sjReturn":null,"adjusted":false},{"desc":"Aluminium Ladder 6m","equipment":"Aluminium Ladder 6m","qty":3,"unitPrice":300000,"startDate":"2026-08-02","endDate":"2026-08-31","days":30,"amount":900000,"sjDelivery":"SJK-2608-001","sjReturn":null,"adjusted":false},{"desc":"Generator 50 KVA","equipment":"Generator 50 KVA","qty":2,"unitPrice":5000000,"startDate":"2026-08-02","endDate":"2026-08-31","days":30,"amount":10000000,"sjDelivery":"SJK-2608-001","sjReturn":null,"adjusted":false},{"desc":"Power Cable 50m","equipment":"Power Cable 50m","qty":10,"unitPrice":500000,"startDate":"2026-08-02","endDate":"2026-08-31","days":30,"amount":5000000,"sjDelivery":"SJK-2608-001","sjReturn":null,"adjusted":false},{"desc":"Tower Light 4x1000W","equipment":"Tower Light 4x1000W","qty":4,"unitPrice":2500000,"startDate":"2026-08-16","endDate":"2026-08-31","days":16,"amount":5333333,"sjDelivery":"SJK-2608-003","sjReturn":null,"adjusted":false}],"status":"Paid","notes":"","createdBy":"Maya Finance","subtotal":25500000,"taxRate":0.11,"tax":2805000,"amount":28305000,"accountId":"ACC-001","accountName":"BCA Operational","paidDate":"2026-09-15"},
+    {"id":"INV-007","type":"Sewa","projectId":"PRJ-002","projectName":"Project Data Center Bekasi","customerId":"CUS-001","customerName":"PT Data Center Indonesia","reference":"Sewa 2026-08-01 s/d 2026-08-31","invoiceDate":"2026-09-01","dueDate":"2026-10-01","periodStart":"2026-08-01","periodEnd":"2026-08-31","monthDays":30,"items":[{"desc":"Generator 100 KVA","equipment":"Generator 100 KVA","qty":2,"unitPrice":8500000,"startDate":"2026-08-11","endDate":"2026-08-31","days":21,"amount":11900000,"sjDelivery":"SJK-2608-002","sjReturn":null,"adjusted":false},{"desc":"Power Cable 100m","equipment":"Power Cable 100m","qty":8,"unitPrice":900000,"startDate":"2026-08-11","endDate":"2026-08-31","days":21,"amount":5040000,"sjDelivery":"SJK-2608-002","sjReturn":null,"adjusted":false}],"status":"Issued","notes":"","createdBy":"Maya Finance","subtotal":16940000,"taxRate":0.11,"tax":1863400,"amount":18803400,"accountId":"ACC-002","accountName":"Mandiri Corporate"},
+    {"id":"INV-008","type":"Sewa","projectId":"PRJ-003","projectName":"Project Infrastructure Expansion","customerId":"CUS-002","customerName":"PT Infrastruktur Nusantara","reference":"Sewa 2026-08-01 s/d 2026-08-31","invoiceDate":"2026-09-01","dueDate":"2026-10-01","periodStart":"2026-08-01","periodEnd":"2026-08-31","monthDays":30,"items":[{"desc":"Aluminium Ladder 8m","equipment":"Aluminium Ladder 8m","qty":5,"unitPrice":450000,"startDate":"2026-08-01","endDate":"2026-08-31","days":31,"amount":2325000,"sjDelivery":"SJK-2607-001","sjReturn":null,"adjusted":false},{"desc":"Generator 100 KVA","equipment":"Generator 100 KVA","qty":2,"unitPrice":8500000,"startDate":"2026-08-01","endDate":"2026-08-31","days":31,"amount":17566667,"sjDelivery":"SJK-2607-001","sjReturn":null,"adjusted":false},{"desc":"Submersible Pump 4\"","equipment":"Submersible Pump 4\"","qty":2,"unitPrice":3000000,"startDate":"2026-08-01","endDate":"2026-08-31","days":31,"amount":6200000,"sjDelivery":"SJK-2607-001","sjReturn":null,"adjusted":false}],"status":"Partially Paid","notes":"","createdBy":"Maya Finance","subtotal":26091667,"taxRate":0.11,"tax":2870083,"amount":28961750,"accountId":"ACC-002","accountName":"Mandiri Corporate","paidDate":null},
+    {"id":"INV-009","type":"Sewa","projectId":"PRJ-004","projectName":"Project Warehouse Renovation","customerId":"CUS-003","customerName":"PT Mitra Teknologi","reference":"Sewa 2026-08-01 s/d 2026-08-31","invoiceDate":"2026-09-01","dueDate":"2026-10-01","periodStart":"2026-08-01","periodEnd":"2026-08-31","monthDays":30,"items":[{"desc":"Air Compressor 10HP","equipment":"Air Compressor 10HP","qty":2,"unitPrice":4000000,"startDate":"2026-08-21","endDate":"2026-08-31","days":11,"amount":2933333,"sjDelivery":"SJK-2608-004","sjReturn":null,"adjusted":false},{"desc":"Welding Machine 400A","equipment":"Welding Machine 400A","qty":1,"unitPrice":3500000,"startDate":"2026-08-21","endDate":"2026-08-31","days":11,"amount":1283333,"sjDelivery":"SJK-2608-004","sjReturn":null,"adjusted":false}],"status":"Paid","notes":"","createdBy":"Maya Finance","subtotal":4216666,"taxRate":0.11,"tax":463833,"amount":4680499,"accountId":"ACC-001","accountName":"BCA Operational","paidDate":"2026-09-28"},
+    {"id":"INV-010","type":"Sewa","projectId":"PRJ-005","projectName":"Project Bridge Construction","customerId":"CUS-004","customerName":"PT Karya Engineering","reference":"Sewa 2026-08-01 s/d 2026-08-31","invoiceDate":"2026-09-01","dueDate":"2026-10-01","periodStart":"2026-08-01","periodEnd":"2026-08-31","monthDays":30,"items":[{"desc":"Aluminium Ladder 8m","equipment":"Aluminium Ladder 8m","qty":3,"unitPrice":450000,"startDate":"2026-08-01","endDate":"2026-08-31","days":31,"amount":1395000,"sjDelivery":"SJK-2606-001","sjReturn":"SJR-2608-002","adjusted":false},{"desc":"Aluminium Ladder 8m","equipment":"Aluminium Ladder 8m","qty":1,"unitPrice":450000,"startDate":"2026-08-01","endDate":"2026-08-31","days":31,"amount":465000,"sjDelivery":"SJK-2606-001","sjReturn":"SJR-2608-002","adjusted":false},{"desc":"Generator 100 KVA","equipment":"Generator 100 KVA","qty":1,"unitPrice":8500000,"startDate":"2026-08-01","endDate":"2026-08-16","days":16,"amount":4533333,"sjDelivery":"SJK-2605-001","sjReturn":"SJR-2608-001","adjusted":false},{"desc":"Power Cable 100m","equipment":"Power Cable 100m","qty":1,"unitPrice":900000,"startDate":"2026-08-01","endDate":"2026-08-16","days":16,"amount":480000,"sjDelivery":"SJK-2605-001","sjReturn":"HL-2608-001","adjusted":false},{"desc":"Power Cable 100m","equipment":"Power Cable 100m","qty":4,"unitPrice":900000,"startDate":"2026-08-01","endDate":"2026-08-16","days":16,"amount":1920000,"sjDelivery":"SJK-2605-001","sjReturn":"SJR-2608-001","adjusted":false},{"desc":"Submersible Pump 4\"","equipment":"Submersible Pump 4\"","qty":2,"unitPrice":3000000,"startDate":"2026-08-01","endDate":"2026-08-31","days":31,"amount":6200000,"sjDelivery":"SJK-2606-001","sjReturn":"SJR-2608-002","adjusted":false}],"status":"Paid","notes":"","createdBy":"Maya Finance","subtotal":14993333,"taxRate":0.11,"tax":1649267,"amount":16642600,"accountId":"ACC-004","accountName":"BCA Bekasi","paidDate":"2026-09-30"},
+    {"id":"INV-011","type":"Klaim","projectId":"PRJ-005","projectName":"Project Bridge Construction","customerId":"CUS-004","customerName":"PT Karya Engineering","reference":"RET-002 / CLM-002","invoiceDate":"2026-09-02","dueDate":"2026-09-16","items":[{"desc":"Klaim Damaged - bent middle section: Aluminium Ladder 8m","qty":1,"unitPrice":450000,"amount":450000}],"status":"Issued","notes":"","createdBy":"System","subtotal":450000,"taxRate":0,"tax":0,"amount":450000,"accountId":"ACC-001","accountName":"BCA Operational"},
+    {"id":"INV-012","type":"Sewa","projectId":"PRJ-001","projectName":"Project Data Center Jakarta","customerId":"CUS-001","customerName":"PT Data Center Indonesia","reference":"Sewa 2026-09-01 s/d 2026-09-30","invoiceDate":"2026-10-01","dueDate":"2026-10-31","periodStart":"2026-09-01","periodEnd":"2026-09-30","monthDays":30,"items":[{"desc":"Air Compressor 10HP","equipment":"Air Compressor 10HP","qty":2,"unitPrice":4000000,"startDate":"2026-09-01","endDate":"2026-09-30","days":30,"amount":8000000,"sjDelivery":"SJK-2608-003","sjReturn":null,"adjusted":false},{"desc":"Aluminium Ladder 6m","equipment":"Aluminium Ladder 6m","qty":3,"unitPrice":300000,"startDate":"2026-09-01","endDate":"2026-09-30","days":30,"amount":900000,"sjDelivery":"SJK-2608-001","sjReturn":null,"adjusted":false},{"desc":"Generator 50 KVA","equipment":"Generator 50 KVA","qty":2,"unitPrice":5000000,"startDate":"2026-09-01","endDate":"2026-09-30","days":30,"amount":10000000,"sjDelivery":"SJK-2608-001","sjReturn":null,"adjusted":false},{"desc":"Power Cable 50m","equipment":"Power Cable 50m","qty":10,"unitPrice":500000,"startDate":"2026-09-01","endDate":"2026-09-30","days":30,"amount":5000000,"sjDelivery":"SJK-2608-001","sjReturn":null,"adjusted":false},{"desc":"Tower Light 4x1000W","equipment":"Tower Light 4x1000W","qty":4,"unitPrice":2500000,"startDate":"2026-09-01","endDate":"2026-09-30","days":30,"amount":10000000,"sjDelivery":"SJK-2608-003","sjReturn":null,"adjusted":false}],"status":"Partially Paid","notes":"","createdBy":"Maya Finance","subtotal":33900000,"taxRate":0.11,"tax":3729000,"amount":37629000,"accountId":"ACC-001","accountName":"BCA Operational","paidDate":null},
+    {"id":"INV-013","type":"Sewa","projectId":"PRJ-002","projectName":"Project Data Center Bekasi","customerId":"CUS-001","customerName":"PT Data Center Indonesia","reference":"Sewa 2026-09-01 s/d 2026-09-30","invoiceDate":"2026-10-01","dueDate":"2026-10-31","periodStart":"2026-09-01","periodEnd":"2026-09-30","monthDays":30,"items":[{"desc":"Generator 100 KVA","equipment":"Generator 100 KVA","qty":2,"unitPrice":8500000,"startDate":"2026-09-01","endDate":"2026-09-30","days":30,"amount":17000000,"sjDelivery":"SJK-2608-002","sjReturn":null,"adjusted":false},{"desc":"Power Cable 100m","equipment":"Power Cable 100m","qty":8,"unitPrice":900000,"startDate":"2026-09-01","endDate":"2026-09-30","days":30,"amount":7200000,"sjDelivery":"SJK-2608-002","sjReturn":null,"adjusted":false}],"status":"Issued","notes":"","createdBy":"Maya Finance","subtotal":24200000,"taxRate":0.11,"tax":2662000,"amount":26862000,"accountId":"ACC-002","accountName":"Mandiri Corporate"},
+    {"id":"INV-014","type":"Sewa","projectId":"PRJ-003","projectName":"Project Infrastructure Expansion","customerId":"CUS-002","customerName":"PT Infrastruktur Nusantara","reference":"Sewa 2026-09-01 s/d 2026-09-30","invoiceDate":"2026-10-01","dueDate":"2026-10-31","periodStart":"2026-09-01","periodEnd":"2026-09-30","monthDays":30,"items":[{"desc":"Aluminium Ladder 8m","equipment":"Aluminium Ladder 8m","qty":5,"unitPrice":450000,"startDate":"2026-09-01","endDate":"2026-09-30","days":30,"amount":2250000,"sjDelivery":"SJK-2607-001","sjReturn":null,"adjusted":false},{"desc":"Generator 100 KVA","equipment":"Generator 100 KVA","qty":2,"unitPrice":8500000,"startDate":"2026-09-01","endDate":"2026-09-30","days":30,"amount":17000000,"sjDelivery":"SJK-2607-001","sjReturn":null,"adjusted":false},{"desc":"Submersible Pump 4\"","equipment":"Submersible Pump 4\"","qty":2,"unitPrice":3000000,"startDate":"2026-09-01","endDate":"2026-09-30","days":30,"amount":6000000,"sjDelivery":"SJK-2607-001","sjReturn":null,"adjusted":false}],"status":"Issued","notes":"","createdBy":"Maya Finance","subtotal":25250000,"taxRate":0.11,"tax":2777500,"amount":28027500,"accountId":"ACC-002","accountName":"Mandiri Corporate"},
+    {"id":"INV-015","type":"Sewa","projectId":"PRJ-004","projectName":"Project Warehouse Renovation","customerId":"CUS-003","customerName":"PT Mitra Teknologi","reference":"Sewa 2026-09-01 s/d 2026-09-30","invoiceDate":"2026-10-01","dueDate":"2026-10-31","periodStart":"2026-09-01","periodEnd":"2026-09-30","monthDays":30,"items":[{"desc":"Air Compressor 10HP","equipment":"Air Compressor 10HP","qty":2,"unitPrice":4000000,"startDate":"2026-09-01","endDate":"2026-09-30","days":30,"amount":8000000,"sjDelivery":"SJK-2608-004","sjReturn":null,"adjusted":false},{"desc":"Welding Machine 400A","equipment":"Welding Machine 400A","qty":1,"unitPrice":3500000,"startDate":"2026-09-01","endDate":"2026-09-30","days":30,"amount":3500000,"sjDelivery":"SJK-2608-004","sjReturn":null,"adjusted":false}],"status":"Issued","notes":"","createdBy":"Maya Finance","subtotal":11500000,"taxRate":0.11,"tax":1265000,"amount":12765000,"accountId":"ACC-001","accountName":"BCA Operational"},
+  ],
+
+  // ---- PAYMENTS ----
+  // kind: Cicilan | Lunas. Sisa tagihan = invoice.amount − Σ payments
+  payments: [
+    {"id":"PAY-001","invoiceId":"INV-001","customerId":"CUS-004","date":"2026-06-20","amount":7696000,"kind":"Lunas","accountId":"ACC-004","method":"Transfer","reference":"TRF-20260620","notes":"","user":"Maya Finance"},
+    {"id":"PAY-002","invoiceId":"INV-002","customerId":"CUS-004","date":"2026-07-18","amount":22799400,"kind":"Lunas","accountId":"ACC-004","method":"Transfer","reference":"TRF-20260718","notes":"","user":"Maya Finance"},
+    {"id":"PAY-003","invoiceId":"INV-003","customerId":"CUS-002","date":"2026-08-25","amount":14948000,"kind":"Lunas","accountId":"ACC-002","method":"Transfer","reference":"TRF-20260825","notes":"","user":"Maya Finance"},
+    {"id":"PAY-004","invoiceId":"INV-004","customerId":"CUS-004","date":"2026-08-20","amount":23857600,"kind":"Lunas","accountId":"ACC-004","method":"Transfer","reference":"TRF-20260820","notes":"","user":"Maya Finance"},
+    {"id":"PAY-005","invoiceId":"INV-005","customerId":"CUS-004","date":"2026-09-01","amount":900000,"kind":"Lunas","accountId":"ACC-001","method":"Transfer","reference":"TRF-20260901","notes":"","user":"Maya Finance"},
+    {"id":"PAY-006","invoiceId":"INV-006","customerId":"CUS-001","date":"2026-09-15","amount":28305000,"kind":"Lunas","accountId":"ACC-001","method":"Transfer","reference":"TRF-20260915","notes":"","user":"Maya Finance"},
+    {"id":"PAY-007","invoiceId":"INV-009","customerId":"CUS-003","date":"2026-09-28","amount":4680499,"kind":"Lunas","accountId":"ACC-001","method":"Transfer","reference":"TRF-20260928","notes":"","user":"Maya Finance"},
+    {"id":"PAY-008","invoiceId":"INV-010","customerId":"CUS-004","date":"2026-09-10","amount":8300000,"kind":"Cicilan","accountId":"ACC-004","method":"Transfer","reference":"TRF-20260910","notes":"","user":"Maya Finance"},
+    {"id":"PAY-009","invoiceId":"INV-010","customerId":"CUS-004","date":"2026-09-30","amount":8342600,"kind":"Lunas","accountId":"ACC-004","method":"Transfer","reference":"TRF-20260930","notes":"","user":"Maya Finance"},
+    {"id":"PAY-010","invoiceId":"INV-008","customerId":"CUS-002","date":"2026-09-20","amount":14500000,"kind":"Cicilan","accountId":"ACC-002","method":"Transfer","reference":"TRF-20260920","notes":"","user":"Maya Finance"},
+    {"id":"PAY-011","invoiceId":"INV-012","customerId":"CUS-001","date":"2026-10-05","amount":15100000,"kind":"Cicilan","accountId":"ACC-001","method":"Transfer","reference":"TRF-20261005","notes":"","user":"Maya Finance"},
+  ],
+
+  // ---- BANK LEDGER (Buku Bank) ----
+  ledger: [
+    {"id":"TRX-001","date":"2026-06-20","bankAccountId":"ACC-004","reference":"PAY-001 / INV-001","description":"Pembayaran lunas INV-001 — PT Karya Engineering","type":"IN","amount":7696000},
+    {"id":"TRX-002","date":"2026-07-18","bankAccountId":"ACC-004","reference":"PAY-002 / INV-002","description":"Pembayaran lunas INV-002 — PT Karya Engineering","type":"IN","amount":22799400},
+    {"id":"TRX-003","date":"2026-08-25","bankAccountId":"ACC-002","reference":"PAY-003 / INV-003","description":"Pembayaran lunas INV-003 — PT Infrastruktur Nusantara","type":"IN","amount":14948000},
+    {"id":"TRX-004","date":"2026-08-20","bankAccountId":"ACC-004","reference":"PAY-004 / INV-004","description":"Pembayaran lunas INV-004 — PT Karya Engineering","type":"IN","amount":23857600},
+    {"id":"TRX-005","date":"2026-09-01","bankAccountId":"ACC-001","reference":"PAY-005 / INV-005","description":"Pembayaran lunas INV-005 — PT Karya Engineering","type":"IN","amount":900000},
+    {"id":"TRX-006","date":"2026-09-15","bankAccountId":"ACC-001","reference":"PAY-006 / INV-006","description":"Pembayaran lunas INV-006 — PT Data Center Indonesia","type":"IN","amount":28305000},
+    {"id":"TRX-007","date":"2026-09-28","bankAccountId":"ACC-001","reference":"PAY-007 / INV-009","description":"Pembayaran lunas INV-009 — PT Mitra Teknologi","type":"IN","amount":4680499},
+    {"id":"TRX-008","date":"2026-09-10","bankAccountId":"ACC-004","reference":"PAY-008 / INV-010","description":"Pembayaran cicilan INV-010 — PT Karya Engineering","type":"IN","amount":8300000},
+    {"id":"TRX-009","date":"2026-09-30","bankAccountId":"ACC-004","reference":"PAY-009 / INV-010","description":"Pembayaran lunas INV-010 — PT Karya Engineering","type":"IN","amount":8342600},
+    {"id":"TRX-010","date":"2026-09-20","bankAccountId":"ACC-002","reference":"PAY-010 / INV-008","description":"Pembayaran cicilan INV-008 — PT Infrastruktur Nusantara","type":"IN","amount":14500000},
+    {"id":"TRX-011","date":"2026-10-05","bankAccountId":"ACC-001","reference":"PAY-011 / INV-012","description":"Pembayaran cicilan INV-012 — PT Data Center Indonesia","type":"IN","amount":15100000},
   ],
 
   // ---- COMPANY ACCOUNTS ----
   accounts: [
-    { id: 'ACC-001', name: 'BCA Operational', bank: 'BCA', accountNumber: '1234567890', accountHolder: 'PT EquipRent Indonesia', type: 'Operational', branch: 'Jakarta', status: 'Active' },
-    { id: 'ACC-002', name: 'Mandiri Corporate', bank: 'Mandiri', accountNumber: '0987654321', accountHolder: 'PT EquipRent Indonesia', type: 'Corporate', branch: 'Jakarta', status: 'Active' },
-    { id: 'ACC-003', name: 'BNI Savings', bank: 'BNI', accountNumber: '1122334455', accountHolder: 'PT EquipRent Indonesia', type: 'Savings', branch: 'Jakarta', status: 'Active' },
-    { id: 'ACC-004', name: 'BCA Bekasi', bank: 'BCA', accountNumber: '5566778899', accountHolder: 'PT EquipRent Indonesia', type: 'Operational', branch: 'Bekasi', status: 'Active' },
+    { id: 'ACC-001', name: 'BCA Operational', bank: 'BCA', accountNumber: '1234567890', accountHolder: 'PT EquipRent Indonesia', type: 'Operational', branch: 'Cileungsi', openingBalance: 500000000, status: 'Active' },
+    { id: 'ACC-002', name: 'Mandiri Corporate', bank: 'Mandiri', accountNumber: '0987654321', accountHolder: 'PT EquipRent Indonesia', type: 'Corporate', branch: 'Cileungsi', openingBalance: 250000000, status: 'Active' },
+    { id: 'ACC-003', name: 'BNI Savings', bank: 'BNI', accountNumber: '1122334455', accountHolder: 'PT EquipRent Indonesia', type: 'Savings', branch: 'Cileungsi', openingBalance: 100000000, status: 'Active' },
+    { id: 'ACC-004', name: 'BCA Bekasi', bank: 'BCA', accountNumber: '5566778899', accountHolder: 'PT EquipRent Indonesia', type: 'Operational', branch: 'Bekasi', openingBalance: 50000000, status: 'Active' },
   ],
 
   // ---- USERS ----
   users: [
     { id: 'USR-001', name: 'Super Administrator', username: 'superadmin', email: 'superadmin@equiprent.co.id', role: 'Super Admin', branch: 'All', status: 'Active', lastLogin: '2026-09-04 08:30' },
-    { id: 'USR-002', name: 'Ahmad Hidayat', username: 'ahmad.admin', email: 'ahmad@equiprent.co.id', role: 'Admin', branch: 'Jakarta', status: 'Active', lastLogin: '2026-09-04 09:15' },
-    { id: 'USR-003', name: 'Sari Dewi', username: 'sari.rental', email: 'sari@equiprent.co.id', role: 'Rental Staff', branch: 'Jakarta', status: 'Active', lastLogin: '2026-09-04 08:45' },
-    { id: 'USR-004', name: 'Joko Warehouse', username: 'joko.wh', email: 'joko@equiprent.co.id', role: 'Warehouse Staff', branch: 'Jakarta', status: 'Active', lastLogin: '2026-09-03 17:00' },
-    { id: 'USR-005', name: 'Maya Finance', username: 'maya.fin', email: 'maya@equiprent.co.id', role: 'Finance', branch: 'Jakarta', status: 'Active', lastLogin: '2026-09-04 10:00' },
-    { id: 'USR-006', name: 'Rina Manager', username: 'rina.mgr', email: 'rina@equiprent.co.id', role: 'Manager', branch: 'Jakarta', status: 'Active', lastLogin: '2026-09-04 07:30' },
-    { id: 'USR-007', name: 'Budi Santoso', username: 'budi.driver', email: 'budi@equiprent.co.id', role: 'Driver', branch: 'Jakarta', status: 'Active', lastLogin: '2026-09-04 06:00' },
-    { id: 'USR-008', name: 'Andi Pratama', username: 'andi.driver', email: 'andi@equiprent.co.id', role: 'Driver', branch: 'Jakarta', status: 'Active', lastLogin: '2026-09-03 06:15' },
-    { id: 'USR-009', name: 'Dimas Saputra', username: 'dimas.driver', email: 'dimas@equiprent.co.id', role: 'Driver', branch: 'Jakarta', status: 'Active', lastLogin: '2026-09-04 05:45' },
+    { id: 'USR-002', name: 'Ahmad Hidayat', username: 'ahmad.admin', email: 'ahmad@equiprent.co.id', role: 'Admin', branch: 'Cileungsi', status: 'Active', lastLogin: '2026-09-04 09:15' },
+    { id: 'USR-003', name: 'Sari Dewi', username: 'sari.rental', email: 'sari@equiprent.co.id', role: 'Rental Staff', branch: 'Cileungsi', status: 'Active', lastLogin: '2026-09-04 08:45' },
+    { id: 'USR-004', name: 'Joko Warehouse', username: 'joko.wh', email: 'joko@equiprent.co.id', role: 'Warehouse Staff', branch: 'Cileungsi', status: 'Active', lastLogin: '2026-09-03 17:00' },
+    { id: 'USR-005', name: 'Maya Finance', username: 'maya.fin', email: 'maya@equiprent.co.id', role: 'Finance', branch: 'Cileungsi', status: 'Active', lastLogin: '2026-09-04 10:00' },
+    { id: 'USR-006', name: 'Rina Manager', username: 'rina.mgr', email: 'rina@equiprent.co.id', role: 'Manager', branch: 'Cileungsi', status: 'Active', lastLogin: '2026-09-04 07:30' },
+    { id: 'USR-007', name: 'Budi Santoso', username: 'budi.driver', email: 'budi@equiprent.co.id', role: 'Driver', branch: 'Cileungsi', status: 'Active', lastLogin: '2026-09-04 06:00' },
+    { id: 'USR-008', name: 'Andi Pratama', username: 'andi.driver', email: 'andi@equiprent.co.id', role: 'Driver', branch: 'Cileungsi', status: 'Active', lastLogin: '2026-09-03 06:15' },
+    { id: 'USR-009', name: 'Dimas Saputra', username: 'dimas.driver', email: 'dimas@equiprent.co.id', role: 'Driver', branch: 'Cileungsi', status: 'Active', lastLogin: '2026-09-04 05:45' },
     { id: 'USR-010', name: 'Hendra Bekasi', username: 'hendra.admin', email: 'hendra@equiprent.co.id', role: 'Admin', branch: 'Bekasi', status: 'Active', lastLogin: '2026-09-03 14:20' },
   ],
 
@@ -365,7 +513,7 @@ const MockData = {
     { id: 4, message: 'Purchase <strong>#PO-003</strong> has arrived at Bekasi', type: 'green', icon: 'bi-box-seam', time: '2 hours ago', read: true, link: 'purchase-detail.html' },
     { id: 5, message: 'Rental <strong>#RNT-009</strong> is waiting for approval', type: 'warning', icon: 'bi-clock-history', time: '3 hours ago', read: true, link: 'rental-detail.html?id=RNT-009' },
     { id: 6, message: 'Claim <strong>#CLM-003</strong> needs customer confirmation', type: 'red', icon: 'bi-exclamation-triangle', time: '4 hours ago', read: true, link: 'claim-detail.html' },
-    { id: 7, message: 'Stock alert: Generator 50 KVA low in Jakarta', type: 'orange', icon: 'bi-exclamation-circle', time: '5 hours ago', read: true, link: 'stock.html' },
+    { id: 7, message: 'Stock alert: Generator 50 KVA low in Cileungsi', type: 'orange', icon: 'bi-exclamation-circle', time: '5 hours ago', read: true, link: 'stock.html' },
   ],
 
   // ---- ACTIVITY LOG ----
@@ -385,13 +533,17 @@ const MockData = {
   // ---- DEMO USERS FOR LOGIN ----
   demoUsers: [
     { username: 'superadmin', password: 'demo', name: 'Super Administrator', role: 'Super Admin', branch: 'All', initials: 'SA' },
-    { username: 'admin', password: 'demo', name: 'Ahmad Hidayat', role: 'Admin', branch: 'Jakarta', initials: 'AH' },
-    { username: 'rental', password: 'demo', name: 'Sari Dewi', role: 'Rental Staff', branch: 'Jakarta', initials: 'SD' },
-    { username: 'warehouse', password: 'demo', name: 'Joko Warehouse', role: 'Warehouse Staff', branch: 'Jakarta', initials: 'JW' },
-    { username: 'finance', password: 'demo', name: 'Maya Finance', role: 'Finance', branch: 'Jakarta', initials: 'MF' },
-    { username: 'manager', password: 'demo', name: 'Rina Manager', role: 'Manager', branch: 'Jakarta', initials: 'RM' },
-    { username: 'driver', password: 'demo', name: 'Budi Santoso', role: 'Driver', branch: 'Jakarta', initials: 'BS' },
+    { username: 'admin', password: 'demo', name: 'Ahmad Hidayat', role: 'Admin', branch: 'Cileungsi', initials: 'AH' },
+    { username: 'rental', password: 'demo', name: 'Sari Dewi', role: 'Rental Staff', branch: 'Cileungsi', initials: 'SD' },
+    { username: 'warehouse', password: 'demo', name: 'Joko Warehouse', role: 'Warehouse Staff', branch: 'Cileungsi', initials: 'JW' },
+    { username: 'finance', password: 'demo', name: 'Maya Finance', role: 'Finance', branch: 'Cileungsi', initials: 'MF' },
+    { username: 'manager', password: 'demo', name: 'Rina Manager', role: 'Manager', branch: 'Cileungsi', initials: 'RM' },
+    { username: 'driver', password: 'demo', name: 'Budi Santoso', role: 'Driver', branch: 'Cileungsi', initials: 'BS' },
   ],
+
+  // ---- SETTINGS ----
+  // billingMonthDays = pembagi "Bulan Sewa" di rumus tagihan (template 30 hari)
+  settings: { billingMonthDays: 30, taxRate: 0.11, paymentTermDays: 30 },
 
   // ---- COMPANY INFO ----
   company: {
@@ -414,10 +566,18 @@ const MockData = {
 };
 
 // --- Persistence Logic ---
+// Naikkan angka ini setiap struktur data seed berubah, supaya localStorage lama di-reset.
+const MOCK_SCHEMA_VERSION = '3-piutang';
+
 (function() {
   const STORAGE_PREFIX = 'equiprent_';
   const dataKeys = Object.keys(MockData);
-  
+
+  if (localStorage.getItem(STORAGE_PREFIX + '_schema') !== MOCK_SCHEMA_VERSION) {
+    dataKeys.forEach(key => localStorage.removeItem(STORAGE_PREFIX + key));
+    localStorage.setItem(STORAGE_PREFIX + '_schema', MOCK_SCHEMA_VERSION);
+  }
+
   dataKeys.forEach(key => {
     const storageKey = STORAGE_PREFIX + key;
     const stored = localStorage.getItem(storageKey);

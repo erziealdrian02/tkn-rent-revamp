@@ -165,7 +165,7 @@
                 <div class="er-table-wrapper">
                   <table class="er-table">
                     <thead>
-                      <tr><th>Cabang</th><th>Total</th><th>Tersedia</th><th>Di Sewa</th><th>Perawatan</th><th>Lainnya</th></tr>
+                      <tr><th>Gudang</th><th>Stok Fisik</th><th>Tersedia</th><th>Dipesan</th><th>Perawatan</th><th>Rusak</th></tr>
                     </thead>
                     <tbody id="equipmentAvailabilityBody">
                     </tbody>
@@ -208,7 +208,9 @@
     // Sort by most overdue first
     overdueRentals.sort((a,b) => BizLogic.Rental.getOverdueDays(b) - BizLogic.Rental.getOverdueDays(a));
 
-    const totalEqOnRental = MockData.stock.reduce((sum, s) => sum + (s.onRental || 0), 0);
+    const stockBal = BizLogic.StockLedger.balances();
+    const projectQty = eq => Object.keys(stockBal).filter(k => k.startsWith('project:')).reduce((sum, k) => sum + (stockBal[k][eq] || 0), 0);
+    const totalEqOnRental = Object.keys(stockBal).filter(k => k.startsWith('project:')).reduce((sum, k) => sum + Object.values(stockBal[k]).reduce((a, v) => a + v, 0), 0);
     const pendingDeliveries = MockData.deliveries.filter(d => !['Completed', 'Failed', 'Cancelled'].includes(d.status));
 
     document.getElementById('kpiActiveRentals').textContent = activeRentals.length;
@@ -262,14 +264,14 @@
     document.getElementById('equipmentAvailabilityBody').innerHTML = branches.map(b => {
       let tot = 0, av = 0, or = 0, mt = 0, oth = 0;
       MockData.stock.filter(s => s.branch === b).forEach(s => {
-        tot += s.total; av += s.available; or += s.onRental; mt += (s.maintenance || 0);
-        oth += (s.damaged + s.lost + s.missing + s.reserved);
+        tot += s.total; av += s.available; or += (s.reserved || 0); mt += (s.maintenance || 0);
+        oth += (s.damaged || 0);
       });
       return `<tr>
         <td>${b}</td>
         <td>${tot}</td>
         <td><span class="badge-status available">${av}</span></td>
-        <td><span class="badge-status on-rental">${or}</span></td>
+        <td><span class="badge-status reserved">${or}</span></td>
         <td><span class="text-warning fw-bold">${mt}</span></td>
         <td>${oth > 0 ? '<span class="text-danger">' + oth + '</span>' : oth}</td>
       </tr>`;
@@ -316,7 +318,7 @@
     MockData.stock.forEach(s => {
       if(!eqStats[s.equipment]) eqStats[s.equipment] = { av: 0, or: 0 };
       eqStats[s.equipment].av += s.available;
-      eqStats[s.equipment].or += s.onRental;
+      eqStats[s.equipment].or = projectQty(s.equipment);
     });
     const topEq = Object.keys(eqStats).sort((a,b) => eqStats[b].or - eqStats[a].or).slice(0, 5);
     const avData = topEq.map(k => eqStats[k].av);
@@ -346,10 +348,11 @@
 
     // Invoice Chart (Dynamic)
     const invStats = { paid: 0, issued: 0, partial: 0, overdue: 0 };
-    MockData.invoices.forEach(inv => {
-      if (inv.status === 'Paid') invStats.paid++;
-      else if (inv.status === 'Partially Paid') invStats.partial++;
-      else if (inv.status === 'Overdue') invStats.overdue++;
+    MockData.invoices.filter(inv => inv.status !== 'Cancelled').forEach(inv => {
+      const st = BizLogic.Invoice.statusOf(inv);
+      if (st === 'Paid') invStats.paid++;
+      else if (st === 'Partially Paid') invStats.partial++;
+      else if (st === 'Overdue') invStats.overdue++;
       else invStats.issued++;
     });
     new Chart(document.getElementById('invoiceChart'), {

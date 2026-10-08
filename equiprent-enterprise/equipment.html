@@ -27,7 +27,7 @@
           <div class="table-toolbar"><div class="table-toolbar-left">
             <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Cari alat berat..." id="searchInput" oninput="filterData()"></div>
             <select class="filter-select" id="categoryFilter" onchange="filterData()"><option value="">Semua Kategori</option></select>
-            <select class="filter-select" id="branchFilter" onchange="filterData()"><option value="">Semua Cabang</option><option>Jakarta</option><option>Bekasi</option></select>
+            <select class="filter-select" id="branchFilter" onchange="filterData()"><option value="">Semua Gudang</option><option>Balikpapan</option><option>Bekasi</option><option>Cileungsi</option></select>
             <select class="filter-select" id="statusFilter" onchange="filterData()"><option value="">Semua Status</option><option value="Available">Tersedia</option><option value="Reserved">Dipesan</option><option value="On Rental">Di Sewa</option><option value="Maintenance">Perawatan</option><option value="Damaged">Rusak</option><option value="Lost">Hilang</option></select>
           </div></div>
           <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>ID Aset</th><th>Nama Alat</th><th>Kategori</th><th>No. Seri</th><th>Kondisi</th><th>Cabang</th><th>Ketersediaan</th><th>Proyek</th><th>Status</th><th>Aksi</th></tr></thead>
@@ -124,6 +124,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
     initApp('equipment.html',[{label:'Inventaris',href:'#'},{label:'Alat Berat'}],'Alat Berat');
@@ -188,16 +189,15 @@
       const isQty = document.getElementById('eqTrackingType').value === 'Quantity';
       const addedQty = isQty ? parseInt(document.getElementById('eqQty').value) : 1;
       
-      let stockItem = MockData.stock.find(s => s.equipment === newEq.name && s.branch === newEq.branch);
-      if(stockItem) {
-        stockItem.total += addedQty;
-        stockItem.available += addedQty;
-      } else {
-        MockData.stock.push({
-          equipment: newEq.name, branch: newEq.branch, total: addedQty, available: addedQty, reserved: 0, onRental: 0, damaged: 0, maintenance: 0, lost: 0
-        });
-      }
-      MockData.save('stock');
+      // Registrasi alat baru dicatat sebagai saldo awal di ledger perpindahan stok
+      BizLogic.StockLedger.post({
+        type: 'OPENING',
+        from: { type: 'opening' },
+        to: { type: 'warehouse', id: branchId },
+        reference: newEq.id,
+        notes: 'Registrasi alat baru',
+        items: [{ equipment: newEq.name, qty: addedQty }]
+      });
 
       bootstrap.Modal.getInstance(document.getElementById('addEquipmentModal')).hide();
       showToast('Equipment berhasil ditambahkan.', 'success');

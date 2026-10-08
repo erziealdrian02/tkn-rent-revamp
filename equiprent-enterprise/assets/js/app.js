@@ -119,12 +119,15 @@ function renderSidebar(user, activePage) {
     html += sidebarLink('deliveries.html', 'bi-truck', 'Deliveries', activePage);
     html += sidebarLink('returns.html', 'bi-box-arrow-in-left', 'Returns', activePage);
     html += sidebarLink('claims.html', 'bi-exclamation-triangle', 'Claims', activePage);
+    html += sidebarSection('STOCK RECAP');
+    html += sidebarLink('stock.html', 'bi-boxes', 'Warehouse Stock', activePage);
+    html += sidebarLink('stock-mutations.html', 'bi-arrow-left-right', 'Stock Movements', activePage);
+    html += sidebarLink('project-stock.html', 'bi-folder-check', 'Project Stock', activePage);
+    html += sidebarLink('stock-report.html', 'bi-clipboard-data', 'Stock Report', activePage);
     html += sidebarSection('INVENTORY');
     html += sidebarLink('equipment.html', 'bi-tools', 'Equipment', activePage);
-    html += sidebarLink('branches.html', 'bi-building', 'Branches', activePage);
-    html += sidebarLink('stock.html', 'bi-boxes', 'Stock', activePage);
-    html += sidebarLink('stock-transfer.html', 'bi-arrow-left-right', 'Stock Transfer', activePage);
-    html += sidebarLink('movements.html', 'bi-arrow-left-right', 'Movements', activePage);
+    html += sidebarLink('branches.html', 'bi-building', 'Warehouses', activePage);
+    html += sidebarLink('movements.html', 'bi-clock-history', 'Asset Log', activePage);
     html += sidebarLink('purchases.html', 'bi-cart', 'Purchases', activePage);
     html += sidebarLink('goods-receipts.html', 'bi-box-seam', 'Goods Receipts', activePage);
     html += sidebarLink('repairs.html', 'bi-tools', 'Repairs', activePage);
@@ -134,8 +137,11 @@ function renderSidebar(user, activePage) {
     html += sidebarLink('drivers.html', 'bi-person-badge', 'Drivers', activePage);
     html += sidebarLink('vehicles.html', 'bi-truck-front', 'Vehicles', activePage);
     html += sidebarLink('accounts.html', 'bi-bank', 'Company Accounts', activePage);
-    html += sidebarSection('FINANCE & BILLING');
+    html += sidebarSection('RECEIVABLES');
+    html += sidebarLink('billing.html', 'bi-calculator', 'Billing Recap', activePage);
     html += sidebarLink('invoices.html', 'bi-receipt', 'Invoices', activePage);
+    html += sidebarLink('payments.html', 'bi-cash-coin', 'Payments', activePage);
+    html += sidebarLink('receivables.html', 'bi-journal-text', 'Receivables Report', activePage);
     html += sidebarLink('finance-ledger.html', 'bi-wallet2', 'Bank Ledger', activePage);
     html += sidebarSection('ADMINISTRATION');
     html += sidebarLink('users.html', 'bi-person-gear', 'Users', activePage);
@@ -198,12 +204,15 @@ function renderSidebarI18n(user, activePage) {
     html += sidebarLinkI18n('deliveries.html', 'bi-truck', t('deliveries'), activePage, 'deliveries.html');
     html += sidebarLinkI18n('returns.html', 'bi-box-arrow-in-left', t('returns'), activePage, 'returns.html');
     html += sidebarLinkI18n('claims.html', 'bi-exclamation-triangle', t('claims'), activePage, 'claims.html');
+    html += sidebarSectionI18n(t('stock_recap_section'));
+    html += sidebarLinkI18n('stock.html', 'bi-boxes', t('warehouse_stock'), activePage, 'stock.html');
+    html += sidebarLinkI18n('stock-mutations.html', 'bi-arrow-left-right', t('stock_mutations'), activePage, 'stock-mutations.html');
+    html += sidebarLinkI18n('project-stock.html', 'bi-folder-check', t('project_stock'), activePage, 'project-stock.html');
+    html += sidebarLinkI18n('stock-report.html', 'bi-clipboard-data', t('stock_report'), activePage, 'stock-report.html');
     html += sidebarSectionI18n(t('inventory'));
     html += sidebarLinkI18n('equipment.html', 'bi-tools', t('equipment'), activePage, 'equipment.html');
     html += sidebarLinkI18n('branches.html', 'bi-building', t('branches'), activePage, 'branches.html');
-    html += sidebarLinkI18n('stock.html', 'bi-boxes', t('stock'), activePage, 'stock.html');
-    html += sidebarLinkI18n('stock-transfer.html', 'bi-arrow-left-right', t('stock_transfer'), activePage, 'stock-transfer.html');
-    html += sidebarLinkI18n('movements.html', 'bi-arrow-left-right', t('movements'), activePage, 'movements.html');
+    html += sidebarLinkI18n('movements.html', 'bi-clock-history', t('movements'), activePage, 'movements.html');
     html += sidebarLinkI18n('purchases.html', 'bi-cart', t('purchases'), activePage, 'purchases.html');
     html += sidebarLinkI18n('goods-receipts.html', 'bi-box-seam', t('goods_receipts'), activePage, 'goods-receipts.html');
     html += sidebarLinkI18n('repairs.html', 'bi-tools', t('repairs'), activePage, 'repairs.html');
@@ -214,7 +223,10 @@ function renderSidebarI18n(user, activePage) {
     html += sidebarLinkI18n('vehicles.html', 'bi-truck-front', t('vehicles'), activePage, 'vehicles.html');
     html += sidebarLinkI18n('accounts.html', 'bi-bank', t('company_accounts'), activePage, 'accounts.html');
     html += sidebarSectionI18n(t('finance_billing'));
+    html += sidebarLinkI18n('billing.html', 'bi-calculator', t('billing_recap'), activePage, 'billing.html');
     html += sidebarLinkI18n('invoices.html', 'bi-receipt', t('invoices'), activePage, 'invoices.html');
+    html += sidebarLinkI18n('payments.html', 'bi-cash-coin', t('payments'), activePage, 'payments.html');
+    html += sidebarLinkI18n('receivables.html', 'bi-journal-text', t('receivables_report'), activePage, 'receivables.html');
     html += sidebarLinkI18n('finance-ledger.html', 'bi-wallet2', t('bank_ledger'), activePage, 'finance-ledger.html');
     html += sidebarSectionI18n(t('administration'));
     html += sidebarLinkI18n('users.html', 'bi-person-gear', t('users'), activePage, 'users.html');
@@ -618,4 +630,27 @@ function getUrlParam(key) {
 // ---- CONFIRM DIALOG ----
 function confirmAction(message) {
   return confirm(message);
+}
+
+// ---- CSV EXPORT ----
+// rows: array of arrays (baris pertama = header)
+function downloadCSV(filename, rows) {
+  const esc = v => {
+    const s = v == null ? '' : String(v);
+    return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const csv = '﻿' + rows.map(r => r.map(esc).join(';')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+}
+
+// ---- INVOICE STATUS (label Indonesia) ----
+const INVOICE_STATUS_LABEL = { 'Issued': 'Belum Dibayar', 'Partially Paid': 'Dibayar Sebagian', 'Overdue': 'Jatuh Tempo', 'Paid': 'Lunas', 'Cancelled': 'Dibatalkan' };
+function invoiceStatusBadge(status) {
+  return statusBadge(status).replace('>' + status + '<', '>' + (INVOICE_STATUS_LABEL[status] || status) + '<');
 }

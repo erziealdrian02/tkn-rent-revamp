@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Stok — EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h2 class="page-header-title">Laporan Stok</h2>
+            <p class="page-header-subtitle" id="reportSubtitle">Stok gudang + stok proyek</p>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-download me-1"></i>Export CSV</button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak</button>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4" id="kpis"></div>
+
+        <div class="er-card"><div class="er-card-body">
+          <div class="table-toolbar"><div class="table-toolbar-left">
+            <label class="fs-13 text-muted d-flex align-items-center gap-2">Per tanggal <input type="date" class="filter-select" id="asOf" onchange="render()"></label>
+            <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Cari nama alat..." id="searchInput" oninput="render()"></div>
+            <label class="d-flex align-items-center gap-2 fs-13 text-muted"><input type="checkbox" class="form-check-input m-0" id="perProject" checked onchange="render()"> Rincian per proyek</label>
+            <label class="d-flex align-items-center gap-2 fs-13 text-muted"><input type="checkbox" class="form-check-input m-0" id="hideZero" checked onchange="render()"> Sembunyikan alat tanpa stok</label>
+          </div></div>
+          <div class="er-table-wrapper"><table class="er-table" id="reportTable"></table></div>
+          <p class="fs-12 text-muted mt-3 mb-0"><i class="bi bi-info-circle me-1"></i>Total = Stok Gudang + Stok Proyek. Alat yang sudah dijual, hilang, atau diafkir tidak lagi dihitung.</p>
+        </div></div>
+      </div>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    initApp('stock-report.html', [{label:'Rekap Stok',href:'#'},{label:'Laporan Stok'}], 'Laporan Stok');
+
+    const L = BizLogic.StockLedger;
+    const warehouses = L.warehouses();
+    const letters = 'ABCDEFGHIJ';
+    document.getElementById('asOf').value = new Date().toISOString().split('T')[0];
+
+    function build() {
+      const asOf = document.getElementById('asOf').value;
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const hideZero = document.getElementById('hideZero').checked;
+      const bal = L.balances(asOf);
+      const get = (key, eq) => (bal[key] || {})[eq] || 0;
+
+      const projects = MockData.projects.filter(p => Object.values(bal['project:' + p.id] || {}).some(v => v !== 0));
+      const rows = L.equipmentNames()
+        .filter(eq => !q || eq.toLowerCase().includes(q))
+        .map(eq => {
+          const wh = warehouses.map(w => get('warehouse:' + w.id, eq));
+          const pj = projects.map(p => get('project:' + p.id, eq));
+          const whTotal = wh.reduce((a, b) => a + b, 0);
+          const pjTotal = pj.reduce((a, b) => a + b, 0);
+          return { eq, wh, pj, whTotal, pjTotal, total: whTotal + pjTotal };
+        })
+        .filter(r => !hideZero || r.total !== 0);
+      return { asOf, projects, rows };
+    }
+
+    const sum = (rows, f) => rows.reduce((s, r) => s + f(r), 0);
+    const cell = (v, cls) => `<td class="num ${v === 0 ? 'zero' : ''} ${cls || ''}">${formatNumber(v)}</td>`;
+
+    function render() {
+      const { asOf, projects, rows } = build();
+      const perProject = document.getElementById('perProject').checked;
+      document.getElementById('reportSubtitle').textContent = 'Stok gudang + stok proyek per ' + formatDate(asOf);
+
+      const whGrand = sum(rows, r => r.whTotal), pjGrand = sum(rows, r => r.pjTotal);
+      document.getElementById('kpis').innerHTML = `
+        <div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon blue"><i class="bi bi-building"></i></div><div class="kpi-content"><div class="kpi-value">${formatNumber(whGrand)}</div><div class="kpi-label">Stok Gudang (${warehouses.length} gudang)</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon purple"><i class="bi bi-folder"></i></div><div class="kpi-content"><div class="kpi-value">${formatNumber(pjGrand)}</div><div class="kpi-label">Stok Proyek (${projects.length} proyek)</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon green"><i class="bi bi-boxes"></i></div><div class="kpi-content"><div class="kpi-value">${formatNumber(whGrand + pjGrand)}</div><div class="kpi-label">Total Stok Keseluruhan</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon orange"><i class="bi bi-percent"></i></div><div class="kpi-content"><div class="kpi-value">${whGrand + pjGrand ? Math.round(pjGrand / (whGrand + pjGrand) * 100) : 0}%</div><div class="kpi-label">Utilisasi (di proyek)</div></div></div></div>`;
+
+      const pjCols = perProject ? projects.length + 1 : 1;
+      const head = `
+        <thead>
+          <tr>
+            <th rowspan="2">No</th><th rowspan="2">Nama Alat</th>
+            <th class="group" colspan="${warehouses.length + 1}">Stok Gudang</th>
+            <th class="group" colspan="${pjCols}">Stok Proyek</th>
+            <th rowspan="2" class="num">Total</th>
+          </tr>
+          <tr>
+            ${warehouses.map((w, i) => `<th class="num">${letters[i]}. ${L.warehouseShort(w)}</th>`).join('')}
+            <th class="num">Jumlah</th>
+            ${perProject ? projects.map(p => `<th class="num" title="${p.name}"><a href="project-stock.html?id=${p.id}" class="text-reset">${p.id}</a></th>`).join('') : ''}
+            <th class="num">Jumlah</th>
+          </tr>
+        </thead>`;
+      const body = rows.map((r, i) => `<tr>
+        <td class="text-muted">${i + 1}</td><td class="fw-600">${r.eq}</td>
+        ${r.wh.map(v => cell(v)).join('')}${cell(r.whTotal, 'fw-600')}
+        ${perProject ? r.pj.map(v => cell(v)).join('') : ''}${cell(r.pjTotal, 'fw-600')}
+        ${cell(r.total, 'col-strong')}
+      </tr>`).join('') || `<tr><td colspan="${warehouses.length + pjCols + 4}" class="text-center text-muted py-4">Tidak ada data</td></tr>`;
+      const foot = `<tfoot><tr><td></td><td>TOTAL</td>
+        ${warehouses.map((w, i) => `<td class="num">${formatNumber(sum(rows, r => r.wh[i]))}</td>`).join('')}
+        <td class="num">${formatNumber(whGrand)}</td>
+        ${perProject ? projects.map((p, i) => `<td class="num">${formatNumber(sum(rows, r => r.pj[i]))}</td>`).join('') : ''}
+        <td class="num">${formatNumber(pjGrand)}</td>
+        <td class="num">${formatNumber(whGrand + pjGrand)}</td></tr></tfoot>`;
+      const legend = perProject && projects.length
+        ? `<caption class="fs-12 text-muted" style="caption-side:bottom">${projects.map(p => `<strong>${p.id}</strong>: ${p.name}`).join(' · ')}</caption>` : '';
+      document.getElementById('reportTable').innerHTML = legend + head + `<tbody>${body}</tbody>` + foot;
+    }
+
+    function exportCSV() {
+      const { asOf, projects, rows } = build();
+      const head = ['No', 'Nama Alat', ...warehouses.map((w, i) => letters[i] + '. ' + L.warehouseShort(w)), 'Jumlah Gudang', ...projects.map(p => p.name), 'Jumlah Proyek', 'Total'];
+      downloadCSV('laporan-stok-' + asOf + '.csv', [head, ...rows.map((r, i) => [i + 1, r.eq, ...r.wh, r.whTotal, ...r.pj, r.pjTotal, r.total])]);
+    }
+
+    render();
+  </script>
+</body>
+</html>
