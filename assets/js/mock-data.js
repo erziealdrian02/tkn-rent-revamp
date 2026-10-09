@@ -6,11 +6,11 @@
 const MockData = {
   // ---- CUSTOMERS ----
   customers: [
-    { id: 'CUS-001', code: 'PTDCI', name: 'PT Data Center Indonesia', pic: 'Ahmad Hidayat', phone: '021-5550101', email: 'ahmad@datacenter.co.id', address: 'Jl. Sudirman No. 45, Jakarta Selatan', status: 'Active' },
-    { id: 'CUS-002', code: 'PTIN', name: 'PT Infrastruktur Nusantara', pic: 'Siti Rahmawati', phone: '021-5550202', email: 'siti@infranusa.co.id', address: 'Jl. Gatot Subroto No. 12, Jakarta Selatan', status: 'Active' },
+    { id: 'CUS-001', code: 'PTDCI', name: 'PT Data Center Indonesia', pic: 'Ahmad Hidayat', phone: '021-5550101', email: 'ahmad@datacenter.co.id', address: 'Jl. Sudirman No. 45, Jakarta Selatan', taxId: '01.311.425.6-062.000', status: 'Active' },
+    { id: 'CUS-002', code: 'PTIN', name: 'PT Infrastruktur Nusantara', pic: 'Siti Rahmawati', phone: '021-5550202', email: 'siti@infranusa.co.id', address: 'Jl. Gatot Subroto No. 12, Jakarta Selatan', taxId: '02.418.536.7-017.000', status: 'Active' },
     { id: 'CUS-003', code: 'PTMT', name: 'PT Mitra Teknologi', pic: 'Rudi Hartono', phone: '021-5550303', email: 'rudi@mitratek.co.id', address: 'Jl. TB Simatupang No. 88, Jakarta Timur', status: 'Active' },
-    { id: 'CUS-004', code: 'PTKE', name: 'PT Karya Engineering', pic: 'Dewi Lestari', phone: '021-5550404', email: 'dewi@karyaeng.co.id', address: 'Jl. Raya Bekasi No. 23, Bekasi', status: 'Active' },
-    { id: 'CUS-005', code: 'PTBJ', name: 'PT Bangun Jaya Konstruksi', pic: 'Eko Prasetyo', phone: '031-5550505', email: 'eko@bangunjaya.co.id', address: 'Jl. Basuki Rahmat No. 56, Surabaya', status: 'Inactive' },
+    { id: 'CUS-004', code: 'PTKE', name: 'PT Karya Engineering', pic: 'Dewi Lestari', phone: '021-5550404', email: 'dewi@karyaeng.co.id', address: 'Jl. Raya Bekasi No. 23, Bekasi', taxId: '01.630.758.9-431.000', status: 'Active' },
+    { id: 'CUS-005', code: 'PTBJ', name: 'PT Bangun Jaya Konstruksi', pic: 'Eko Prasetyo', phone: '031-5550505', email: 'eko@bangunjaya.co.id', address: 'Jl. Basuki Rahmat No. 56, Surabaya', taxId: '03.742.851.0-614.000', status: 'Inactive' },
   ],
 
   // ---- PROJECTS ----
@@ -452,7 +452,7 @@ const MockData = {
     {"id":"TRX-005","voucherNo":"BB-2609-001","date":"2026-09-01","bankAccountId":"ACC-001","type":"IN","category":"bank_in_ar","reference":"PAY-005 / INV-005","description":"Pembayaran lunas INV-005 - PT Karya Engineering","party":"PT Karya Engineering","amount":900000,"source":"payment","transferId":null,"reconciled":false,"user":"Maya Finance"},
     {"id":"TRX-012","voucherNo":"BM-2609-001","date":"2026-09-02","bankAccountId":"ACC-001","type":"OUT","category":"bank_out_cash","reference":"BB-2609-002","description":"Penarikan tunai untuk mengisi Kas Kantor","party":"Kas Kantor Cileungsi","amount":15000000,"source":"transfer","transferId":"TF-SEED-1","reconciled":false,"user":"Maya Finance"},
     {"id":"TRX-013","voucherNo":"BB-2609-002","date":"2026-09-02","bankAccountId":"ACC-005","type":"IN","category":"kas_in_transfer","reference":"BM-2609-001","description":"Penarikan tunai untuk mengisi Kas Kantor","party":"BCA Operational","amount":15000000,"source":"transfer","transferId":"TF-SEED-1","reconciled":false,"user":"Maya Finance"},
-    {"id":"TRX-014","voucherNo":"BM-2609-002","date":"2026-09-05","bankAccountId":"ACC-005","type":"OUT","category":"kas_out_opex","reference":"SJK-2609","description":"BBM & tol pengiriman alat","party":"SPBU / Jasa Marga","amount":1250000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance"},
+    {"id":"TRX-014","voucherNo":"BM-2609-002","date":"2026-09-05","bankAccountId":"ACC-005","type":"OUT","category":"kas_out_opex","reference":"SJK-2609","description":"BBM & tol pengiriman alat","party":"SPBU / Jasa Marga","amount":1250000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance","coaId":"6-3003"},
     {"id":"TRX-015","voucherNo":"BM-2609-003","date":"2026-09-08","bankAccountId":"ACC-005","type":"OUT","category":"kas_out_advance","reference":"","description":"Kasbon driver","party":"Budi Santoso","amount":2000000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance"},
     {"id":"TRX-008","voucherNo":"BB-2609-003","date":"2026-09-10","bankAccountId":"ACC-004","type":"IN","category":"bank_in_ar","reference":"PAY-008 / INV-010","description":"Pembayaran cicilan INV-010 - PT Karya Engineering","party":"PT Karya Engineering","amount":8300000,"source":"payment","transferId":null,"reconciled":true,"user":"Maya Finance","reconId":"REK-001"},
     {"id":"TRX-016","voucherNo":"BM-2609-004","date":"2026-09-12","bankAccountId":"ACC-002","type":"OUT","category":"bank_out_supplier","reference":"PO-005","description":"Pelunasan PO-005","party":"PT Tangga Jaya","amount":22000000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance"},
@@ -469,6 +469,12 @@ const MockData = {
     {"id":"TRX-011","voucherNo":"BB-2610-002","date":"2026-10-05","bankAccountId":"ACC-001","type":"IN","category":"bank_in_ar","reference":"PAY-011 / INV-012","description":"Pembayaran cicilan INV-012 - PT Data Center Indonesia","party":"PT Data Center Indonesia","amount":15100000,"source":"payment","transferId":null,"reconciled":false,"user":"Maya Finance"},
     {"id":"TRX-023","voucherNo":"BM-2610-001","date":"2026-10-06","bankAccountId":"ACC-002","type":"OUT","category":"bank_out_loan","reference":"","description":"Angsuran pinjaman modal kerja Oktober","party":"Bank Mandiri","amount":15000000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance"},
     {"id":"TRX-024","voucherNo":"BB-2610-003","date":"2026-10-07","bankAccountId":"ACC-005","type":"IN","category":"kas_in_sale","reference":"","description":"Penjualan tunai besi bekas","party":"Pengepul","amount":750000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance"},
+    {"id":"TRX-025","voucherNo":"BM-2609-008","date":"2026-09-10","bankAccountId":"ACC-005","type":"OUT","category":"kas_out_opex","reference":"","description":"Pembelian ATK & materai","party":"Toko Sinar Jaya","amount":850000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance","coaId":"6-2005"},
+    {"id":"TRX-026","voucherNo":"BM-2609-009","date":"2026-09-15","bankAccountId":"ACC-001","type":"OUT","category":"bank_out_supplier","reference":"INV/TL/0915","description":"Sewa truk crane mobilisasi genset (net setelah PPh 23)","party":"CV Trans Logistik","amount":9800000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance","coaId":"6-5001","projectId":"PRJ-001"},
+    {"id":"TRX-027","voucherNo":"BM-2609-010","date":"2026-09-20","bankAccountId":"ACC-001","type":"OUT","category":"bank_out_supplier","reference":"PLN-0826","description":"Listrik kantor & gudang Agustus","party":"PLN","amount":3200000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance","coaId":"6-2002"},
+    {"id":"TRX-028","voucherNo":"BM-2609-011","date":"2026-09-24","bankAccountId":"ACC-005","type":"OUT","category":"kas_out_opex","reference":"","description":"Servis truk B 9123 XY","party":"Bengkel Maju Motor","amount":1750000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance","coaId":"6-4001"},
+    {"id":"TRX-029","voucherNo":"BM-2609-012","date":"2026-09-26","bankAccountId":"ACC-002","type":"OUT","category":"bank_out_supplier","reference":"","description":"Konsumsi & akomodasi tim pemasangan di lokasi proyek","party":"Hotel Bintang","amount":4500000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance","coaId":"6-1004","projectId":"PRJ-003"},
+    {"id":"TRX-030","voucherNo":"BM-2610-002","date":"2026-10-08","bankAccountId":"ACC-005","type":"OUT","category":"kas_out_payroll","reference":"NTPN-0926","description":"Setor PPh 23 masa September 2026","party":"Kas Negara","amount":200000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance","coaId":"2-2001"},
   ],
 
   // ---- REKONSILIASI BANK ----
@@ -483,6 +489,135 @@ const MockData = {
     { id: 'ACC-003', name: 'BNI Savings', kind: 'Bank', bank: 'BNI', accountNumber: '1122334455', accountHolder: 'PT EquipRent Indonesia', type: 'Savings', branch: 'Cileungsi', openingBalance: 100000000, status: 'Active' },
     { id: 'ACC-004', name: 'BCA Bekasi', kind: 'Bank', bank: 'BCA', accountNumber: '5566778899', accountHolder: 'PT EquipRent Indonesia', type: 'Operational', branch: 'Bekasi', openingBalance: 50000000, status: 'Active' },
     { id: 'ACC-005', name: 'Kas Kantor Cileungsi', kind: 'Kas', bank: '-', accountNumber: '-', accountHolder: 'Kasir Cileungsi', type: 'Petty Cash', branch: 'Cileungsi', openingBalance: 25000000, status: 'Active' },
+  ],
+
+  // ---- AKUNTANSI: BAGAN AKUN (COA) ----
+  // Diambil dari sheet COA "excel/1. ALUR COA & TAX.xlsx". Akun Kas & Bank (1-11xx) dibuat otomatis dari Rekening Perusahaan.
+  // opening = Saldo awal 2026 (= saldo akhir neraca 2025) sesuai saldo normal akun. tax = penanda akun pajak.
+  coa: [
+    { id: '1-1201', code: '1-1201', name: 'Investasi', group: '1-12' },
+    { id: '1-1301', code: '1-1301', name: 'Piutang Dagang', group: '1-13' },
+    { id: '1-1302', code: '1-1302', name: 'Piutang Dagang Girgant M', group: '1-13' },
+    { id: '1-1303', code: '1-1303', name: 'Piutang Dagang Sumpit', group: '1-13' },
+    { id: '1-1304', code: '1-1304', name: 'Piutang Pajak (PPh 23 Dibayar Dimuka)', group: '1-13', tax: 'PPH23_PREPAID' },
+    { id: '1-1305', code: '1-1305', name: 'Pendapatan yang Masih Harus Diterima', group: '1-13' },
+    { id: '1-1401', code: '1-1401', name: 'Pinjaman Karyawan', group: '1-14', opening: 3500000 },
+    { id: '1-1402', code: '1-1402', name: 'Pinjaman Mandor', group: '1-14' },
+    { id: '1-1403', code: '1-1403', name: 'Pinjaman Proyek', group: '1-14' },
+    { id: '1-1404', code: '1-1404', name: 'Pinjaman Proyek Undip', group: '1-14' },
+    { id: '1-1405', code: '1-1405', name: 'Pinjaman Surabaya', group: '1-14' },
+    { id: '1-1406', code: '1-1406', name: 'Pinjaman Bali', group: '1-14' },
+    { id: '1-1501', code: '1-1501', name: 'Persediaan Barang Dagangan', group: '1-15', opening: 9514500000 },
+    { id: '1-1502', code: '1-1502', name: 'Persediaan Barang Dagangan Sumpit', group: '1-15' },
+    { id: '1-1601', code: '1-1601', name: 'Uang Muka Import', group: '1-16' },
+    { id: '1-1602', code: '1-1602', name: 'Uang Jaminan Sewa', group: '1-16', opening: 25000000 },
+    { id: '1-2001', code: '1-2001', name: 'Inventaris Kendaraan', group: '1-2', opening: 650000000 },
+    { id: '1-2002', code: '1-2002', name: 'Akumulasi Penyusutan Kendaraan', group: '1-2', opening: 243750000, normal: 'K' },
+    { id: '1-2003', code: '1-2003', name: 'Inventaris Kantor', group: '1-2', opening: 85000000 },
+    { id: '1-2004', code: '1-2004', name: 'Akumulasi Penyusutan Kantor', group: '1-2', opening: 42500000, normal: 'K' },
+    { id: '1-2005', code: '1-2005', name: 'Inventaris Mesin', group: '1-2', opening: 240000000 },
+    { id: '1-2006', code: '1-2006', name: 'Akumulasi Penyusutan Mesin', group: '1-2', opening: 96000000, normal: 'K' },
+    { id: '2-1001', code: '2-1001', name: 'Hutang Dagang', group: '2-1' },
+    { id: '2-1002', code: '2-1002', name: 'Hutang Dagang Girgant K', group: '2-1' },
+    { id: '2-1003', code: '2-1003', name: 'Hutang Dagang Sumpit', group: '2-1' },
+    { id: '2-2001', code: '2-2001', name: 'Hutang PPh 23', group: '2-2', tax: 'PPH23_PAYABLE' },
+    { id: '2-2002', code: '2-2002', name: 'PPN Masukan dan Keluaran', group: '2-2', tax: 'PPN' },
+    { id: '2-3001', code: '2-3001', name: 'Biaya yang Masih Harus Dibayar', group: '2-3' },
+    { id: '2-3002', code: '2-3002', name: 'Uang Muka Masuk dan Keluar', group: '2-3' },
+    { id: '2-3003', code: '2-3003', name: 'Pinjaman Pemegang Saham', group: '2-3', opening: 300000000 },
+    { id: '2-3004', code: '2-3004', name: 'Hutang Bank', group: '2-3', opening: 450000000 },
+    { id: '3-0001', code: '3-0001', name: 'Modal', group: '3-0', opening: 5000000000 },
+    { id: '3-0002', code: '3-0002', name: 'Laba Ditahan', group: '3-0', opening: 5310750000 },
+    { id: '3-0003', code: '3-0003', name: 'Laba / Rugi Berjalan', group: '3-0', system: true },
+    { id: '4-0001', code: '4-0001', name: 'Penjualan', group: '4-0' },
+    { id: '4-0002', code: '4-0002', name: 'Pendapatan Sewa', group: '4-0' },
+    { id: '4-0003', code: '4-0003', name: 'Penjualan (Ongkir atau Ganti Rugi)', group: '4-0' },
+    { id: '4-0004', code: '4-0004', name: 'Penjualan Sumpit', group: '4-0' },
+    { id: '4-0005', code: '4-0005', name: 'Retur Penjualan', group: '4-0', normal: 'D' },
+    { id: '5-0001', code: '5-0001', name: 'HPP Persediaan Barang Dagangan', group: '5-0' },
+    { id: '5-0002', code: '5-0002', name: 'Pembelian', group: '5-0' },
+    { id: '5-0003', code: '5-0003', name: 'Retur Pembelian', group: '5-0', normal: 'K' },
+    { id: '5-0004', code: '5-0004', name: 'HPP Persediaan Barang Dagangan Sumpit', group: '5-0' },
+    { id: '6-1001', code: '6-1001', name: 'Biaya Gaji', group: '6-1' },
+    { id: '6-1002', code: '6-1002', name: 'Biaya Kesejahteraan Karyawan', group: '6-1' },
+    { id: '6-1003', code: '6-1003', name: 'Biaya Pengobatan', group: '6-1' },
+    { id: '6-1004', code: '6-1004', name: 'Biaya Perjalanan Dinas', group: '6-1' },
+    { id: '6-2001', code: '6-2001', name: 'Biaya Telepon', group: '6-2' },
+    { id: '6-2002', code: '6-2002', name: 'Biaya Listrik', group: '6-2' },
+    { id: '6-2003', code: '6-2003', name: 'Biaya Tiki dan Materai', group: '6-2' },
+    { id: '6-2004', code: '6-2004', name: 'Biaya Izin, Sumbangan dan Iuran', group: '6-2' },
+    { id: '6-2005', code: '6-2005', name: 'Biaya ATK', group: '6-2' },
+    { id: '6-2006', code: '6-2006', name: 'Biaya Rumah Tangga', group: '6-2' },
+    { id: '6-2007', code: '6-2007', name: 'Biaya Entertainment', group: '6-2' },
+    { id: '6-2008', code: '6-2008', name: 'Biaya Administrasi Bank', group: '6-2' },
+    { id: '6-2009', code: '6-2009', name: 'Biaya Asuransi', group: '6-2' },
+    { id: '6-2010', code: '6-2010', name: 'Biaya PPDU', group: '6-2' },
+    { id: '6-3001', code: '6-3001', name: 'Biaya Marketing', group: '6-3' },
+    { id: '6-3002', code: '6-3002', name: 'Biaya Iklan', group: '6-3' },
+    { id: '6-3003', code: '6-3003', name: 'Biaya Angkut Penjualan', group: '6-3' },
+    { id: '6-3004', code: '6-3004', name: 'Biaya Angkut Pembelian', group: '6-3' },
+    { id: '6-3005', code: '6-3005', name: 'Biaya Potongan Penjualan', group: '6-3' },
+    { id: '6-3006', code: '6-3006', name: 'Biaya Potongan Pembelian', group: '6-3' },
+    { id: '6-4001', code: '6-4001', name: 'Biaya Pemeliharaan Kendaraan', group: '6-4' },
+    { id: '6-4002', code: '6-4002', name: 'Biaya Pemeliharaan Peralatan Kantor', group: '6-4' },
+    { id: '6-4003', code: '6-4003', name: 'Biaya Pemeliharaan Inventaris Mesin', group: '6-4' },
+    { id: '6-4004', code: '6-4004', name: 'Biaya Pemeliharaan Gedung', group: '6-4' },
+    { id: '6-4005', code: '6-4005', name: 'Biaya Pemeliharaan Gedung Baru', group: '6-4' },
+    { id: '6-5001', code: '6-5001', name: 'Biaya Sewa Kendaraan', group: '6-5' },
+    { id: '6-5002', code: '6-5002', name: 'Biaya Sewa Kontrakan', group: '6-5' },
+    { id: '6-5003', code: '6-5003', name: 'Biaya Sewa Peralatan', group: '6-5' },
+    { id: '6-5004', code: '6-5004', name: 'Biaya Sewa ATK', group: '6-5' },
+    { id: '6-5005', code: '6-5005', name: 'Biaya Sewa Scaffolding', group: '6-5' },
+    { id: '6-6001', code: '6-6001', name: 'Biaya Scaffolding', group: '6-6' },
+    { id: '6-6002', code: '6-6002', name: 'Biaya Ringlock', group: '6-6' },
+    { id: '6-6003', code: '6-6003', name: 'Biaya Hotdip', group: '6-6' },
+    { id: '6-6004', code: '6-6004', name: 'Biaya Bekisting', group: '6-6' },
+    { id: '6-6005', code: '6-6005', name: 'Biaya WF', group: '6-6' },
+    { id: '6-6006', code: '6-6006', name: 'Biaya Cibanteng', group: '6-6' },
+    { id: '6-6007', code: '6-6007', name: 'Biaya Sukawangi', group: '6-6' },
+    { id: '6-6008', code: '6-6008', name: 'Biaya Cileungsi', group: '6-6' },
+    { id: '6-6009', code: '6-6009', name: 'Biaya Pembangunan Gedung Mess', group: '6-6' },
+    { id: '6-6010', code: '6-6010', name: 'Biaya Pembangunan Gedung Cileungsi', group: '6-6' },
+    { id: '6-6011', code: '6-6011', name: 'Biaya Pembangunan Sukawangi', group: '6-6' },
+    { id: '6-6012', code: '6-6012', name: 'Biaya Pembangunan Cibanteng', group: '6-6' },
+    { id: '6-7001', code: '6-7001', name: 'Biaya Penyusutan Inventaris Kendaraan', group: '6-7' },
+    { id: '6-7002', code: '6-7002', name: 'Biaya Penyusutan Inventaris Kantor', group: '6-7' },
+    { id: '6-7003', code: '6-7003', name: 'Biaya Penyusutan Inventaris Mesin', group: '6-7' },
+    { id: '6-8001', code: '6-8001', name: 'Biaya PPh dan PPN', group: '6-8' },
+    { id: '6-8002', code: '6-8002', name: 'Biaya PPh 2 Persen', group: '6-8' },
+    { id: '6-8003', code: '6-8003', name: 'Biaya Pajak', group: '6-8' },
+    { id: '6-8004', code: '6-8004', name: 'Biaya Kerugian Penjualan', group: '6-8' },
+    { id: '6-8005', code: '6-8005', name: 'Biaya Kerugian Pembelian Zinc', group: '6-8' },
+    { id: '6-8006', code: '6-8006', name: 'Biaya Pembatalan Kwitansi', group: '6-8' },
+    { id: '6-8007', code: '6-8007', name: 'Biaya Penghapusan Piutang', group: '6-8' },
+    { id: '6-8008', code: '6-8008', name: 'Biaya Penghapusan Piutang Karyawan', group: '6-8' },
+    { id: '6-9001', code: '6-9001', name: 'Biaya Lain-lain', group: '6-9' },
+    { id: '7-1001', code: '7-1001', name: 'Pendapatan Lain-lain', group: '7-1' },
+    { id: '7-1002', code: '7-1002', name: 'Pendapatan Bunga Investasi', group: '7-1' },
+    { id: '7-1003', code: '7-1003', name: 'Pendapatan Bunga dan Jasa Giro', group: '7-1' },
+    { id: '7-1004', code: '7-1004', name: 'Pendapatan Cibanteng', group: '7-1' },
+    { id: '7-2001', code: '7-2001', name: 'Selisih Kurs', group: '7-2' },
+  ],
+
+  // Pemetaan kategori Laporan Kas → akun COA default (diubah di Bagan Akun; per transaksi bisa diklasifikasikan ulang di Jurnal)
+  coaCashMap: {
+    kas_in_sale: '4-0001', kas_in_ar: '1-1301', kas_in_dp: '2-3002', kas_in_loan: '2-3004', kas_in_refund: '1-1401', kas_in_other: '7-1001',
+    kas_out_opex: '6-9001', kas_out_supplier: '2-1001', kas_out_payroll: '6-1001', kas_out_advance: '1-1401', kas_out_loan: '2-3004',
+    bank_in_loan: '2-3004', bank_in_ar: '1-1301', bank_in_dp: '2-3002', bank_in_refund: '2-1001', bank_in_interest: '7-1003',
+    bank_out_supplier: '2-1001', bank_out_loan: '2-3004', bank_out_admin: '6-2008'
+  },
+
+  // ---- JURNAL PENYESUAIAN (manual) ----
+  // lines: d = debet, k = kredit. tax = data bukti potong PPh 23 (untuk XML Coretax)
+  journals: [
+    { id: 'JRN-001', no: 'JP-2609-001', date: '2026-09-15', desc: 'PPh 23 atas sewa truk crane CV Trans Logistik (koreksi biaya ke nilai bruto)', ref: 'BM-2609-009', projectId: 'PRJ-001', user: 'Maya Finance',
+      lines: [{ acc: '6-5001', d: 200000, k: 0, memo: 'Biaya sewa bruto Rp 10.000.000' }, { acc: '2-2001', d: 0, k: 200000, memo: 'PPh 23 2% dipotong' }],
+      tax: { party: 'CV Trans Logistik', npwp: '0712345678014000', dpp: 10000000, rate: 2, objectCode: '24-100-01', docNo: 'INV/TL/0915', docDate: '2026-09-15' } },
+    { id: 'JRN-002', no: 'JP-2609-002', date: '2026-09-30', desc: 'Penyusutan aset tetap September 2026', ref: '', projectId: null, user: 'Maya Finance', tax: null,
+      lines: [{ acc: '6-7001', d: 6770833, k: 0 }, { acc: '6-7002', d: 1770833, k: 0 }, { acc: '6-7003', d: 2500000, k: 0 },
+              { acc: '1-2002', d: 0, k: 6770833 }, { acc: '1-2004', d: 0, k: 1770833 }, { acc: '1-2006', d: 0, k: 2500000 }] },
+    { id: 'JRN-003', no: 'JP-2609-003', date: '2026-09-30', desc: 'Akrual listrik September (tagihan PLN belum dibayar)', ref: '', projectId: null, user: 'Maya Finance', tax: null,
+      lines: [{ acc: '6-2002', d: 3450000, k: 0 }, { acc: '2-3001', d: 0, k: 3450000 }] },
   ],
 
   // ---- USERS ----
@@ -513,15 +648,15 @@ const MockData = {
 
   // ---- PERMISSIONS MATRIX ----
   permissions: {
-    modules: ['Dashboard','Rentals','Projects','Deliveries','Returns','Claims','Equipment','Branches','Stock','Movements','Purchases','Customers','Drivers','Vehicles','Accounts','Invoices','Users','Roles'],
+    modules: ['Dashboard','Rentals','Projects','Deliveries','Returns','Claims','Equipment','Branches','Stock','Movements','Purchases','Customers','Drivers','Vehicles','Accounts','Invoices','Accounting','Tax','Users','Roles'],
     actions: ['View','Create','Update','Delete','Approve'],
     matrix: {
       'Super Admin': { default: true },
       'Admin': { default: true, exceptions: { 'Users': ['View','Create','Update'], 'Roles': ['View'] } },
       'Rental Staff': { allowed: ['Dashboard','Rentals','Projects','Deliveries','Returns','Claims','Equipment','Customers','Stock'], actions: ['View','Create','Update'] },
       'Warehouse Staff': { allowed: ['Dashboard','Equipment','Branches','Stock','Movements','Purchases','Returns','Deliveries','Drivers','Vehicles'], actions: ['View','Create','Update'] },
-      'Finance': { allowed: ['Dashboard','Invoices','Accounts','Customers','Rentals','Returns','Claims','Purchases'], actions: ['View','Create','Update'] },
-      'Manager': { allowed: ['Dashboard','Rentals','Projects','Deliveries','Returns','Claims','Equipment','Invoices','Customers','Purchases','Stock','Accounts'], actions: ['View','Approve'] },
+      'Finance': { allowed: ['Dashboard','Invoices','Accounts','Accounting','Tax','Customers','Rentals','Returns','Claims','Purchases'], actions: ['View','Create','Update'] },
+      'Manager': { allowed: ['Dashboard','Rentals','Projects','Deliveries','Returns','Claims','Equipment','Invoices','Customers','Purchases','Stock','Accounts','Accounting','Tax'], actions: ['View','Approve'] },
       'Driver': { allowed: ['Dashboard','Deliveries'], actions: ['View','Update'] },
       'Viewer': { default: false, allowed: ['Dashboard','Rentals','Projects','Equipment','Customers','Invoices'], actions: ['View'] },
     }
@@ -606,7 +741,7 @@ const MockData = {
 
 // --- Persistence Logic ---
 // Naikkan angka ini setiap struktur data seed berubah, supaya localStorage lama di-reset.
-const MOCK_SCHEMA_VERSION = '5-lengkap';
+const MOCK_SCHEMA_VERSION = '6-akuntansi';
 
 (function() {
   const STORAGE_PREFIX = 'equiprent_';

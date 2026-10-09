@@ -155,7 +155,7 @@
       'Dashboard', 'Rentals', 'Projects', 'Deliveries', 'Returns', 
       'Claims', 'Equipment', 'Branches', 'Stock', 'Movements', 
       'Purchases', 'Customers', 'Drivers', 'Vehicles', 'Accounts', 
-      'Invoices', 'Users', 'Roles'
+      'Invoices', 'Accounting', 'Tax', 'Users', 'Roles'
     ];
     const actions = ['View', 'Create', 'Update', 'Delete', 'Approve'];
     
@@ -223,7 +223,7 @@
           else cb.checked = ['View','Create','Update'].includes(a);
         }
         else if(preset === 'finance') {
-          if(['Invoices','Claims','Purchases','Company Accounts','Returns','Rentals'].includes(m)) {
+          if(['Invoices','Claims','Purchases','Accounts','Accounting','Tax','Returns','Rentals'].includes(m)) {
             cb.checked = ['View','Create','Update'].includes(a);
           } else {
             cb.checked = (a === 'View');

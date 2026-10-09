@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buku Besar - EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header">
+          <div class="page-header-left"><h2 class="page-header-title">Buku Besar</h2><p class="page-header-subtitle">B. Posting Buku Besar — Kas & Bank global per tanggal, biaya rinci per transaksi</p></div>
+          <div class="page-header-actions no-print">
+            <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-download me-1"></i>Export CSV</button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak</button>
+          </div>
+        </div>
+        <div id="flowBar"></div>
+
+        <div class="er-card mb-4 no-print"><div class="er-card-body">
+          <div class="table-toolbar mb-0"><div class="table-toolbar-left flex-wrap">
+            <select class="filter-select" id="fAccount" onchange="onAccount()" style="min-width:300px"></select>
+            <input type="date" class="filter-select" id="fFrom" onchange="render()">
+            <span class="text-muted">s/d</span>
+            <input type="date" class="filter-select" id="fTo" onchange="render()">
+            <select class="filter-select" id="fMode" onchange="render()">
+              <option value="auto">Tampilan otomatis</option>
+              <option value="global">Global per tanggal</option>
+              <option value="detail">Rinci per transaksi</option>
+            </select>
+            <label class="d-flex align-items-center gap-2 fs-13"><input type="checkbox" class="form-check-input m-0" id="fAdj" checked onchange="render()"> Termasuk jurnal penyesuaian</label>
+          </div></div>
+        </div></div>
+
+        <div id="content"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
+  <script src="assets/js/accounting.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    initApp('general-ledger.html', [{label:'Akuntansi',href:'#'},{label:'Buku Besar'}], 'Buku Besar');
+    const AC = BizLogic.Accounting;
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const today = AC.today();
+    const money = v => v ? formatRupiah(v) : '<span class="text-muted">-</span>';
+    document.getElementById('flowBar').innerHTML = AC.flowBar('general-ledger.html');
+    document.getElementById('fAccount').innerHTML = '<option value="">Ringkasan semua akun</option>' + AC.accountOptions(getUrlParam('account'), { filter: a => a.id !== AC.ACC.CURRENT_PL });
+    document.getElementById('fFrom').value = getUrlParam('from') || AC.yearStart(today);
+    document.getElementById('fTo').value = getUrlParam('to') || today;
+    let current = null;
+
+    function onAccount() {
+      const id = document.getElementById('fAccount').value;
+      history.replaceState(null, '', 'general-ledger.html' + (id ? '?account=' + encodeURIComponent(id) : ''));
+      render();
+    }
+    function openAccount(id) { document.getElementById('fAccount').value = id; onAccount(); window.scrollTo(0, 0); }
+
+    // Ringkasan: saldo awal, mutasi & saldo akhir semua akun pada periode
+    function renderSummary(from, to, adjusted) {
+      const map = AC._index(), ys = AC.yearStart(from), sum = {};
+      AC.accounts().forEach(a => sum[a.id] = { open: AC.openingNet(a), d: 0, k: 0 });
+      AC.journals({ to, adjusted }).forEach(j => { if (j.date < ys) return; j.lines.forEach(l => { const s = sum[l.acc]; if (!s) return;
+        if (j.date < from) s.open += l.d - l.k; else { s.d += l.d; s.k += l.k; } }); });
+      const rows = AC.accounts().filter(a => a.id !== AC.ACC.CURRENT_PL && (sum[a.id].open || sum[a.id].d || sum[a.id].k));
+      current = { mode: 'summary', rows, sum };
+      let td = 0, tk = 0;
+      document.getElementById('content').innerHTML = `<div class="er-card"><div class="er-card-body">
+        <div class="text-center mb-3"><h5 class="fw-700 mb-0">${esc(MockData.company.name)}</h5><div class="fw-600">RINGKASAN BUKU BESAR</div><div class="fs-13 text-muted">${formatDate(from)} s/d ${formatDate(to)}${adjusted ? '' : ' · tanpa penyesuaian'}</div></div>
+        <div class="er-table-wrapper"><table class="er-table fin-report">
+          <thead><tr><th>Kode · Nama Akun</th><th class="num">Saldo Awal</th><th class="num">Debet</th><th class="num">Kredit</th><th class="num">Saldo Akhir</th></tr></thead>
+          <tbody>${Object.keys(AC.TYPES).map(t => { const list = rows.filter(a => AC.typeOf(a) === t); if (!list.length) return '';
+            return `<tr class="sec-row"><td colspan="5">${t} · ${AC.TYPES[t].label.toUpperCase()}</td></tr>` + list.map(a => { const s = sum[a.id], sign = AC.normalOf(a) === 'D' ? 1 : -1;
+              td += s.d; tk += s.k;
+              return `<tr role="button" onclick="openAccount('${a.id}')"><td class="ind-1"><span class="acc-code">${a.code}</span><span class="cell-link">${esc(a.name)}</span></td>
+                <td class="num">${money(s.open * sign)}</td><td class="num">${money(s.d)}</td><td class="num">${money(s.k)}</td><td class="num fw-600">${money((s.open + s.d - s.k) * sign)}</td></tr>`; }).join(''); }).join('')}</tbody>
+          <tfoot><tr><td colspan="2">Total mutasi</td><td class="num">${formatRupiah(td)}</td><td class="num">${formatRupiah(tk)}</td><td>${td === tk ? '<span class="check-badge ok"><i class="bi bi-check2"></i>Seimbang</span>' : `<span class="check-badge bad">Selisih ${formatRupiah(td - tk)}</span>`}</td></tr></tfoot>
+        </table></div>
+        <p class="fs-12 text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Saldo ditampilkan sesuai saldo normal akun. Klik akun untuk melihat rinciannya.</p>
+      </div></div>`;
+    }
+
+    function renderAccount(id, from, to, adjusted) {
+      const L = AC.ledger(id, from, to, { adjusted }), a = L.account;
+      const modeSel = document.getElementById('fMode').value;
+      const global = modeSel === 'global' || (modeSel === 'auto' && !!a.cashAccountId);
+      let rows = L.rows;
+      if (global) { // Kas & Bank: transaksi per tanggal dengan nominal global
+        const byDate = {};
+        L.rows.forEach(r => { const g = byDate[r.date] = byDate[r.date] || { date: r.date, d: 0, k: 0, n: 0 }; g.d += r.d; g.k += r.k; g.n++; g.bal = r.bal; });
+        rows = Object.values(byDate);
+      }
+      current = { mode: global ? 'global' : 'detail', account: a, L, rows };
+      const g = AC.group(a.group), nb = AC.normalOf(a) === 'D' ? 'Debet' : 'Kredit';
+      document.getElementById('content').innerHTML = `
+        <div class="row g-3 mb-4">
+          ${[['blue', 'bi-hourglass-top', 'Saldo Awal', L.opening], ['green', 'bi-plus-circle', 'Total Debet', L.totalD], ['red', 'bi-dash-circle', 'Total Kredit', L.totalK], ['purple', 'bi-wallet2', 'Saldo Akhir', L.closing]]
+            .map(([c, i, l, v]) => `<div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon ${c}"><i class="bi ${i}"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${formatRupiah(v)}</div><div class="kpi-label">${l}</div></div></div></div>`).join('')}
+        </div>
+        <div class="er-card"><div class="er-card-body">
+          <div class="d-flex justify-content-between flex-wrap gap-2 mb-3">
+            <div><h5 class="fw-700 mb-0"><span class="acc-code fs-6">${a.code}</span>${esc(a.name)}</h5>
+              <div class="fs-13 text-muted">${AC.TYPES[AC.typeOf(a)].label} · ${g ? esc(g.name) : ''} · saldo normal ${nb} · ${formatDate(from)} s/d ${formatDate(to)}</div></div>
+            <div class="text-end fs-12 text-muted">${global ? 'Tampilan global per tanggal' : 'Tampilan rinci per transaksi'}${a.cashAccountId ? `<br><a href="finance-ledger.html?account=${a.cashAccountId}">Buka Buku Kas & Bank</a>` : ''}</div>
+          </div>
+          <div class="er-table-wrapper"><table class="er-table fin-report">
+            <thead><tr><th>Tanggal</th>${global ? '<th class="num">Jml Transaksi</th>' : '<th>No. Bukti</th><th>Keterangan</th>'}<th class="num">Debet</th><th class="num">Kredit</th><th class="num">Saldo</th></tr></thead>
+            <tbody>
+              <tr class="grp-row"><td>${formatDate(from)}</td><td colspan="${global ? 3 : 4}">Saldo awal</td><td class="num">${formatRupiah(L.opening)}</td></tr>
+              ${rows.map(r => global
+                ? `<tr><td>${formatDate(r.date)}</td><td class="num">${r.n}</td><td class="num">${money(r.d)}</td><td class="num">${money(r.k)}</td><td class="num">${formatRupiah(r.bal)}</td></tr>`
+                : `<tr><td class="text-nowrap">${formatDate(r.date)}</td>
+                    <td class="text-mono fs-12">${r.link ? `<a href="${r.link}" class="cell-link">${esc(r.no)}</a>` : esc(r.no)}</td>
+                    <td>${esc(r.desc)}${r.party ? ` <span class="fs-12 text-muted">· ${esc(r.party)}</span>` : ''}${r.adj ? ' <span class="badge bg-danger-subtle text-danger fw-normal">penyesuaian</span>' : ''}${r.projectId ? ` <span class="badge bg-light text-muted border fw-normal">${r.projectId}</span>` : ''}</td>
+                    <td class="num">${money(r.d)}</td><td class="num">${money(r.k)}</td><td class="num ${r.bal < 0 ? 'neg' : ''}">${formatRupiah(r.bal)}</td></tr>`).join('') ||
+                `<tr><td colspan="${global ? 5 : 6}" class="text-center text-muted py-3">Tidak ada mutasi di periode ini</td></tr>`}
+            </tbody>
+            <tfoot><tr><td colspan="${global ? 2 : 3}">Total mutasi · Saldo akhir</td><td class="num">${formatRupiah(L.totalD)}</td><td class="num">${formatRupiah(L.totalK)}</td><td class="num">${formatRupiah(L.closing)}</td></tr></tfoot>
+          </table></div>
+        </div></div>`;
+    }
+
+    function render() {
+      const from = document.getElementById('fFrom').value, to = document.getElementById('fTo').value;
+      if (!from || !to || to < from) { showToast('Periode tidak valid', 'error'); return; }
+      const id = document.getElementById('fAccount').value, adjusted = document.getElementById('fAdj').checked;
+      if (id) renderAccount(id, from, to, adjusted); else renderSummary(from, to, adjusted);
+    }
+
+    function exportCSV() {
+      if (!current) return;
+      if (current.mode === 'summary') {
+        const rows = [['Kode', 'Nama Akun', 'Saldo Awal', 'Debet', 'Kredit', 'Saldo Akhir']];
+        current.rows.forEach(a => { const s = current.sum[a.id], sign = AC.normalOf(a) === 'D' ? 1 : -1; rows.push([a.code, a.name, s.open * sign, s.d, s.k, (s.open + s.d - s.k) * sign]); });
+        downloadCSV('buku-besar-ringkasan.csv', rows); return;
+      }
+      const a = current.account, rows = [['Buku Besar', a.code + ' ' + a.name], [], current.mode === 'global' ? ['Tanggal', 'Jml Transaksi', 'Debet', 'Kredit', 'Saldo'] : ['Tanggal', 'No. Bukti', 'Keterangan', 'Debet', 'Kredit', 'Saldo']];
+      rows.push(current.mode === 'global' ? ['Saldo awal', '', '', '', current.L.opening] : ['Saldo awal', '', '', '', '', current.L.opening]);
+      current.rows.forEach(r => rows.push(current.mode === 'global' ? [r.date, r.n, r.d, r.k, r.bal] : [r.date, r.no, r.desc, r.d, r.k, r.bal]));
+      downloadCSV('buku-besar-' + a.code + '.csv', rows);
+    }
+
+    render();
+  </script>
+</body>
+</html>

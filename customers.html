@@ -75,6 +75,10 @@
                 <label class="form-label form-label-er">Alamat Email</label>
                 <input type="email" class="form-control" id="cusEmail">
               </div>
+              <div class="col-md-6">
+                <label class="form-label form-label-er">NPWP</label>
+                <input type="text" class="form-control text-mono" id="cusTaxId" placeholder="15 / 16 digit, untuk Faktur Pajak (Coretax)">
+              </div>
               <div class="col-12">
                 <label class="form-label form-label-er">Alamat Lengkap</label>
                 <textarea class="form-control" id="cusAddress" rows="2"></textarea>
@@ -119,6 +123,7 @@
         phone: document.getElementById('cusPhone').value,
         email: document.getElementById('cusEmail').value,
         address: document.getElementById('cusAddress').value,
+        taxId: document.getElementById('cusTaxId').value.trim(),
         status: document.getElementById('cusStatus').value
       };
 

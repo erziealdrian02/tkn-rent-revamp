@@ -34,6 +34,7 @@ Cara baca diagram:
 | 7 | [Pembayaran & Piutang](#7-pembayaran-piutang--arus-kas) | Cicilan / lunas, laporan piutang |
 | 8 | [Pembelian & Stok](#8-pembelian--perpindahan-stok) | Alat baru, PO, penerimaan, perpindahan stok |
 | 9 | [Kas & Bank](#9-kas--bank-laporan-kas--rekonsiliasi-bank) | Bon Biru / Bon Merah, pindah dana, Laporan Kas, Rekonsiliasi Bank |
+| 10 | [Akuntansi & Pajak](#10-akuntansi--pajak) | COA, jurnal Laporan Kas, buku besar, kertas kerja, penyesuaian, laba rugi, neraca, PPN & PPh 23 (XML Coretax) |
 
 ---
 
@@ -757,6 +758,77 @@ Sys->LED:transaksi yang dicentang diberi tanda ✓ (sudah direkonsiliasi, terkun
 
 ---
 
+## 10. Akuntansi & Pajak
+
+Mengikuti file `excel/1. ALUR COA & TAX.xlsx`. Halaman: `coa.html` (Bagan Akun) → `journal.html` (A. Jurnal) → `general-ledger.html` (B. Buku Besar) → `worksheet.html` (C. Kertas Kerja) → `adjustments.html` (D. Jurnal Penyesuaian) → `profit-loss.html` (Laba Rugi) & `balance-sheet.html` (Neraca). Pajak: `tax-ppn.html` & `tax-pph23.html`. Logika di `assets/js/accounting.js`.
+
+Prinsip:
+- **COA = pengelompokan Laporan Kas.** Tiap kategori Bon Biru / Bon Merah punya akun COA default (Bagan Akun › Pemetaan Laporan Kas → COA). Akun Kas & Bank (1-11xx) dibuat otomatis dari Rekening Perusahaan.
+- **Saldo awal 2026 = saldo akhir neraca 2025**, diisi per akun di Bagan Akun (harus seimbang debet = kredit).
+- Jurnal **otomatis** dari: Laporan Kas (setiap bon), Penjualan / AR (setiap invoice: Piutang / Pendapatan Sewa / PPN Keluaran), Pembelian & Stok (setiap penerimaan barang PB: Pembelian / PPN Masukan / Hutang Dagang). Yang manual hanya **Jurnal Penyesuaian**.
+- **Persediaan** dinilai dari data stok (qty gudang + lokasi proyek × harga PO terakhir). HPP = persediaan awal + pembelian − persediaan akhir, dibuat otomatis sebagai penyesuaian per tanggal laporan.
+- **Pajak** ditarik dari akun bertanda pajak di Buku Besar: 2-2002 PPN Masukan & Keluaran, 2-2001 Hutang PPh 23, 1-1304 Piutang Pajak.
+
+```
+title 10 - Akuntansi & Pajak
+
+actor Finance
+participant "coa.html\n(Bagan Akun)" as COA
+participant "journal.html\n(Jurnal)" as JR
+participant "general-ledger.html\n(Buku Besar)" as GL
+participant "worksheet.html\n(Kertas Kerja)" as WS
+participant "adjustments.html\n(Jurnal Penyesuaian)" as ADJ
+participant "profit-loss.html /\nbalance-sheet.html" as RPT
+participant "tax-ppn.html /\ntax-pph23.html" as TAX
+
+==SIAPKAN==
+Finance->COA:cek saldo awal 2026 (= saldo akhir 2025) → "Neraca Awal Seimbang"
+Finance->COA:tab "Pemetaan Laporan Kas → COA" → pilih akun default per kategori
+
+==A. JURNAL ATAS LAPORAN KAS==
+note right of JR:Bon Biru / Bon Merah dari Buku Kas & Bank\notomatis muncul di sini
+Finance->JR:filter "Perlu dicek (kategori campuran)"
+Finance->JR:per baris pilih "Nama Akun (COA)" + "Proyek"
+note right of JR:Tanggal - Nama Akun - Uraian - Debet - Kredit - Saldo
+JR->GL:diposting otomatis (+ jurnal invoice & pembelian)
+
+==B. BUKU BESAR==
+Finance->GL:pilih akun
+alt akun Kas / Bank
+  GL-->Finance:global per tanggal (Tanggal - Debet - Kredit - Saldo)
+else akun biaya / lainnya
+  GL-->Finance:rinci per transaksi (Tanggal - Keterangan - Debet - Kredit - Saldo)
+end
+
+==C. KERTAS KERJA==
+Finance->WS:pilih tahun buku + s/d bulan
+WS-->Finance:Neraca 2025 | Mutasi | Adjustment | Neraca | Laba Rugi + cek seimbang
+
+==D. JURNAL PENYESUAIAN==
+Finance->ADJ:"Tambah Jurnal Penyesuaian" (template: penyusutan, akrual, PPh 23, koreksi akun)
+alt debet ≠ kredit
+  ADJ-->Finance:"Jurnal tidak seimbang"
+else ada akun Hutang PPh 23 / Piutang Pajak
+  ADJ-->Finance:wajib isi lawan transaksi, NPWP, DPP (untuk bukti potong)
+else ok
+  ADJ->GL:terlink ke Buku Besar, Kertas Kerja & Neraca
+end
+note right of ADJ:Penyesuaian persediaan akhir dari data stok\ndibuat otomatis (tidak perlu input)
+
+==LAPORAN==
+Finance->RPT:Laba Rugi: Keseluruhan / Per proyek / Perbandingan antar proyek
+Finance->RPT:Neraca: sebelum / setelah penyesuaian → "Total Aktiva = Total Pasiva"
+
+==PAJAK==
+Finance->TAX:PPN: pilih masa → centang faktur → "Export XML Coretax"
+alt NPWP pelanggan kosong
+  TAX-->Finance:peringatan "Belum diisi" (isi di Pelanggan)
+end
+Finance->TAX:PPh 23: pilih masa → "Export XML Coretax" (bukti potong)
+```
+
+---
+
 ## Lampiran A - Peta Menu Sidebar
 
 | Grup | Menu | File |
@@ -789,6 +861,15 @@ Sys->LED:transaksi yang dicentang diberi tanda ✓ (sudah direkonsiliasi, terkun
 | | Buku Kas & Bank | `finance-ledger.html` |
 | | Laporan Kas | `cash-report.html` |
 | | Rekonsiliasi Bank | `bank-reconciliation.html` |
+| AKUNTANSI | Bagan Akun (COA) | `coa.html` |
+| | Jurnal | `journal.html` |
+| | Buku Besar | `general-ledger.html` |
+| | Kertas Kerja | `worksheet.html` |
+| | Jurnal Penyesuaian | `adjustments.html` |
+| | Laba Rugi | `profit-loss.html` |
+| | Neraca | `balance-sheet.html` |
+| PAJAK | PPN | `tax-ppn.html` |
+| | PPh 23 | `tax-pph23.html` |
 | ADMINISTRASI | Pengguna / Peran | `users.html`, `roles.html`, `role-create.html` |
 | Driver (login Driver) | Dashboard / Pengiriman Saya | `driver-dashboard.html`, `driver-deliveries.html`, `driver-delivery-detail.html` |
 
@@ -829,6 +910,7 @@ Sys->LED:transaksi yang dicentang diberi tanda ✓ (sudah direkonsiliasi, terkun
 | BB | **Bon Biru**: kas / bank masuk (menambah saldo) | "Bon Biru (Masuk)", pembayaran invoice (otomatis), sisi tujuan "Pindah Dana" |
 | BM | **Bon Merah**: kas / bank keluar (mengurangi saldo) | "Bon Merah (Keluar)", "Bayar Supplier", sisi asal "Pindah Dana" |
 | REK | Rekonsiliasi Bank | "Simpan Rekonsiliasi" |
+| JP | Jurnal Penyesuaian | "Tambah Jurnal Penyesuaian" (`JP-YYMM-NNN`); `JP-STOK` = penyesuaian persediaan otomatis |
 
 Format nomor bon: `BB-YYMM-NNN` / `BM-YYMM-NNN`, urut per bulan.
 
@@ -843,6 +925,12 @@ Ini bukan bagian dari flow. Bug yang ditemukan saat memetakan flow sudah diperba
 - Bon yang berasal dari pembayaran invoice tidak bisa dihapus dari Buku Kas & Bank, dan pembayaran invoice belum bisa dibatalkan.
 - Rekonsiliasi hanya melihat transaksi **di dalam periode** yang dipilih. Transaksi periode sebelumnya yang belum cocok tidak ikut terbawa.
 - Nilai klaim default dihitung dari harga sewa (hilang = ×10, rusak = 30% dari itu), belum dari harga beli alat. Nilainya bisa diubah di detail klaim.
+
+**Akuntansi & pajak**
+- Pembelian diakui saat barang diterima (dokumen PB), dinilai harga PO + PPN Masukan 11% (produksi internal tanpa PPN). Nilai persediaan memakai harga PO terakhir per alat.
+- Tahun buku contoh hanya 2026; saldo awal tahun berikutnya belum otomatis ditutup dari tahun sebelumnya.
+- PPh 23 dicatat lewat Jurnal Penyesuaian (Bon Merah dicatat neto, penyesuaian menambah biaya ke bruto + Hutang PPh 23).
+- Format XML Coretax mengikuti template impor (Faktur: `TaxInvoiceBulk`, Bupot: `BpuBulk`). Kode barang/jasa, satuan (`UM.0033`) dan kode objek pajak perlu dicocokkan dengan referensi Coretax sebelum dipakai sungguhan.
 
 **Hak akses**
 - Hak akses berlaku per **halaman** (menu & URL) dan untuk tombol **Setujui**. Tombol lain (buat, ubah, hapus) belum dibatasi per aksi.

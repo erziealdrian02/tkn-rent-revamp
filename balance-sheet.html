@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neraca - EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header">
+          <div class="page-header-left"><h2 class="page-header-title">Neraca</h2><p class="page-header-subtitle">Sumber buku besar: Kas & Bank, Aset, Piutang, Hutang, Modal, Akumulasi Penyusutan</p></div>
+          <div class="page-header-actions no-print">
+            <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-download me-1"></i>Export CSV</button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak</button>
+          </div>
+        </div>
+        <div id="flowBar"></div>
+
+        <div class="er-card mb-4 no-print"><div class="er-card-body">
+          <div class="table-toolbar mb-0"><div class="table-toolbar-left flex-wrap">
+            <label class="fs-13 text-muted">Per</label>
+            <select class="filter-select" id="fYear" onchange="render()"></select>
+            <select class="filter-select" id="fMonth" onchange="render()"></select>
+            <select class="filter-select" id="fAdj" onchange="render()">
+              <option value="1">Neraca setelah penyesuaian</option>
+              <option value="0">Neraca sebelum penyesuaian</option>
+            </select>
+          </div></div>
+        </div></div>
+
+        <div class="er-card"><div class="er-card-body">
+          <div class="text-center mb-3">
+            <h5 class="fw-700 mb-0" id="companyName"></h5>
+            <div class="fw-600" id="title"></div>
+            <div class="fs-13 text-muted" id="subtitle"></div>
+          </div>
+          <div class="row g-4" id="report"></div>
+          <div class="text-center mt-3" id="check"></div>
+        </div></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
+  <script src="assets/js/accounting.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    initApp('balance-sheet.html', [{label:'Akuntansi',href:'#'},{label:'Neraca'}], 'Neraca');
+    const AC = BizLogic.Accounting;
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const rp = v => v < 0 ? `<span class="neg">(${formatRupiah(-v)})</span>` : formatRupiah(v);
+    document.getElementById('flowBar').innerHTML = AC.flowBar('balance-sheet.html');
+    document.getElementById('companyName').textContent = MockData.company.name;
+    AC.fillPeriod(document.getElementById('fYear'), document.getElementById('fMonth'));
+    let bs = null;
+
+    function render() {
+      const to = AC.periodEnd(document.getElementById('fYear'), document.getElementById('fMonth'));
+      const adjusted = document.getElementById('fAdj').value === '1';
+      bs = AC.balanceSheet(to, adjusted);
+      const m = AC.monthName(Number(to.substr(5, 2))).toUpperCase(), y = to.substr(0, 4);
+      document.getElementById('title').textContent = `NERACA PER ${m} ${y}`;
+      document.getElementById('subtitle').textContent = (adjusted ? 'Setelah penyesuaian' : 'Sebelum penyesuaian (persediaan belum disesuaikan dengan stok akhir)') + ' · per ' + formatDate(to);
+      const link = a => `<span class="acc-code">${a.code}</span><a href="general-ledger.html?account=${encodeURIComponent(a.id)}&to=${to}">${esc(a.name)}</a>`;
+      const rows = list => list.map(r => `<tr><td class="ind-1">${link(r.account)}</td><td class="num">${rp(r.amount)}</td></tr>`).join('') || '<tr><td class="ind-1 text-muted" colspan="2">-</td></tr>';
+      const sec = t => `<tr class="sec-row"><td colspan="2">${t}</td></tr>`;
+      const tot = (t, v, cls = 'total-row') => `<tr class="${cls}"><td>${t}</td><td class="num">${rp(v)}</td></tr>`;
+      const table = body => `<div class="er-table-wrapper"><table class="er-table fin-report"><tbody>${body}</tbody></table></div>`;
+      document.getElementById('report').innerHTML = `
+        <div class="col-lg-6"><h6 class="fw-700 text-center">AKTIVA</h6>${table(
+          sec('AKTIVA LANCAR') + rows(bs.currentAssets) + tot('TOTAL AKTIVA LANCAR', bs.totalCurrent) +
+          sec('AKTIVA TETAP') + rows(bs.fixedAssets) + tot('TOTAL AKTIVA TETAP', bs.totalFixed) +
+          tot('TOTAL AKTIVA', bs.totalAssets, 'grand-row'))}</div>
+        <div class="col-lg-6"><h6 class="fw-700 text-center">PASIVA</h6>${table(
+          sec('LIABILITAS') + rows(bs.liabilities) + tot('TOTAL LIABILITAS', bs.totalLiabilities) +
+          sec('EKUITAS') + rows(bs.equity) +
+          `<tr><td class="ind-1"><span class="acc-code">3-0003</span><a href="profit-loss.html">Laba / Rugi Berjalan ${AC.monthName(Number(to.substr(5, 2)))} ${y}</a></td><td class="num">${rp(bs.currentProfit)}</td></tr>` +
+          tot('TOTAL EKUITAS', bs.totalEquity) + tot('TOTAL PASIVA', bs.totalPassiva, 'grand-row'))}</div>`;
+      document.getElementById('check').innerHTML = bs.difference === 0
+        ? '<span class="check-badge ok"><i class="bi bi-check2"></i>Total Aktiva = Total Pasiva</span>'
+        : `<span class="check-badge bad"><i class="bi bi-x"></i>Selisih ${formatRupiah(bs.difference)} — cek saldo awal di Bagan Akun</span>`;
+    }
+
+    function exportCSV() {
+      const rows = [['Neraca', MockData.company.name], ['Per', bs.to, bs.adjusted ? 'Setelah penyesuaian' : 'Sebelum penyesuaian'], [], ['Bagian', 'Kode', 'Akun', 'Jumlah']];
+      const add = (title, list) => list.forEach(r => rows.push([title, r.account.code, r.account.name, r.amount]));
+      add('Aktiva Lancar', bs.currentAssets); rows.push(['Total Aktiva Lancar', '', '', bs.totalCurrent]);
+      add('Aktiva Tetap', bs.fixedAssets); rows.push(['Total Aktiva Tetap', '', '', bs.totalFixed], ['TOTAL AKTIVA', '', '', bs.totalAssets]);
+      add('Liabilitas', bs.liabilities); rows.push(['Total Liabilitas', '', '', bs.totalLiabilities]);
+      add('Ekuitas', bs.equity); rows.push(['Ekuitas', '3-0003', 'Laba/Rugi Berjalan', bs.currentProfit], ['Total Ekuitas', '', '', bs.totalEquity], ['TOTAL PASIVA', '', '', bs.totalPassiva]);
+      downloadCSV('neraca-' + bs.to + '.csv', rows);
+    }
+
+    render();
+  </script>
+</body>
+</html>

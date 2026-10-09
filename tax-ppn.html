@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PPN - EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header">
+          <div class="page-header-left"><h2 class="page-header-title">PPN</h2><p class="page-header-subtitle">Terlink dari Buku Besar akun PPN Masukan & Keluaran — Faktur Keluaran siap diupload ke Coretax (XML)</p></div>
+          <div class="page-header-actions">
+            <a href="tax-pph23.html" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-ruled me-1"></i>PPh 23</a>
+            <button class="btn btn-primary btn-sm" onclick="exportXml()"><i class="bi bi-filetype-xml me-1"></i>Export XML Coretax</button>
+          </div>
+        </div>
+
+        <div class="er-card mb-4"><div class="er-card-body">
+          <div class="table-toolbar mb-0"><div class="table-toolbar-left flex-wrap">
+            <label class="fs-13 text-muted">Masa pajak</label>
+            <select class="filter-select" id="fMonth" onchange="render()"></select>
+            <select class="filter-select" id="fYear" onchange="render()"></select>
+            <span class="fs-12 text-muted">NPWP perusahaan: <span class="text-mono" id="companyNpwp"></span></span>
+          </div></div>
+        </div></div>
+
+        <div class="row g-3 mb-4" id="kpis"></div>
+
+        <div class="er-card mb-4"><div class="er-card-body">
+          <div class="d-flex justify-content-between flex-wrap gap-2 mb-2">
+            <h6 class="fw-700 mb-0">PPN Keluaran <span class="fs-12 fw-normal text-muted">— dari invoice (Penjualan / AR), kredit akun 2-2002</span></h6>
+            <span class="fs-12 text-muted" id="selInfo"></span>
+          </div>
+          <div class="er-table-wrapper"><table class="er-table">
+            <thead><tr><th style="width:36px"><input type="checkbox" class="form-check-input" id="checkAll" onchange="toggleAll(this.checked)"></th><th>Tanggal</th><th>No. Invoice</th><th>Pembeli</th><th>NPWP Pembeli</th><th class="num">DPP</th><th class="num">DPP Nilai Lain (11/12)</th><th class="num">PPN</th></tr></thead>
+            <tbody id="outBody"></tbody>
+            <tfoot id="outFoot"></tfoot>
+          </table></div>
+        </div></div>
+
+        <div class="row g-4">
+          <div class="col-xl-6"><div class="er-card h-100"><div class="er-card-body">
+            <h6 class="fw-700 mb-2">PPN Masukan <span class="fs-12 fw-normal text-muted">— dari pembelian, debet akun 2-2002</span></h6>
+            <div class="er-table-wrapper"><table class="er-table">
+              <thead><tr><th>Tanggal</th><th>No. Dokumen</th><th>Pemasok</th><th class="num">DPP</th><th class="num">PPN</th></tr></thead>
+              <tbody id="inBody"></tbody><tfoot id="inFoot"></tfoot>
+            </table></div>
+            <p class="fs-12 text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>PPN Masukan dikreditkan dari faktur pemasok yang sudah ada di Coretax, tidak perlu diupload.</p>
+          </div></div></div>
+          <div class="col-xl-6"><div class="er-card h-100"><div class="er-card-body">
+            <h6 class="fw-700 mb-2">Rekap per Masa <span class="fs-12 fw-normal text-muted" id="yearLabel"></span></h6>
+            <div class="er-table-wrapper"><table class="er-table fin-report">
+              <thead><tr><th>Masa</th><th class="num">Keluaran</th><th class="num">Masukan</th><th class="num" title="Kurang Bayar / (Lebih Bayar)">KB / (LB)</th></tr></thead>
+              <tbody id="recapBody"></tbody>
+            </table></div>
+          </div></div></div>
+        </div>
+
+        <div class="alert alert-light border fs-12 mt-4 mb-0"><i class="bi bi-filetype-xml me-1"></i>
+          Format XML mengikuti template impor Faktur Pajak Coretax (<code>TaxInvoiceBulk</code>): kode transaksi 04, DPP Nilai Lain = 11/12 × DPP, tarif 12% (= PPN efektif 11%).
+          Jasa sewa diisi Opt <code>B</code>, kode <code>000000</code>, satuan <code>UM.0033</code> — cocokkan kode barang/jasa & satuan dengan referensi Coretax perusahaan sebelum upload.</div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
+  <script src="assets/js/accounting.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    initApp('tax-ppn.html', [{label:'Pajak',href:'#'},{label:'PPN'}], 'PPN');
+    const AC = BizLogic.Accounting;
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const now = new Date();
+    document.getElementById('fMonth').innerHTML = Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}"${i === now.getMonth() ? ' selected' : ''}>${AC.monthName(i + 1)}</option>`).join('');
+    AC.fillPeriod(document.getElementById('fYear'), document.createElement('select'));
+    document.getElementById('companyNpwp').textContent = AC.formatNpwp(MockData.company.taxId) || '-';
+    let outRows = [], selected = new Set();
+
+    function period() {
+      const y = Number(document.getElementById('fYear').value), m = Number(document.getElementById('fMonth').value);
+      return { from: `${y}-${String(m).padStart(2, '0')}-01`, to: AC.monthEnd(y, m), y, m };
+    }
+
+    function render() {
+      const { from, to, y, m } = period();
+      const rows = AC.taxRows('PPN', from, to);
+      outRows = rows.filter(r => r.direction === 'OUT');
+      const inRows = rows.filter(r => r.direction === 'IN');
+      selected = new Set(outRows.filter(r => r.npwp).map(r => r.no));
+      const sum = (list, k) => list.reduce((s, r) => s + (r[k] || 0), 0);
+      const out = sum(outRows, 'amount'), inn = sum(inRows, 'amount'), missing = outRows.filter(r => !r.npwp).length;
+      document.getElementById('kpis').innerHTML = [
+        ['blue', 'bi-box-arrow-up-right', 'PPN Keluaran ' + AC.monthName(m), formatRupiah(out)],
+        ['green', 'bi-box-arrow-in-down-left', 'PPN Masukan ' + AC.monthName(m), formatRupiah(inn)],
+        [out - inn >= 0 ? 'red' : 'purple', 'bi-calculator', out - inn >= 0 ? 'PPN Kurang Bayar' : 'PPN Lebih Bayar', formatRupiah(Math.abs(out - inn))],
+        [missing ? 'orange' : 'green', missing ? 'bi-exclamation-triangle' : 'bi-filetype-xml', missing ? `${missing} faktur belum ada NPWP pembeli` : 'Faktur siap diekspor', outRows.length + ' faktur']
+      ].map(([c, i, l, v]) => `<div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon ${c}"><i class="bi ${i}"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${v}</div><div class="kpi-label">${l}</div></div></div></div>`).join('');
+
+      document.getElementById('outBody').innerHTML = outRows.map(r => `<tr>
+        <td><input type="checkbox" class="form-check-input row-cb" ${selected.has(r.no) ? 'checked' : ''} onchange="toggleRow('${r.no}', this.checked)"></td>
+        <td class="text-nowrap">${formatDate(r.date)}</td>
+        <td class="text-mono fs-12"><a href="invoice-detail.html?id=${r.no}" class="cell-link">${esc(r.no)}</a></td>
+        <td>${esc(r.party)}</td>
+        <td class="text-mono fs-12 text-nowrap">${r.npwp ? AC.formatNpwp(r.npwp) : `<a href="customer-detail.html?id=${r.customer ? r.customer.id : ''}" class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Belum diisi</a>`}</td>
+        <td class="num">${formatRupiah(r.dpp)}</td><td class="num">${formatRupiah(Math.round(r.dpp * 11 / 12))}</td><td class="num fw-600">${formatRupiah(r.amount)}</td></tr>`).join('')
+        || '<tr><td colspan="8" class="text-center text-muted py-4">Tidak ada PPN Keluaran di masa ini</td></tr>';
+      document.getElementById('outFoot').innerHTML = `<tr><td colspan="5">Total ${outRows.length} faktur</td><td class="num">${formatRupiah(sum(outRows, 'dpp'))}</td><td class="num">${formatRupiah(outRows.reduce((s, r) => s + Math.round(r.dpp * 11 / 12), 0))}</td><td class="num">${formatRupiah(out)}</td></tr>`;
+      document.getElementById('inBody').innerHTML = inRows.map(r => `<tr><td class="text-nowrap">${formatDate(r.date)}</td>
+        <td class="text-mono fs-12">${r.journal.link ? `<a href="${r.journal.link}" class="cell-link">${esc(r.no)}</a>` : esc(r.no)}</td><td>${esc(r.party)}</td>
+        <td class="num">${formatRupiah(r.dpp)}</td><td class="num fw-600">${formatRupiah(r.amount)}</td></tr>`).join('')
+        || '<tr><td colspan="5" class="text-center text-muted py-4">Tidak ada PPN Masukan di masa ini</td></tr>';
+      document.getElementById('inFoot').innerHTML = `<tr><td colspan="3">Total</td><td class="num">${formatRupiah(sum(inRows, 'dpp'))}</td><td class="num">${formatRupiah(inn)}</td></tr>`;
+
+      document.getElementById('yearLabel').textContent = '— tahun ' + y;
+      const all = AC.taxRows('PPN', `${y}-01-01`, `${y}-12-31`);
+      document.getElementById('recapBody').innerHTML = Array.from({ length: 12 }, (_, i) => i + 1).map(mm => {
+        const list = all.filter(r => Number(r.date.substr(5, 2)) === mm);
+        const o = list.filter(r => r.direction === 'OUT').reduce((s, r) => s + r.amount, 0), n = list.filter(r => r.direction === 'IN').reduce((s, r) => s + r.amount, 0);
+        if (!o && !n) return '';
+        return `<tr class="${mm === m ? 'grp-row' : ''}" role="button" onclick="document.getElementById('fMonth').value=${mm}; render()"><td>${AC.monthName(mm)}</td><td class="num">${formatRupiah(o)}</td><td class="num">${formatRupiah(n)}</td><td class="num ${o - n < 0 ? 'neg' : ''}">${o - n < 0 ? '(' + formatRupiah(n - o) + ')' : formatRupiah(o - n)}</td></tr>`;
+      }).join('') || '<tr><td colspan="4" class="text-center text-muted py-3">Belum ada transaksi PPN</td></tr>';
+      updateSel();
+    }
+
+    function toggleRow(no, on) { if (on) selected.add(no); else selected.delete(no); updateSel(); }
+    function toggleAll(on) { selected = new Set(on ? outRows.map(r => r.no) : []); document.querySelectorAll('.row-cb').forEach(cb => cb.checked = on); updateSel(); }
+    function updateSel() {
+      document.getElementById('selInfo').textContent = `${selected.size} dari ${outRows.length} faktur dipilih untuk XML`;
+      document.getElementById('checkAll').checked = outRows.length > 0 && selected.size === outRows.length;
+    }
+
+    function exportXml() {
+      const rows = outRows.filter(r => selected.has(r.no));
+      if (!rows.length) { showToast('Pilih minimal 1 faktur', 'warning'); return; }
+      const noNpwp = rows.filter(r => !r.npwp);
+      if (noNpwp.length && !confirmAction(noNpwp.length + ' faktur belum ada NPWP pembeli (akan diisi sebagai non-NPWP). Lanjutkan ekspor?')) return;
+      const { y, m } = period();
+      AC.download(`faktur-keluaran-coretax-${y}-${String(m).padStart(2, '0')}.xml`, AC.coretaxFakturXml(rows));
+      BizLogic.Activity.log('Ekspor XML Coretax faktur keluaran ' + AC.monthName(m) + ' ' + y + ' (' + rows.length + ' faktur)', 'info');
+      showToast('XML Coretax diunduh (' + rows.length + ' faktur)', 'success');
+    }
+
+    render();
+  </script>
+</body>
+</html>

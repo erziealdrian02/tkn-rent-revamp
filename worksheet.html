@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kertas Kerja - EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header">
+          <div class="page-header-left"><h2 class="page-header-title">Kertas Kerja</h2><p class="page-header-subtitle">C. Penyusunan kertas kerja — saldo awal + mutasi buku besar + penyesuaian → neraca & laba rugi</p></div>
+          <div class="page-header-actions no-print">
+            <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-download me-1"></i>Export CSV</button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak</button>
+            <a href="adjustments.html" class="btn btn-primary btn-sm"><i class="bi bi-pencil-square me-1"></i>Jurnal Penyesuaian</a>
+          </div>
+        </div>
+        <div id="flowBar"></div>
+
+        <div class="er-card mb-4 no-print"><div class="er-card-body">
+          <div class="table-toolbar mb-2"><div class="table-toolbar-left flex-wrap">
+            <label class="fs-13 text-muted">Tahun buku</label>
+            <select class="filter-select" id="fYear" onchange="render()"></select>
+            <select class="filter-select" id="fMonth" onchange="render()"></select>
+            <label class="d-flex align-items-center gap-2 fs-13"><input type="checkbox" class="form-check-input m-0" id="fHide" checked onchange="render()"> Sembunyikan akun tanpa saldo</label>
+          </div></div>
+          <div class="fs-12 text-muted mb-1">Sumber data mutasi:</div>
+          <div class="flow-steps" id="sources"></div>
+        </div></div>
+
+        <div class="er-card"><div class="er-card-body">
+          <div class="text-center mb-3">
+            <h5 class="fw-700 mb-0" id="companyName"></h5>
+            <div class="fw-600" id="wsTitle"></div>
+            <div class="fs-13 text-muted" id="periodText"></div>
+          </div>
+          <div class="er-table-wrapper"><table class="er-table ws-table fin-report">
+            <thead id="wsHead"></thead>
+            <tbody id="wsBody"></tbody>
+            <tfoot id="wsFoot"></tfoot>
+          </table></div>
+          <div class="d-flex flex-wrap gap-2 mt-3" id="checks"></div>
+        </div></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
+  <script src="assets/js/accounting.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    initApp('worksheet.html', [{label:'Akuntansi',href:'#'},{label:'Kertas Kerja'}], 'Kertas Kerja');
+    const AC = BizLogic.Accounting;
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const n = v => v ? formatNumber(v) : '';
+    document.getElementById('flowBar').innerHTML = AC.flowBar('worksheet.html');
+    document.getElementById('companyName').textContent = MockData.company.name;
+    AC.fillPeriod(document.getElementById('fYear'), document.getElementById('fMonth'));
+    let ws = null;
+
+    // Sumber data kertas kerja (catatan excel C): penjualan, purchasing, hutang, stock, piutang, kas & bank, asset
+    function renderSources() {
+      const s = ws.sources;
+      const chip = (href, icon, label, count) => `<a href="${href}" class="step"><i class="bi ${icon}"></i>${label}${count != null ? ` <span class="badge bg-light text-muted border">${count}</span>` : ''}</a>`;
+      document.getElementById('sources').innerHTML = [
+        chip('journal.html', 'bi-wallet2', 'Kas & Bank (Laporan Kas)', s.kas || 0),
+        chip('invoices.html', 'bi-receipt', 'Penjualan (AR)', s.penjualan || 0),
+        chip('receivables.html', 'bi-journal-text', 'Piutang', null),
+        chip('purchases.html', 'bi-cart', 'Purchasing', s.pembelian || 0),
+        chip('general-ledger.html?account=2-1001', 'bi-credit-card', 'Hutang', null),
+        chip('stock-report.html', 'bi-boxes', 'Stock (persediaan akhir)', s.stok || 0),
+        chip('general-ledger.html?account=1-2005', 'bi-building', 'Asset', null),
+        chip('adjustments.html', 'bi-pencil-square', 'Penyesuaian', s.penyesuaian || 0)
+      ].join('');
+    }
+
+    function render() {
+      const to = AC.periodEnd(document.getElementById('fYear'), document.getElementById('fMonth'));
+      const year = Number(to.substr(0, 4)), m = Number(to.substr(5, 2));
+      const range = 'JAN' + (m > 1 ? ' - ' + AC.monthName(m).substr(0, 3).toUpperCase() : '') + ' ' + year;
+      ws = AC.worksheet(to);
+      renderSources();
+      document.getElementById('wsTitle').textContent = 'KERTAS KERJA (WORKSHEET) ' + year;
+      document.getElementById('periodText').textContent = AC.periodText(to);
+      document.getElementById('wsHead').innerHTML = `
+        <tr><th rowspan="2">Keterangan</th>
+          <th colspan="2" class="group sep">NERACA ${year - 1}</th><th colspan="2" class="group sep">MUTASI ${range}</th><th colspan="2" class="group sep">ADJUSTMENT ${year}</th>
+          <th colspan="2" class="group sep">NERACA ${range}</th><th colspan="2" class="group sep">LABA RUGI ${range}</th></tr>
+        <tr>${'<th class="num sep">Debet</th><th class="num">Kredit</th>'.repeat(5)}</tr>`;
+      const hide = document.getElementById('fHide').checked;
+      const cols = r => [['openD', 'openK'], ['mutD', 'mutK'], ['adjD', 'adjK'], ['nrD', 'nrK'], ['lrD', 'lrK']]
+        .map(([d, k]) => `<td class="num sep">${n(r[d])}</td><td class="num">${n(r[k])}</td>`).join('');
+      document.getElementById('wsBody').innerHTML = Object.keys(AC.TYPES).map(t => {
+        const list = ws.rows.filter(r => AC.typeOf(r.account) === t && !(hide && r.empty));
+        if (!list.length) return '';
+        return `<tr class="ws-grp"><td colspan="11">${t} · ${AC.TYPES[t].label.toUpperCase()}</td></tr>` + list.map(r =>
+          `<tr><td class="text-nowrap"><span class="acc-code">${r.account.code}</span><a href="general-ledger.html?account=${encodeURIComponent(r.account.id)}&to=${to}" class="text-reset">${esc(r.account.name)}</a></td>${cols(r)}</tr>`).join('');
+      }).join('');
+      const T = ws.totals, p = ws.profit;
+      const after = { ...T, nrK: T.nrK + Math.max(p, 0), nrD: T.nrD + Math.max(-p, 0), lrD: T.lrD + Math.max(p, 0), lrK: T.lrK + Math.max(-p, 0) };
+      document.getElementById('wsFoot').innerHTML = `
+        <tr><td>TOTAL</td>${cols(T)}</tr>
+        <tr><td>${p >= 0 ? 'LABA' : 'RUGI'} BERJALAN</td><td class="sep"></td><td></td><td class="sep"></td><td></td><td class="sep"></td><td></td>
+          <td class="num sep">${p < 0 ? n(-p) : ''}</td><td class="num">${p > 0 ? n(p) : ''}</td><td class="num sep">${p > 0 ? n(p) : ''}</td><td class="num">${p < 0 ? n(-p) : ''}</td></tr>
+        <tr class="grand-row"><td>BALANCE</td>${cols(after)}</tr>
+        <tr class="fs-12"><td class="text-muted">Selisih (D − K)</td>${[['openD', 'openK'], ['mutD', 'mutK'], ['adjD', 'adjK'], ['nrD', 'nrK'], ['lrD', 'lrK']]
+          .map(([d, k]) => { const diff = after[d] - after[k]; return `<td class="num sep ${diff ? 'text-danger fw-700' : 'text-success'}" colspan="2">${diff ? formatNumber(diff) : '0'}</td>`; }).join('')}</tr>`;
+      const b = ws.balanced, badge = (ok, label) => `<span class="check-badge ${ok ? 'ok' : 'bad'}"><i class="bi ${ok ? 'bi-check2' : 'bi-x'}"></i>${label}</span>`;
+      document.getElementById('checks').innerHTML = badge(b.opening, 'Neraca awal seimbang') + badge(b.mutation, 'Mutasi seimbang') + badge(b.adjustment, 'Penyesuaian seimbang') +
+        badge(b.final, 'Neraca akhir = laba rugi') + `<span class="check-badge ${p >= 0 ? 'ok' : 'bad'}">${p >= 0 ? 'Laba' : 'Rugi'} berjalan ${formatRupiah(Math.abs(p))}</span>`;
+    }
+
+    function exportCSV() {
+      const rows = [['Kertas Kerja', MockData.company.name], ['Periode', ws.from + ' s/d ' + ws.to], [],
+        ['Kode', 'Keterangan', 'Neraca Awal D', 'Neraca Awal K', 'Mutasi D', 'Mutasi K', 'Adjustment D', 'Adjustment K', 'Neraca D', 'Neraca K', 'Laba Rugi D', 'Laba Rugi K']];
+      ws.rows.forEach(r => rows.push([r.account.code, r.account.name, r.openD, r.openK, r.mutD, r.mutK, r.adjD, r.adjK, r.nrD, r.nrK, r.lrD, r.lrK]));
+      const T = ws.totals;
+      rows.push(['', 'TOTAL', T.openD, T.openK, T.mutD, T.mutK, T.adjD, T.adjK, T.nrD, T.nrK, T.lrD, T.lrK]);
+      rows.push(['', 'LABA/RUGI BERJALAN', '', '', '', '', '', '', '', ws.profit, ws.profit, '']);
+      downloadCSV('kertas-kerja-' + ws.to + '.csv', rows);
+    }
+
+    render();
+  </script>
+</body>
+</html>

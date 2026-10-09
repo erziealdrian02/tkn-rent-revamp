@@ -39,6 +39,9 @@ const PAGE_MODULE = {
   'accounts.html': 'Accounts', 'finance-ledger.html': 'Accounts', 'cash-report.html': 'Accounts', 'bank-reconciliation.html': 'Accounts',
   'billing.html': 'Invoices', 'invoices.html': 'Invoices', 'invoice-detail.html': 'Invoices', 'invoice-shadow.html': 'Invoices',
   'payments.html': 'Invoices', 'receivables.html': 'Invoices',
+  'coa.html': 'Accounting', 'journal.html': 'Accounting', 'general-ledger.html': 'Accounting', 'worksheet.html': 'Accounting',
+  'adjustments.html': 'Accounting', 'profit-loss.html': 'Accounting', 'balance-sheet.html': 'Accounting',
+  'tax-ppn.html': 'Tax', 'tax-pph23.html': 'Tax',
   'users.html': 'Users', 'roles.html': 'Roles', 'role-create.html': 'Roles'
 };
 const DRIVER_PAGES = ['driver-dashboard.html', 'driver-deliveries.html', 'driver-delivery-detail.html'];
@@ -228,6 +231,17 @@ function renderSidebar(user, activePage) {
     html += sidebarLink('finance-ledger.html', 'bi-wallet2', 'Bank Ledger', activePage);
     html += sidebarLink('cash-report.html', 'bi-file-earmark-bar-graph', 'Cash Report', activePage);
     html += sidebarLink('bank-reconciliation.html', 'bi-check2-square', 'Bank Reconciliation', activePage);
+    html += sidebarSection('ACCOUNTING');
+    html += sidebarLink('coa.html', 'bi-diagram-3', 'Chart of Accounts', activePage);
+    html += sidebarLink('journal.html', 'bi-journal-bookmark', 'Journal', activePage);
+    html += sidebarLink('general-ledger.html', 'bi-book', 'General Ledger', activePage);
+    html += sidebarLink('worksheet.html', 'bi-table', 'Worksheet', activePage);
+    html += sidebarLink('adjustments.html', 'bi-pencil-square', 'Adjusting Entries', activePage);
+    html += sidebarLink('profit-loss.html', 'bi-graph-up-arrow', 'Profit & Loss', activePage);
+    html += sidebarLink('balance-sheet.html', 'bi-columns-gap', 'Balance Sheet', activePage);
+    html += sidebarSection('TAX');
+    html += sidebarLink('tax-ppn.html', 'bi-percent', 'VAT (PPN)', activePage);
+    html += sidebarLink('tax-pph23.html', 'bi-file-earmark-ruled', 'Withholding Tax (PPh 23)', activePage);
     html += sidebarSection('ADMINISTRATION');
     html += sidebarLink('users.html', 'bi-person-gear', 'Users', activePage);
     html += sidebarLink('roles.html', 'bi-shield-lock', 'Roles', activePage);
@@ -317,6 +331,17 @@ function renderSidebarI18n(user, activePage) {
     html += sidebarLinkI18n('finance-ledger.html', 'bi-wallet2', t('bank_ledger'), activePage, 'finance-ledger.html');
     html += sidebarLinkI18n('cash-report.html', 'bi-file-earmark-bar-graph', t('cash_report'), activePage, 'cash-report.html');
     html += sidebarLinkI18n('bank-reconciliation.html', 'bi-check2-square', t('bank_reconciliation'), activePage, 'bank-reconciliation.html');
+    html += sidebarSectionI18n(t('accounting_section'));
+    html += sidebarLinkI18n('coa.html', 'bi-diagram-3', t('coa'), activePage, 'coa.html');
+    html += sidebarLinkI18n('journal.html', 'bi-journal-bookmark', t('journal'), activePage, 'journal.html');
+    html += sidebarLinkI18n('general-ledger.html', 'bi-book', t('general_ledger'), activePage, 'general-ledger.html');
+    html += sidebarLinkI18n('worksheet.html', 'bi-table', t('worksheet'), activePage, 'worksheet.html');
+    html += sidebarLinkI18n('adjustments.html', 'bi-pencil-square', t('adjustments'), activePage, 'adjustments.html');
+    html += sidebarLinkI18n('profit-loss.html', 'bi-graph-up-arrow', t('profit_loss'), activePage, 'profit-loss.html');
+    html += sidebarLinkI18n('balance-sheet.html', 'bi-columns-gap', t('balance_sheet'), activePage, 'balance-sheet.html');
+    html += sidebarSectionI18n(t('tax_section'));
+    html += sidebarLinkI18n('tax-ppn.html', 'bi-percent', t('tax_ppn'), activePage, 'tax-ppn.html');
+    html += sidebarLinkI18n('tax-pph23.html', 'bi-file-earmark-ruled', t('tax_pph23'), activePage, 'tax-pph23.html');
     html += sidebarSectionI18n(t('administration'));
     html += sidebarLinkI18n('users.html', 'bi-person-gear', t('users'), activePage, 'users.html');
     html += sidebarLinkI18n('roles.html', 'bi-shield-lock', t('roles'), activePage, 'roles.html');

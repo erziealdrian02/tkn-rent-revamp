@@ -62,7 +62,7 @@
         <div class="info-item"><span class="info-label">Person In Charge (PIC)</span><span class="info-value">${cust.pic}</span></div>
         <div class="info-item"><span class="info-label">Phone</span><span class="info-value">${cust.phone}</span></div>
         <div class="info-item"><span class="info-label">Email</span><span class="info-value"><a href="mailto:${cust.email}">${cust.email}</a></span></div>
-        <div class="info-item"><span class="info-label">Tax ID (NPWP)</span><span class="info-value">${cust.taxId}</span></div>
+        <div class="info-item"><span class="info-label">Tax ID (NPWP)</span><span class="info-value">${cust.taxId || '<span class="text-danger">Belum diisi</span>'}</span></div>
         <div class="info-item" style="grid-column:1/-1"><span class="info-label">Address</span><span class="info-value">${cust.address}</span></div>
       </div>
     </div>`;

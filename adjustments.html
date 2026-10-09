@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jurnal Penyesuaian - EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header">
+          <div class="page-header-left"><h2 class="page-header-title">Jurnal Penyesuaian</h2><p class="page-header-subtitle">D. Koreksi atas transaksi — otomatis terlink ke Buku Besar, Kertas Kerja dan Neraca sesuai nama akun</p></div>
+          <div class="page-header-actions">
+            <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-download me-1"></i>Export CSV</button>
+            <button class="btn btn-primary btn-sm" onclick="openJournal()"><i class="bi bi-plus-lg me-1"></i>Tambah Jurnal Penyesuaian</button>
+          </div>
+        </div>
+        <div id="flowBar"></div>
+
+        <div class="er-card mb-4"><div class="er-card-body">
+          <div class="d-flex justify-content-between flex-wrap gap-2 mb-2">
+            <div><h6 class="fw-700 mb-0"><i class="bi bi-boxes me-1"></i>Penyesuaian Persediaan Akhir (otomatis dari data stok)</h6>
+              <div class="fs-12 text-muted">HPP = Persediaan awal + Pembelian − Persediaan akhir. Nilai stok = qty gudang + lokasi proyek × harga perolehan (PO terakhir).</div></div>
+            <div class="d-flex gap-2 align-items-center no-print">
+              <select class="filter-select" id="fYear" onchange="render()"></select>
+              <select class="filter-select" id="fMonth" onchange="render()"></select>
+            </div>
+          </div>
+          <div id="stockBox"></div>
+        </div></div>
+
+        <div class="er-card"><div class="er-card-body">
+          <div class="table-toolbar"><div class="table-toolbar-left flex-wrap">
+            <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Cari no., uraian, akun..." id="searchInput" oninput="renderList()"></div>
+            <select class="filter-select" id="fProject" onchange="renderList()"></select>
+          </div></div>
+          <div class="er-table-wrapper"><table class="er-table jr-table">
+            <thead><tr><th>Tanggal</th><th>No. Jurnal</th><th>Akun</th><th>Uraian</th><th class="num">Debet</th><th class="num">Kredit</th><th></th></tr></thead>
+            <tbody id="listBody"></tbody>
+          </table></div>
+        </div></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Tambah Jurnal Penyesuaian -->
+  <div class="modal fade" id="jrModal" tabindex="-1">
+    <div class="modal-dialog modal-xl"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Jurnal Penyesuaian</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+          <span class="fs-12 text-muted">Template:</span>
+          <button class="btn btn-sm btn-outline-secondary" onclick="tpl('depr')">Penyusutan aset tetap</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="tpl('accrual')">Akrual biaya</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="tpl('pph23')">PPh 23 atas biaya jasa / sewa</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="tpl('reclass')">Koreksi salah akun</button>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-3"><label class="form-label form-label-er">Tanggal *</label><input type="date" class="form-control" id="jrDate" onchange="refreshNo()"></div>
+          <div class="col-md-3"><label class="form-label form-label-er">No. Jurnal</label><input type="text" class="form-control text-mono" id="jrNo" readonly></div>
+          <div class="col-md-3"><label class="form-label form-label-er">Referensi</label><input type="text" class="form-control" id="jrRef" placeholder="No. bon / invoice / memo"></div>
+          <div class="col-md-3"><label class="form-label form-label-er">Proyek</label><select class="form-select" id="jrProject"></select></div>
+          <div class="col-12"><label class="form-label form-label-er">Uraian *</label><input type="text" class="form-control" id="jrDesc"></div>
+        </div>
+        <div class="er-table-wrapper mt-3"><table class="er-table">
+          <thead><tr><th style="width:36%">Akun</th><th>Keterangan baris</th><th class="num" style="width:170px">Debet</th><th class="num" style="width:170px">Kredit</th><th style="width:40px"></th></tr></thead>
+          <tbody id="lineBody"></tbody>
+          <tfoot><tr><td><button class="btn btn-sm btn-outline-primary" onclick="addLine()"><i class="bi bi-plus-lg me-1"></i>Tambah baris</button></td>
+            <td class="text-end" id="balanceInfo"></td><td class="num" id="sumD"></td><td class="num" id="sumK"></td><td></td></tr></tfoot>
+        </table></div>
+        <div id="taxBox" class="d-none mt-3 p-3 border rounded">
+          <div class="fw-600 mb-2"><i class="bi bi-file-earmark-ruled me-1"></i>Data Bukti Potong PPh 23 <span class="fs-12 text-muted fw-normal">— dipakai untuk XML Coretax di menu Pajak › PPh 23</span></div>
+          <div class="row g-3">
+            <div class="col-md-4"><label class="form-label form-label-er">Nama lawan transaksi *</label><input type="text" class="form-control" id="txParty"></div>
+            <div class="col-md-4"><label class="form-label form-label-er">NPWP (15/16 digit) *</label><input type="text" class="form-control text-mono" id="txNpwp"></div>
+            <div class="col-md-4"><label class="form-label form-label-er">Kode objek pajak</label><select class="form-select" id="txObject"></select></div>
+            <div class="col-md-3"><label class="form-label form-label-er">DPP (bruto) *</label><input type="number" class="form-control text-end" id="txDpp" oninput="calcTax()"></div>
+            <div class="col-md-2"><label class="form-label form-label-er">Tarif %</label><input type="number" class="form-control text-end" id="txRate" value="2" step="0.5" oninput="calcTax()"></div>
+            <div class="col-md-3"><label class="form-label form-label-er">No. dokumen</label><input type="text" class="form-control" id="txDocNo" placeholder="No. invoice vendor"></div>
+            <div class="col-md-4"><label class="form-label form-label-er">Tgl dokumen</label><input type="date" class="form-control" id="txDocDate"></div>
+            <div class="col-12 fs-12 text-muted" id="txHint"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+        <button class="btn btn-primary" onclick="submitJournal()"><i class="bi bi-check-lg me-1"></i>Simpan Jurnal</button>
+      </div>
+    </div></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
+  <script src="assets/js/accounting.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    initApp('adjustments.html', [{label:'Akuntansi',href:'#'},{label:'Jurnal Penyesuaian'}], 'Jurnal Penyesuaian');
+    const AC = BizLogic.Accounting;
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const today = AC.today();
+    document.getElementById('flowBar').innerHTML = AC.flowBar('adjustments.html');
+    AC.fillPeriod(document.getElementById('fYear'), document.getElementById('fMonth'));
+    const projOpts = '<option value="">- Umum / tanpa proyek -</option>' + MockData.projects.map(p => `<option value="${p.id}">${esc(p.id + ' · ' + p.name)}</option>`).join('');
+    document.getElementById('jrProject').innerHTML = projOpts;
+    document.getElementById('fProject').innerHTML = '<option value="">Semua proyek</option>' + MockData.projects.map(p => `<option value="${p.id}">${esc(p.id + ' · ' + p.name)}</option>`).join('');
+    document.getElementById('txObject').innerHTML = Object.keys(AC.TAX_OBJECTS).map(k => `<option value="${k}">${k} · ${AC.TAX_OBJECTS[k]}</option>`).join('');
+    let listRows = [];
+
+    // ---------- Persediaan akhir ----------
+    function renderStock() {
+      const to = AC.periodEnd(document.getElementById('fYear'), document.getElementById('fMonth'));
+      const base = AC.journals({ to, adjusted: false });
+      const sc = AC._stockClosing(to, base, AC.unitCosts());
+      const map = AC._index();
+      if (!sc) { document.getElementById('stockBox').innerHTML = '<div class="text-muted fs-13">Tidak ada penyesuaian persediaan.</div>'; return; }
+      const s = sc.stock;
+      document.getElementById('stockBox').innerHTML = `<div class="row g-3">
+        <div class="col-lg-5"><table class="er-table fin-report">
+          <tr><td>Persediaan awal ${to.substr(0, 4)} <span class="fs-12 text-muted">(saldo awal COA)</span></td><td class="num">${formatRupiah(s.opening)}</td></tr>
+          <tr><td>Pembelian <span class="fs-12 text-muted">(penerimaan barang s/d ${formatDate(to)})</span></td><td class="num">${formatRupiah(s.purchases)}</td></tr>
+          <tr class="total-row"><td>Barang tersedia</td><td class="num">${formatRupiah(s.opening + s.purchases)}</td></tr>
+          <tr><td>Persediaan akhir <a href="stock-report.html" class="fs-12">(data stok)</a></td><td class="num">(${formatRupiah(s.closing)})</td></tr>
+          <tr class="grand-row"><td>HPP</td><td class="num">${formatRupiah(s.hpp)}</td></tr>
+        </table></div>
+        <div class="col-lg-7"><table class="er-table jr-table">
+          <thead><tr><th>Akun</th><th>Keterangan</th><th class="num">Debet</th><th class="num">Kredit</th></tr></thead>
+          <tbody>${sc.lines.map(l => `<tr><td class="${l.k ? 'jr-credit' : ''}"><span class="acc-code">${map[l.acc].code}</span>${esc(map[l.acc].name)}</td><td class="fs-12 text-muted">${esc(l.memo)}</td>
+            <td class="num">${l.d ? formatRupiah(l.d) : ''}</td><td class="num">${l.k ? formatRupiah(l.k) : ''}</td></tr>`).join('')}</tbody>
+        </table>
+        <div class="fs-12 text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Dibuat otomatis per tanggal laporan (${formatDate(to)}), tidak perlu diinput. Ikut di Kertas Kerja, Neraca & Laba Rugi.</div></div>
+      </div>`;
+    }
+
+    // ---------- Daftar jurnal ----------
+    function renderList() {
+      const q = document.getElementById('searchInput').value.toLowerCase(), pf = document.getElementById('fProject').value;
+      const map = AC._index();
+      listRows = AC._manualJournals().filter(j => (!pf || j.projectId === pf) &&
+        (!q || `${j.no} ${j.desc} ${j.ref} ${j.lines.map(l => (map[l.acc] || {}).name).join(' ')}`.toLowerCase().includes(q)))
+        .sort((a, b) => b.date.localeCompare(a.date) || b.no.localeCompare(a.no));
+      document.getElementById('listBody').innerHTML = listRows.map(j => {
+        const lines = j.lines.slice().sort((a, b) => (b.d ? 1 : 0) - (a.d ? 1 : 0));
+        return lines.map((l, i) => { const a = map[l.acc] || { code: '', name: l.acc };
+          return `<tr class="${i === 0 ? 'jr-start' : ''} ${i < lines.length - 1 ? 'jr-line' : ''}">
+            <td class="text-nowrap">${i === 0 ? formatDate(j.date) : ''}</td>
+            <td class="text-mono fs-12">${i === 0 ? esc(j.no) : ''}</td>
+            <td class="${l.k ? 'jr-credit' : ''}"><span class="acc-code">${a.code}</span><a href="general-ledger.html?account=${encodeURIComponent(l.acc)}" class="text-reset">${esc(a.name)}</a></td>
+            <td class="fs-12">${i === 0 ? `<span class="fw-600">${esc(j.desc)}</span>${j.ref ? ` <span class="text-muted">· ${esc(j.ref)}</span>` : ''}${j.projectId ? ` <span class="badge bg-light text-muted border fw-normal">${j.projectId}</span>` : ''}${j.tax ? ` <span class="badge bg-warning-subtle text-warning fw-normal">Bupot PPh 23</span>` : ''}` : `<span class="text-muted">${esc(l.memo)}</span>`}</td>
+            <td class="num">${l.d ? formatRupiah(l.d) : ''}</td><td class="num">${l.k ? formatRupiah(l.k) : ''}</td>
+            <td class="text-end">${i === 0 ? `<button class="btn-action" title="Hapus" onclick="removeJournal('${j.id}')"><i class="bi bi-trash"></i></button>` : ''}</td></tr>`; }).join('');
+      }).join('') || '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada jurnal penyesuaian</td></tr>';
+    }
+
+    function removeJournal(id) {
+      const j = MockData.journals.find(x => x.id === id);
+      if (!confirmAction('Hapus jurnal ' + j.no + '? Buku besar, neraca & laba rugi ikut berubah.')) return;
+      const r = AC.removeJournal(id);
+      showToast(r.success ? 'Jurnal dihapus' : r.error, r.success ? 'success' : 'error');
+      render();
+    }
+
+    // ---------- Form ----------
+    let lines = [];
+    const accOpts = sel => AC.accountOptions(sel, { empty: '- pilih akun -' });
+    function drawLines() {
+      document.getElementById('lineBody').innerHTML = lines.map((l, i) => `<tr>
+        <td><select class="form-select form-select-sm" onchange="setLine(${i}, 'acc', this.value)">${accOpts(l.acc)}</select></td>
+        <td><input class="form-control form-control-sm" value="${esc(l.memo)}" oninput="setLine(${i}, 'memo', this.value, true)"></td>
+        <td><input type="number" min="0" class="form-control form-control-sm text-end" value="${l.d || ''}" oninput="setLine(${i}, 'd', this.value, true)"></td>
+        <td><input type="number" min="0" class="form-control form-control-sm text-end" value="${l.k || ''}" oninput="setLine(${i}, 'k', this.value, true)"></td>
+        <td>${lines.length > 2 ? `<button class="btn-action" onclick="lines.splice(${i}, 1); drawLines()"><i class="bi bi-x-lg"></i></button>` : ''}</td></tr>`).join('');
+      updateTotals();
+    }
+    function setLine(i, key, val, quiet) { lines[i][key] = key === 'd' || key === 'k' ? Number(val) || 0 : val; if (quiet) updateTotals(); else drawLines(); }
+    function addLine() { lines.push({ acc: '', memo: '', d: 0, k: 0 }); drawLines(); }
+    function updateTotals() {
+      const d = lines.reduce((s, l) => s + (Number(l.d) || 0), 0), k = lines.reduce((s, l) => s + (Number(l.k) || 0), 0);
+      document.getElementById('sumD').textContent = formatRupiah(d);
+      document.getElementById('sumK').textContent = formatRupiah(k);
+      document.getElementById('balanceInfo').innerHTML = d === k && d > 0 ? '<span class="check-badge ok"><i class="bi bi-check2"></i>Seimbang</span>' : `<span class="check-badge bad">Selisih ${formatRupiah(d - k)}</span>`;
+      const needTax = lines.some(l => { const a = AC.account(l.acc); return a && (a.tax === 'PPH23_PAYABLE' || a.tax === 'PPH23_PREPAID'); });
+      document.getElementById('taxBox').classList.toggle('d-none', !needTax);
+    }
+    function calcTax() {
+      const dpp = Number(document.getElementById('txDpp').value) || 0, rate = Number(document.getElementById('txRate').value) || 0;
+      document.getElementById('txHint').textContent = dpp ? `PPh 23 = ${rate}% × ${formatRupiah(dpp)} = ${formatRupiah(Math.round(dpp * rate / 100))} → samakan dengan nominal baris akun Hutang PPh 23.` : '';
+    }
+    function refreshNo() { document.getElementById('jrNo').value = AC.nextJournalNo(document.getElementById('jrDate').value || today); }
+
+    function openJournal() {
+      ['jrRef', 'jrDesc', 'txParty', 'txNpwp', 'txDpp', 'txDocNo'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('jrDate').value = today; document.getElementById('txDocDate').value = today;
+      document.getElementById('jrProject').value = ''; document.getElementById('txRate').value = 2;
+      lines = [{ acc: '', memo: '', d: 0, k: 0 }, { acc: '', memo: '', d: 0, k: 0 }];
+      refreshNo(); drawLines(); calcTax();
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('jrModal')).show();
+    }
+    function tpl(kind) {
+      const T = {
+        depr: ['Penyusutan aset tetap bulan ini', [['6-7001', 'd'], ['6-7002', 'd'], ['6-7003', 'd'], ['1-2002', 'k'], ['1-2004', 'k'], ['1-2006', 'k']]],
+        accrual: ['Akrual biaya (sudah terjadi, belum dibayar)', [['6-2002', 'd'], ['2-3001', 'k']]],
+        pph23: ['PPh 23 atas biaya jasa / sewa (koreksi biaya ke nilai bruto)', [['6-5001', 'd', 'Selisih bruto - neto'], ['2-2001', 'k', 'PPh 23 dipotong']]],
+        reclass: ['Koreksi salah akun', [['6-9001', 'k', 'Akun lama'], ['6-2006', 'd', 'Akun yang benar']]]
+      }[kind];
+      document.getElementById('jrDesc').value = T[0];
+      lines = T[1].map(([acc, side, memo]) => ({ acc, memo: memo || '', d: 0, k: 0 }));
+      drawLines();
+    }
+    function submitJournal() {
+      const r = AC.addJournal({
+        date: document.getElementById('jrDate').value, desc: document.getElementById('jrDesc').value, ref: document.getElementById('jrRef').value,
+        projectId: document.getElementById('jrProject').value || null, lines,
+        tax: { party: document.getElementById('txParty').value, npwp: document.getElementById('txNpwp').value, dpp: document.getElementById('txDpp').value,
+          rate: document.getElementById('txRate').value, objectCode: document.getElementById('txObject').value, docNo: document.getElementById('txDocNo').value, docDate: document.getElementById('txDocDate').value }
+      });
+      if (!r.success) { showToast(r.error, 'error'); return; }
+      bootstrap.Modal.getInstance(document.getElementById('jrModal')).hide();
+      showToast('Jurnal ' + r.journal.no + ' disimpan', 'success');
+      render();
+    }
+
+    function exportCSV() {
+      const map = AC._index(), rows = [['Tanggal', 'No. Jurnal', 'Uraian', 'Referensi', 'Proyek', 'Kode Akun', 'Nama Akun', 'Keterangan', 'Debet', 'Kredit']];
+      listRows.forEach(j => j.lines.forEach(l => rows.push([j.date, j.no, j.desc, j.ref, j.projectId || '', (map[l.acc] || {}).code, (map[l.acc] || {}).name, l.memo, l.d, l.k])));
+      downloadCSV('jurnal-penyesuaian.csv', rows);
+    }
+
+    function render() { renderStock(); renderList(); }
+    render();
+  </script>
+</body>
+</html>

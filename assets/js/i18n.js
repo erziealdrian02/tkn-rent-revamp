@@ -25,6 +25,9 @@ const Translations = {
     maintenance: 'Perawatan', customers: 'Pelanggan', drivers: 'Pengemudi',
     vehicles: 'Kendaraan', company_accounts: 'Rekening Perusahaan', invoices: 'Invoice',
     bank_ledger: 'Buku Kas & Bank', cash_report: 'Laporan Kas', bank_reconciliation: 'Rekonsiliasi Bank', users: 'Pengguna', roles: 'Peran',
+    accounting_section: 'AKUNTANSI', tax_section: 'PAJAK',
+    coa: 'Bagan Akun (COA)', journal: 'Jurnal', general_ledger: 'Buku Besar', worksheet: 'Kertas Kerja',
+    adjustments: 'Jurnal Penyesuaian', profit_loss: 'Laba Rugi', balance_sheet: 'Neraca', tax_ppn: 'PPN', tax_pph23: 'PPh 23',
     my_deliveries: 'Pengiriman Saya', profile: 'Profil',
 
     dark_mode: 'Mode Gelap', light_mode: 'Mode Terang', toggle_theme: 'Ganti Tema',
@@ -181,6 +184,9 @@ const Translations = {
     maintenance: 'Maintenance', customers: 'Customers', drivers: 'Drivers',
     vehicles: 'Vehicles', company_accounts: 'Company Accounts', invoices: 'Invoices',
     bank_ledger: 'Cash & Bank Book', cash_report: 'Cash Report', bank_reconciliation: 'Bank Reconciliation', users: 'Users', roles: 'Roles',
+    accounting_section: 'ACCOUNTING', tax_section: 'TAX',
+    coa: 'Chart of Accounts', journal: 'Journal', general_ledger: 'General Ledger', worksheet: 'Worksheet',
+    adjustments: 'Adjusting Entries', profit_loss: 'Profit & Loss', balance_sheet: 'Balance Sheet', tax_ppn: 'VAT (PPN)', tax_pph23: 'Withholding Tax (PPh 23)',
     my_deliveries: 'My Deliveries', profile: 'Profile',
 
     dark_mode: 'Dark Mode', light_mode: 'Light Mode', toggle_theme: 'Toggle Theme',

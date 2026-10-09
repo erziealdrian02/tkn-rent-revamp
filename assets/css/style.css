@@ -1794,3 +1794,40 @@ h1, h2, h3, h4, h5, h6 {
 }
 .invoice-items-table.rent th, .invoice-items-table.rent td { white-space: nowrap; padding: 8px 8px; font-size: 12px; }
 .invoice-items-table.rent td:nth-child(2) { white-space: normal; }
+
+/* ---------- Akuntansi & Pajak (laporan keuangan) ---------- */
+.fin-report td, .fin-report th { vertical-align: middle; }
+.fin-report .sec-row td { background: var(--bg-table-stripe); font-weight: 700; }
+.fin-report .grp-row td { font-weight: 600; }
+.fin-report .ind-1 { padding-left: 28px !important; }
+.fin-report .ind-2 { padding-left: 48px !important; }
+.fin-report .total-row td { font-weight: 600; border-top: 1px solid var(--border-color); }
+.fin-report .grand-row td { font-weight: 700; border-top: 2px solid var(--text-secondary); background: var(--primary-light); }
+.fin-report .is-zero, .fin-report td.zero { color: var(--text-muted); }
+.fin-report .neg { color: var(--danger); }
+.fin-report a { color: inherit; }
+.acc-code { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; color: var(--text-muted); margin-right: 6px; }
+.jr-table tbody tr.jr-start td { border-top: 2px solid var(--border-color); }
+.jr-table tbody tr.jr-line td { border-bottom-color: transparent; }
+.jr-table .jr-credit { padding-left: 36px !important; }
+.ws-table { font-size: 12px; }
+.ws-table th, .ws-table td { padding: 6px 8px !important; }
+.ws-table thead th.group { text-align: center; }
+.ws-table td.sep, .ws-table th.sep { border-left: 1px solid var(--border-color); }
+.ws-table .ws-grp td { background: var(--bg-table-stripe); font-weight: 600; }
+.coa-tree .lvl-0 td { background: var(--bg-table-stripe); font-weight: 700; }
+.coa-tree .grp td { font-weight: 600; }
+.coa-tree .lvl-1 td:first-child { padding-left: 24px; }
+.coa-tree .lvl-2 td:first-child { padding-left: 44px; }
+.coa-tree .lvl-3 td:first-child { padding-left: 64px; }
+.check-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+.check-badge.ok { background: var(--success-bg); color: var(--success); }
+.check-badge.bad { background: var(--danger-bg); color: var(--danger); }
+.select-compact { font-size: 12px; padding: 3px 26px 3px 8px; min-width: 200px; }
+.flow-steps { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12px; }
+.flow-steps .step { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--border-color); border-radius: 20px; background: var(--bg-card); color: var(--text-secondary); text-decoration: none; }
+.flow-steps .step.active { border-color: var(--primary); color: var(--primary); background: var(--primary-light); font-weight: 600; }
+.flow-steps .step b { font-weight: 700; }
+.flow-steps .arrow { color: var(--text-muted); }
+@media print { .fin-report .grand-row td { background: none; } }
+.acc-code { white-space: nowrap; }
