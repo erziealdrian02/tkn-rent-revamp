@@ -1,8 +1,8 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bank & Cash Ledger — EquipRent Enterprise</title>
+  <title>Buku Kas & Bank - EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -16,127 +16,286 @@
       <header class="app-header" id="appHeader"></header>
       <div class="app-content">
         <div class="page-header">
-          <div class="page-header-left"><h2 class="page-header-title">Bank & Cash Ledger</h2><p class="page-header-subtitle">Company general ledger and transaction history (Buku Besar Kas & Bank)</p></div>
+          <div class="page-header-left"><h2 class="page-header-title">Buku Kas & Bank</h2><p class="page-header-subtitle">Semua transaksi kas & bank - Bon Biru menambah saldo, Bon Merah mengurangi saldo</p></div>
+          <div class="page-header-actions">
+            <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-download me-1"></i>Export CSV</button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="openTransfer()"><i class="bi bi-arrow-left-right me-1"></i>Pindah Dana</button>
+            <button class="btn btn-danger btn-sm" onclick="openBon('OUT')"><i class="bi bi-dash-circle me-1"></i>Bon Merah (Keluar)</button>
+            <button class="btn btn-primary btn-sm" onclick="openBon('IN')"><i class="bi bi-plus-circle me-1"></i>Bon Biru (Masuk)</button>
+          </div>
         </div>
-        
-        <div class="row g-4 mb-4" id="bankCards"></div>
+
+        <div class="row g-3 mb-4" id="accountCards"></div>
 
         <div class="er-card"><div class="er-card-body">
-          <div class="table-toolbar">
-            <div class="table-toolbar-left">
-              <select class="filter-select" id="accountFilter" onchange="filterData()">
-                <option value="">All Bank Accounts</option>
-              </select>
-              <select class="filter-select" id="typeFilter" onchange="filterData()">
-                <option value="">All Transactions</option>
-                <option value="IN">Money In (Debit)</option>
-                <option value="OUT">Money Out (Credit)</option>
-              </select>
-              <input type="month" class="filter-select" id="monthFilter" onchange="filterData()">
-            </div>
-            <div class="table-toolbar-right">
-              <button class="btn btn-primary"><i class="bi bi-file-earmark-excel me-1"></i>Export Ledger</button>
-            </div>
-          </div>
-          <div class="er-table-wrapper">
-            <table class="er-table">
-              <thead><tr><th>Tanggal</th><th>Trx ID</th><th>Account</th><th>Reference</th><th>Deskripsi</th><th>Tipe</th><th>Jumlah</th><th>Running Balance</th></tr></thead>
-              <tbody id="tableBody"></tbody>
-            </table>
-          </div>
+          <div class="table-toolbar"><div class="table-toolbar-left flex-wrap">
+            <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Cari no. bon, keterangan, referensi..." id="searchInput" oninput="render()"></div>
+            <select class="filter-select" id="kindFilter" onchange="onKindFilter()"><option value="">Kas & Bank</option><option value="Kas">Kas (Tunai)</option><option value="Bank">Bank</option></select>
+            <select class="filter-select" id="accountFilter" onchange="render()"></select>
+            <select class="filter-select" id="typeFilter" onchange="onKindFilter()"><option value="">Masuk & Keluar</option><option value="IN">Bon Biru (Masuk)</option><option value="OUT">Bon Merah (Keluar)</option></select>
+            <select class="filter-select" id="categoryFilter" onchange="render()"></select>
+            <input type="date" class="filter-select" id="fromFilter" onchange="render()" title="Dari tanggal">
+            <input type="date" class="filter-select" id="toFilter" onchange="render()" title="Sampai tanggal">
+          </div></div>
+          <div class="er-table-wrapper"><table class="er-table">
+            <thead><tr><th>Tanggal</th><th>No. Bon</th><th>Akun</th><th>Kategori</th><th>Keterangan</th><th class="num">Masuk</th><th class="num">Keluar</th><th class="num">Saldo Akun</th><th title="Sudah direkonsiliasi dengan rekening koran">Rek.</th><th></th></tr></thead>
+            <tbody id="tableBody"></tbody>
+            <tfoot id="tableFoot"></tfoot>
+          </table></div>
         </div></div>
       </div>
     </main>
   </div>
+
+  <!-- Bon Biru / Bon Merah -->
+  <div class="modal fade" id="bonModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header" id="bonHeader"><h5 class="modal-title" id="bonTitle"></h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="alert py-2 fs-13" id="bonHint"></div>
+        <div class="row g-3">
+          <div class="col-6"><label class="form-label form-label-er">No. Bon</label><input type="text" class="form-control text-mono" id="bonNo" readonly></div>
+          <div class="col-6"><label class="form-label form-label-er">Tanggal *</label><input type="date" class="form-control" id="bonDate" onchange="refreshBonNo()"></div>
+          <div class="col-12"><label class="form-label form-label-er">Akun Kas / Bank *</label><select class="form-select" id="bonAccount" onchange="onBonAccount()"></select><div class="fs-12 text-muted mt-1" id="bonBalance"></div></div>
+          <div class="col-12"><label class="form-label form-label-er">Kategori *</label><select class="form-select" id="bonCategory"></select></div>
+          <div class="col-6"><label class="form-label form-label-er">Jumlah *</label><div class="input-group"><span class="input-group-text">Rp</span><input type="number" min="0" class="form-control text-end" id="bonAmount"></div></div>
+          <div class="col-6"><label class="form-label form-label-er" id="bonPartyLabel"></label><input type="text" class="form-control" id="bonParty"></div>
+          <div class="col-12"><label class="form-label form-label-er">Referensi</label><input type="text" class="form-control" id="bonRef" placeholder="No. PO / invoice / kuitansi"></div>
+          <div class="col-12"><label class="form-label form-label-er">Keterangan *</label><textarea class="form-control" id="bonDesc" rows="2"></textarea></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+        <button class="btn" id="bonSubmit" onclick="submitBon()"><i class="bi bi-check-lg me-1"></i>Simpan Bon</button>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- Pindah Dana -->
+  <div class="modal fade" id="transferModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Pindah Dana</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="alert alert-light border py-2 fs-13">Dari Bank ke Kas (penarikan tunai untuk mengisi kas) atau ke Bank lain perusahaan. Otomatis tercatat 2 bon: Bon Merah di akun asal dan Bon Biru di akun tujuan.</div>
+        <div class="row g-3">
+          <div class="col-6"><label class="form-label form-label-er">Dari (Bank) *</label><select class="form-select" id="tfFrom" onchange="onTransferChange()"></select><div class="fs-12 text-muted mt-1" id="tfBalance"></div></div>
+          <div class="col-6"><label class="form-label form-label-er">Ke (Kas / Bank) *</label><select class="form-select" id="tfTo" onchange="onTransferChange()"></select></div>
+          <div class="col-6"><label class="form-label form-label-er">Tanggal *</label><input type="date" class="form-control" id="tfDate"></div>
+          <div class="col-6"><label class="form-label form-label-er">Jumlah *</label><div class="input-group"><span class="input-group-text">Rp</span><input type="number" min="0" class="form-control text-end" id="tfAmount"></div></div>
+          <div class="col-12"><label class="form-label form-label-er">Keterangan</label><input type="text" class="form-control" id="tfDesc"></div>
+          <div class="col-12 fs-12 text-muted" id="tfPreview"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+        <button class="btn btn-primary" onclick="submitTransfer()"><i class="bi bi-arrow-left-right me-1"></i>Pindahkan</button>
+      </div>
+    </div></div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
-    initApp('finance-ledger.html',[{label:'Finance',href:'#'},{label:'Ledger'}],'Ledger');
-    
-    // Rekening perusahaan + jurnal masuk dari Pembayaran Tagihan (BizLogic.Payment.record)
-    const banks = MockData.accounts.map(a => Object.assign({ openingBalance: 0 }, a));
-    MockData.ledger.sort((a, b) => a.date.localeCompare(b.date));
+    initApp('finance-ledger.html', [{label:'Piutang & Keuangan',href:'#'},{label:'Buku Kas & Bank'}], 'Buku Kas & Bank');
+    const CB = BizLogic.CashBank;
+    const today = new Date().toISOString().split('T')[0];
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const accName = id => (CB.account(id) || {}).name || id;
+    const kindIcon = kind => kind === 'Kas' ? 'bi-cash-stack' : 'bi-bank';
+    const activeAccounts = () => MockData.accounts.filter(a => a.status !== 'Inactive');
 
-    // Populate Account Filter
-    const accFilter = document.getElementById('accountFilter');
-    banks.forEach(b => { accFilter.innerHTML += `<option value="${b.id}">${b.name} (${b.accountNumber})</option>`; });
-
-    function renderBankCards() {
-        let html = '';
-        banks.forEach(bank => {
-            // Calculate current balance based on ledger
-            let balance = bank.openingBalance;
-            MockData.ledger.forEach(l => {
-                if(l.bankAccountId === bank.id) {
-                    if(l.type === 'IN') balance += l.amount;
-                    if(l.type === 'OUT') balance -= l.amount;
-                }
-            });
-            
-            html += `
-            <div class="col-md-6">
-                <div class="er-card" style="background: linear-gradient(135deg, var(--card-bg) 0%, rgba(37, 99, 235, 0.05) 100%);">
-                    <div class="er-card-body p-4">
-                        <div class="d-flex justify-content-between mb-3">
-                            <div>
-                                <h6 class="text-muted mb-1 fs-13">Bank Account</h6>
-                                <h5 class="fw-700 mb-0">${bank.name}</h5>
-                            </div>
-                            <div class="fs-4" style="color:var(--primary)"><i class="bi bi-bank"></i></div>
-                        </div>
-                        <p class="text-mono text-muted mb-3">${bank.accountNumber}</p>
-                        <h3 class="fw-700 mb-0">${formatRupiah(balance)}</h3>
-                    </div>
-                </div>
-            </div>`;
-        });
-        document.getElementById('bankCards').innerHTML = html;
+    // ---------- Filter ----------
+    function onKindFilter() {
+      const kind = document.getElementById('kindFilter').value, type = document.getElementById('typeFilter').value;
+      const accSel = document.getElementById('accountFilter'), curAcc = accSel.value;
+      accSel.innerHTML = '<option value="">Semua Akun</option>' + MockData.accounts.filter(a => !kind || CB.kindOf(a) === kind).map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+      accSel.value = [...accSel.options].some(o => o.value === curAcc) ? curAcc : '';
+      const catSel = document.getElementById('categoryFilter'), curCat = catSel.value;
+      const groups = (kind ? [kind] : ['Kas', 'Bank']).flatMap(k => (type ? [type] : ['IN', 'OUT']).map(t => [k, t]));
+      catSel.innerHTML = '<option value="">Semua Kategori</option>' + groups.map(([k, t]) =>
+        `<optgroup label="${k} ${t === 'IN' ? 'Masuk' : 'Keluar'}">${CB.categoriesFor(k, t, true).map(c => `<option value="${c}">${CB.categoryLabel(c)}</option>`).join('')}</optgroup>`).join('');
+      catSel.value = [...catSel.options].some(o => o.value === curCat) ? curCat : '';
+      render();
     }
 
-    function filterData(){
-      const a=document.getElementById('accountFilter').value;
-      const t=document.getElementById('typeFilter').value;
-      const m=document.getElementById('monthFilter').value; // format: YYYY-MM
-      
-      let runningBalances = {};
-      banks.forEach(b => runningBalances[b.id] = b.openingBalance);
+    function renderCards() {
+      const kas = MockData.accounts.filter(a => CB.kindOf(a) === 'Kas'), bank = MockData.accounts.filter(a => CB.kindOf(a) === 'Bank');
+      const sum = list => list.reduce((s, a) => s + CB.balance(a.id), 0);
+      const card = a => `<div class="col-6 col-md-4 col-xl-2"><div class="kpi-card h-100" role="button" onclick="pickAccount('${a.id}')" title="Lihat transaksi ${esc(a.name)}">
+          <div class="kpi-icon ${CB.kindOf(a) === 'Kas' ? 'green' : 'blue'}"><i class="bi ${kindIcon(CB.kindOf(a))}"></i></div>
+          <div class="kpi-content"><div class="kpi-value fs-6">${formatRupiah(CB.balance(a.id))}</div><div class="kpi-label">${esc(a.name)}${a.status === 'Inactive' ? ' (nonaktif)' : ''}</div></div></div></div>`;
+      document.getElementById('accountCards').innerHTML = `
+        <div class="col-6 col-md-4 col-xl-2"><div class="kpi-card h-100"><div class="kpi-icon green"><i class="bi bi-cash-coin"></i></div><div class="kpi-content"><div class="kpi-value fs-6">${formatRupiah(sum(kas))}</div><div class="kpi-label">Total Saldo Kas</div></div></div></div>
+        <div class="col-6 col-md-4 col-xl-2"><div class="kpi-card h-100"><div class="kpi-icon blue"><i class="bi bi-bank2"></i></div><div class="kpi-content"><div class="kpi-value fs-6">${formatRupiah(sum(bank))}</div><div class="kpi-label">Total Saldo Bank</div></div></div></div>
+        ${kas.concat(bank).map(card).join('')}`;
+    }
+    function pickAccount(id) {
+      document.getElementById('kindFilter').value = '';
+      onKindFilter();
+      document.getElementById('accountFilter').value = id;
+      render();
+    }
 
-      // We need to calculate running balance sequentially from oldest to newest
-      // MockData.ledger is assumed to be ordered chronologically
-      const ledgerWithBalance = MockData.ledger.map(trx => {
-          if(trx.type === 'IN') runningBalances[trx.bankAccountId] += trx.amount;
-          if(trx.type === 'OUT') runningBalances[trx.bankAccountId] -= trx.amount;
-          return { ...trx, balance: runningBalances[trx.bankAccountId] };
-      });
+    function refLink(ref) {
+      return esc(ref).replace(/INV-\d+/g, m => `<a href="invoice-detail.html?id=${m}">${m}</a>`).replace(/PO-\d+/g, m => `<a href="purchase-detail.html?id=${m}">${m}</a>`);
+    }
 
-      // Now filter for display (reverse so newest is on top)
-      const data = ledgerWithBalance.filter(r=>{
-        if(a&&r.bankAccountId!==a)return false;
-        if(t&&r.type!==t)return false;
-        if(m&&!r.date.startsWith(m))return false; // date is YYYY-MM-DD, startsWith works perfectly for YYYY-MM
+    function rows() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const kind = document.getElementById('kindFilter').value, acc = document.getElementById('accountFilter').value;
+      const type = document.getElementById('typeFilter').value, cat = document.getElementById('categoryFilter').value;
+      const from = document.getElementById('fromFilter').value, to = document.getElementById('toFilter').value;
+      const running = {};
+      MockData.accounts.forEach(a => running[a.id] = Number(a.openingBalance) || 0);
+      return CB.entries().map(e => {
+        running[e.bankAccountId] = (running[e.bankAccountId] || 0) + (e.type === 'IN' ? e.amount : -e.amount);
+        return { e, bal: running[e.bankAccountId], cat: CB.categoryOf(e), kind: CB.kindOf(CB.account(e.bankAccountId)) };
+      }).filter(({ e, cat: c, kind: k }) => {
+        if (q && !(e.voucherNo + ' ' + e.id + ' ' + e.description + ' ' + e.reference + ' ' + e.party).toLowerCase().includes(q)) return false;
+        if (kind && k !== kind) return false;
+        if (acc && e.bankAccountId !== acc) return false;
+        if (type && e.type !== type) return false;
+        if (cat && c !== cat) return false;
+        if (from && e.date < from) return false;
+        if (to && e.date > to) return false;
         return true;
       }).reverse();
-
-      document.getElementById('tableBody').innerHTML=data.map(r=>`<tr>
-        <td>${formatDate(r.date)}</td>
-        <td class="text-mono">${r.id}</td>
-        <td>${banks.find(b=>b.id===r.bankAccountId)?.name || r.bankAccountId}</td>
-        <td>${r.reference.startsWith('INV-')?`<a href="invoice-detail.html?id=${r.reference}">${r.reference}</a>`:r.reference}</td>
-        <td>${r.description}</td>
-        <td>${r.type === 'IN' ? '<span class="badge bg-success-subtle text-success">IN</span>' : '<span class="badge bg-danger-subtle text-danger">OUT</span>'}</td>
-        <td class="${r.type==='IN'?'text-success fw-600':''}">${r.type==='OUT'?'- ':''}${formatRupiah(r.amount)}</td>
-        <td class="fw-600">${formatRupiah(r.balance)}</td>
-      </tr>`).join('')||'<tr><td colspan="8" class="text-center text-muted py-4">No transactions found</td></tr>';
     }
-    
-    renderBankCards();
-    filterData();
+
+    function render() {
+      const data = rows();
+      document.getElementById('tableBody').innerHTML = data.map(({ e, bal, cat, kind }) => `<tr>
+        <td class="text-nowrap">${formatDate(e.date)}</td>
+        <td class="text-mono text-nowrap"><span class="badge ${e.type === 'IN' ? 'bg-primary-subtle text-primary' : 'bg-danger-subtle text-danger'}">${e.voucherNo || e.id}</span></td>
+        <td class="text-nowrap"><i class="bi ${kindIcon(kind)} text-muted me-1"></i>${esc(accName(e.bankAccountId))}</td>
+        <td class="fs-12">${esc(CB.categoryLabel(cat))}${e.source === 'transfer' ? ' <i class="bi bi-arrow-left-right text-muted" title="Pindah dana"></i>' : ''}</td>
+        <td><div>${esc(e.description)}</div><div class="fs-12 text-muted">${e.party ? esc(e.party) : ''}${e.party && e.reference ? ' · ' : ''}${e.reference ? refLink(e.reference) : ''}</div></td>
+        <td class="num ${e.type === 'IN' ? 'qty-plus fw-600' : 'zero'}">${e.type === 'IN' ? formatRupiah(e.amount) : '-'}</td>
+        <td class="num ${e.type === 'OUT' ? 'qty-minus fw-600' : 'zero'}">${e.type === 'OUT' ? formatRupiah(e.amount) : '-'}</td>
+        <td class="num">${formatRupiah(bal)}</td>
+        <td>${kind === 'Bank' ? (e.reconciled ? '<i class="bi bi-check-circle-fill text-success" title="Sudah direkonsiliasi"></i>' : '<i class="bi bi-circle text-muted" title="Belum direkonsiliasi"></i>') : ''}</td>
+        <td>${e.source !== 'payment' && !e.reconciled ? `<button class="btn-action" title="Hapus" onclick="removeEntry('${e.id}')"><i class="bi bi-trash"></i></button>` : ''}</td>
+      </tr>`).join('') || '<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada transaksi</td></tr>';
+      const tin = data.filter(r => r.e.type === 'IN').reduce((s, r) => s + r.e.amount, 0);
+      const tout = data.filter(r => r.e.type === 'OUT').reduce((s, r) => s + r.e.amount, 0);
+      document.getElementById('tableFoot').innerHTML = data.length ? `<tr><td colspan="5" class="text-end">Total (${data.length} transaksi)</td><td class="num">${formatRupiah(tin)}</td><td class="num">${formatRupiah(tout)}</td><td class="num" title="Masuk − Keluar">${formatRupiah(tin - tout)}</td><td colspan="2"></td></tr>` : '';
+    }
+
+    function removeEntry(id) {
+      const e = MockData.ledger.find(x => x.id === id);
+      if (!confirm(`Hapus ${e.voucherNo}${e.transferId ? ' beserta pasangan pindah dananya' : ''}?`)) return;
+      const res = CB.remove(id);
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      showToast('Transaksi dihapus', 'warning');
+      renderCards(); render();
+    }
+
+    function exportCSV() {
+      const out = [['Tanggal', 'No. Bon', 'Akun', 'Jenis Akun', 'Kategori', 'Keterangan', 'Pihak', 'Referensi', 'Masuk', 'Keluar', 'Saldo Akun', 'Rekonsiliasi']];
+      rows().reverse().forEach(({ e, bal, cat, kind }) => out.push([e.date, e.voucherNo, accName(e.bankAccountId), kind, CB.categoryLabel(cat), e.description, e.party, e.reference, e.type === 'IN' ? e.amount : 0, e.type === 'OUT' ? e.amount : 0, bal, e.reconciled ? 'Ya' : '']));
+      downloadCSV('buku-kas-bank-' + today + '.csv', out);
+    }
+
+    // ---------- Bon Biru / Bon Merah ----------
+    let bonType = 'IN';
+    function openBon(type, preset) {
+      preset = preset || {};
+      bonType = type;
+      const isIn = type === 'IN';
+      document.getElementById('bonTitle').textContent = isIn ? 'Bon Biru - Kas / Bank Masuk' : 'Bon Merah - Kas / Bank Keluar';
+      document.getElementById('bonHeader').className = 'modal-header ' + (isIn ? 'bg-primary-subtle' : 'bg-danger-subtle');
+      document.getElementById('bonHint').className = 'alert py-2 fs-13 ' + (isIn ? 'alert-primary' : 'alert-danger');
+      document.getElementById('bonHint').innerHTML = isIn ? '<strong>Bon Biru</strong> = menambah saldo kas / bank.' : '<strong>Bon Merah</strong> = mengurangi saldo kas / bank.';
+      document.getElementById('bonSubmit').className = 'btn ' + (isIn ? 'btn-primary' : 'btn-danger');
+      document.getElementById('bonPartyLabel').textContent = isIn ? 'Diterima dari' : 'Dibayar kepada';
+      document.getElementById('bonAccount').innerHTML = activeAccounts().map(a => `<option value="${a.id}">${CB.kindOf(a)} - ${a.name}</option>`).join('');
+      document.getElementById('bonDate').value = preset.date || today;
+      if (preset.account) document.getElementById('bonAccount').value = preset.account;
+      ['bonAmount', 'bonParty', 'bonRef', 'bonDesc'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('bonAmount').value = preset.amount || '';
+      document.getElementById('bonParty').value = preset.party || '';
+      document.getElementById('bonRef').value = preset.ref || '';
+      document.getElementById('bonDesc').value = preset.desc || '';
+      onBonAccount();
+      if (preset.category) document.getElementById('bonCategory').value = preset.category;
+      refreshBonNo();
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('bonModal')).show();
+    }
+    function onBonAccount() {
+      const acc = CB.account(document.getElementById('bonAccount').value);
+      const kind = CB.kindOf(acc);
+      document.getElementById('bonCategory').innerHTML = CB.categoriesFor(kind, bonType).map(c => `<option value="${c}">${CB.categoryLabel(c)}</option>`).join('');
+      document.getElementById('bonBalance').textContent = acc ? 'Saldo saat ini: ' + formatRupiah(CB.balance(acc.id)) : '';
+    }
+    function refreshBonNo() { document.getElementById('bonNo').value = CB.nextVoucher(bonType, document.getElementById('bonDate').value); }
+    function submitBon() {
+      const res = CB.addEntry({
+        type: bonType,
+        date: document.getElementById('bonDate').value,
+        accountId: document.getElementById('bonAccount').value,
+        category: document.getElementById('bonCategory').value,
+        amount: document.getElementById('bonAmount').value,
+        party: document.getElementById('bonParty').value,
+        reference: document.getElementById('bonRef').value,
+        description: document.getElementById('bonDesc').value
+      });
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      bootstrap.Modal.getInstance(document.getElementById('bonModal')).hide();
+      showToast((bonType === 'IN' ? 'Bon Biru ' : 'Bon Merah ') + res.entry.voucherNo + ' tersimpan', 'success');
+      renderCards(); render();
+    }
+
+    // ---------- Pindah Dana ----------
+    function openTransfer() {
+      const banks = activeAccounts().filter(a => CB.kindOf(a) === 'Bank');
+      document.getElementById('tfFrom').innerHTML = banks.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+      document.getElementById('tfDate').value = today;
+      document.getElementById('tfAmount').value = '';
+      document.getElementById('tfDesc').value = '';
+      onTransferChange(true);
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('transferModal')).show();
+    }
+    function onTransferChange(resetTo) {
+      const from = document.getElementById('tfFrom').value, toSel = document.getElementById('tfTo');
+      const cur = toSel.value;
+      const targets = activeAccounts().filter(a => a.id !== from).sort((a, b) => (CB.kindOf(a) === 'Kas' ? 0 : 1) - (CB.kindOf(b) === 'Kas' ? 0 : 1));
+      toSel.innerHTML = targets.map(a => `<option value="${a.id}">${CB.kindOf(a)} - ${a.name}</option>`).join('');
+      if (!resetTo && targets.some(a => a.id === cur)) toSel.value = cur;
+      document.getElementById('tfBalance').textContent = from ? 'Saldo: ' + formatRupiah(CB.balance(from)) : '';
+      const toKas = CB.kindOf(CB.account(toSel.value)) === 'Kas';
+      document.getElementById('tfPreview').innerHTML = `Tercatat: <span class="text-danger">Bon Merah "${CB.categoryLabel(toKas ? 'bank_out_cash' : 'bank_out_transfer')}"</span> + <span class="text-primary">Bon Biru "${CB.categoryLabel(toKas ? 'kas_in_transfer' : 'bank_in_transfer')}"</span>`;
+    }
+    function submitTransfer() {
+      const res = CB.transfer({
+        fromId: document.getElementById('tfFrom').value,
+        toId: document.getElementById('tfTo').value,
+        date: document.getElementById('tfDate').value,
+        amount: document.getElementById('tfAmount').value,
+        description: document.getElementById('tfDesc').value
+      });
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      bootstrap.Modal.getInstance(document.getElementById('transferModal')).hide();
+      showToast(`Dana dipindahkan (${res.out.voucherNo} → ${res.in.voucherNo})`, 'success');
+      renderCards(); render();
+    }
+
+    // ---------- Init (param URL dari Laporan Kas / Rekonsiliasi / Pembelian) ----------
+    document.getElementById('kindFilter').value = getUrlParam('kind') || '';
+    document.getElementById('typeFilter').value = getUrlParam('type') || '';
+    onKindFilter();
+    if (getUrlParam('account')) document.getElementById('accountFilter').value = getUrlParam('account');
+    if (getUrlParam('category')) document.getElementById('categoryFilter').value = getUrlParam('category');
+    document.getElementById('fromFilter').value = getUrlParam('from') || '';
+    document.getElementById('toFilter').value = getUrlParam('to') || '';
+    renderCards();
+    render();
+    const nw = getUrlParam('new');
+    if (nw === 'in' || nw === 'out') {
+      openBon(nw === 'in' ? 'IN' : 'OUT', { account: getUrlParam('acc'), category: getUrlParam('cat'), amount: getUrlParam('amount'), ref: getUrlParam('ref'), party: getUrlParam('party'), desc: getUrlParam('desc'), date: getUrlParam('date') });
+    } else if (nw === 'transfer') openTransfer();
   </script>
 </body>
 </html>
-
-
-
-

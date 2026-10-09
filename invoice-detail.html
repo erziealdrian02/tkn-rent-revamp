@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Detail Invoice — EquipRent Enterprise</title>
+  <title>Detail Invoice - EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -46,7 +46,7 @@
           <div class="col-6"><label class="form-label form-label-er">Tanggal Bayar</label><input type="date" id="payDate" class="form-control"></div>
           <div class="col-6"><label class="form-label form-label-er">Jumlah</label><div class="input-group"><span class="input-group-text">Rp</span><input type="number" id="payAmount" class="form-control text-end"></div></div>
           <div class="col-6"><label class="form-label form-label-er">Masuk ke Rekening</label><select class="form-select" id="payAccount"></select></div>
-          <div class="col-6"><label class="form-label form-label-er">Metode</label><select class="form-select" id="payMethod"><option>Transfer</option><option>Giro</option><option>Tunai</option></select></div>
+          <div class="col-6"><label class="form-label form-label-er">Metode</label><select class="form-select" id="payMethod" onchange="onMethodChange()"><option>Transfer</option><option>Giro</option><option>Tunai</option></select></div>
           <div class="col-12"><label class="form-label form-label-er">No. Referensi / Bukti</label><input type="text" id="payRef" class="form-control"></div>
           <div class="col-12"><label class="form-label form-label-er">Catatan</label><textarea class="form-control" id="payNotes" rows="2"></textarea></div>
         </div>
@@ -108,7 +108,7 @@
       ${remaining > 0 ? '<button class="btn btn-success btn-sm" onclick="openPay()"><i class="bi bi-cash me-1"></i>Catat Pembayaran</button>' : ''}`;
 
     document.getElementById('shadowBanner').innerHTML = isShadow
-      ? `<div class="alert alert-warning py-2 fs-13"><i class="bi bi-file-earmark-plus me-1"></i><strong>Invoice bayangan</strong> — belum diterbitkan, belum masuk piutang dan belum bisa dibayar.
+      ? `<div class="alert alert-warning py-2 fs-13"><i class="bi bi-file-earmark-plus me-1"></i><strong>Invoice bayangan</strong> - belum diterbitkan, belum masuk piutang dan belum bisa dibayar.
           ${canRecap ? 'Terbitkan dari <strong>Rekap Tagihan</strong> bila data SJ sudah lengkap, atau' : ''} tambah/ubah barang lewat <strong>Ubah Barang</strong>, lalu klik <strong>Terbitkan</strong> kalau sudah final.</div>`
       : inv.fromShadow ? `<div class="alert alert-light border py-2 fs-13"><i class="bi bi-file-earmark-check me-1"></i>Diterbitkan dari invoice bayangan${inv.shadowEstimate != null ? ' (total saat bayangan ' + formatRupiah(inv.shadowEstimate) + ')' : ''}.</div>` : '';
 
@@ -118,7 +118,7 @@
     const itemsBody = inv.items.map((it, n) => isRecap
       ? `<tr><td>${n + 1}</td><td>${it.desc}</td><td class="text-mono fs-12">${it.sjDelivery || '<span class="text-muted">manual</span>'}${it.sjReturn ? '<br><span class="text-muted">↩ ' + it.sjReturn + '</span>' : ''}</td><td class="text-end">${it.qty}</td><td>${formatDate(it.startDate)}</td><td>${formatDate(it.endDate)}${it.adjusted ? ' <i class="bi bi-pencil-square text-warning" title="Tanggal di-adjust"></i>' : ''}</td><td class="text-end">${it.days}</td><td class="text-end">${formatRupiah(it.unitPrice)}</td><td class="text-end">${formatRupiah(it.amount)}</td></tr>`
       : `<tr><td>${n + 1}</td><td>${it.desc}</td><td class="text-end">${it.qty}</td><td class="text-end">${formatRupiah(it.unitPrice)}</td><td class="text-end">${formatRupiah(it.amount)}</td></tr>`
-    ).join('') || `<tr><td colspan="${isRecap ? 9 : 5}" class="text-center text-muted py-4">Belum ada barang${isShadow ? ' — klik <strong>Ubah Barang</strong> untuk menambahkan' : ''}</td></tr>`;
+    ).join('') || `<tr><td colspan="${isRecap ? 9 : 5}" class="text-center text-muted py-4">Belum ada barang${isShadow ? ' - klik <strong>Ubah Barang</strong> untuk menambahkan' : ''}</td></tr>`;
 
     document.getElementById('invoiceContent').classList.toggle('is-shadow', isShadow);
     document.getElementById('invoiceContent').innerHTML = `
@@ -147,7 +147,7 @@
           <table class="w-100 fs-13">
             <tr><td class="text-muted py-1">Tipe</td><td class="text-end py-1">${inv.type}</td></tr>
             <tr><td class="text-muted py-1">Proyek</td><td class="text-end py-1">${inv.projectId ? `<a href="project-detail.html?id=${inv.projectId}">${inv.projectName}</a>` : '-'}</td></tr>
-            ${isRent ? `<tr><td class="text-muted py-1">Periode Sewa</td><td class="text-end py-1">${formatDate(inv.periodStart)} — ${formatDate(inv.periodEnd)}</td></tr>
+            ${isRent ? `<tr><td class="text-muted py-1">Periode Sewa</td><td class="text-end py-1">${formatDate(inv.periodStart)} - ${formatDate(inv.periodEnd)}</td></tr>
             ${inv.monthDays ? `<tr><td class="text-muted py-1">Bulan Sewa</td><td class="text-end py-1">${inv.monthDays} hari</td></tr>` : ''}` : `<tr><td class="text-muted py-1">Referensi</td><td class="text-end py-1 text-mono">${inv.reference || '-'}</td></tr>`}
             <tr><td class="text-muted py-1">Tanggal Invoice</td><td class="text-end py-1">${formatDate(inv.invoiceDate)}</td></tr>
             <tr><td class="text-muted py-1">Jatuh Tempo</td><td class="text-end py-1 ${status === 'Overdue' ? 'qty-minus' : ''}">${formatDate(inv.dueDate)}</td></tr>
@@ -173,7 +173,7 @@
         <div class="row">
           <div class="col-md-6">
             <h6 class="fw-600 fs-12">Pembayaran ke</h6>
-            <p class="fs-12 text-muted mb-1">${account.bank} — ${account.accountNumber}</p>
+            <p class="fs-12 text-muted mb-1">${account.bank} - ${account.accountNumber}</p>
             <p class="fs-12 text-muted">a.n. ${account.accountHolder}</p>
             ${inv.notes ? `<p class="fs-12 mb-0"><strong>Catatan:</strong> ${inv.notes}</p>` : ''}
           </div>
@@ -195,7 +195,16 @@
     }).join('') || '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada pembayaran</td></tr>';
 
     // Modal pembayaran
-    document.getElementById('payAccount').innerHTML = MockData.accounts.map(a => `<option value="${a.id}" ${a.id === inv.accountId ? 'selected' : ''}>${a.name} — ${a.accountNumber}</option>`).join('');
+    document.getElementById('payAccount').innerHTML = MockData.accounts.map(a => `<option value="${a.id}" ${a.id === inv.accountId ? 'selected' : ''}>${a.kind === 'Kas' ? 'Kas - ' + a.name : a.name + ' - ' + a.accountNumber}</option>`).join('');
+    // Tunai masuk ke akun Kas, Transfer/Giro ke rekening bank invoice
+    function onMethodChange() {
+      const tunai = document.getElementById('payMethod').value === 'Tunai';
+      const sel = document.getElementById('payAccount');
+      const kas = MockData.accounts.find(a => a.kind === 'Kas' && a.status !== 'Inactive');
+      const isKas = (MockData.accounts.find(a => a.id === sel.value) || {}).kind === 'Kas';
+      if (tunai && kas && !isKas) sel.value = kas.id;
+      if (!tunai && isKas) sel.value = inv.accountId;
+    }
     function onKind() {
       const full = document.querySelector('input[name="payKind"]:checked').value === 'full';
       const amt = document.getElementById('payAmount');

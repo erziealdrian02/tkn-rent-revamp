@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Invoice — EquipRent Enterprise</title>
+  <title>Invoice - EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -91,7 +91,7 @@
       const shadows = data.filter(r => r.status === 'Shadow');
       document.getElementById('shadowAlert').innerHTML = shadows.length && document.getElementById('statusFilter').value !== 'Shadow'
         ? `<div class="alert alert-light border py-2 fs-13 mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <span><i class="bi bi-file-earmark-plus me-1"></i><strong>${shadows.length} invoice bayangan</strong> belum diterbitkan (total sementara ${formatRupiah(shadows.reduce((s, r) => s + r.i.amount, 0))}) — belum dihitung ke piutang.</span>
+            <span><i class="bi bi-file-earmark-plus me-1"></i><strong>${shadows.length} invoice bayangan</strong> belum diterbitkan (total sementara ${formatRupiah(shadows.reduce((s, r) => s + r.i.amount, 0))}) - belum dihitung ke piutang.</span>
             <a href="#" class="fs-12" onclick="document.getElementById('statusFilter').value='Shadow';render();return false">Lihat bayangan</a></div>`
         : '';
       const sum = f => active.reduce((s, r) => s + f(r), 0);
@@ -106,7 +106,7 @@
         <td><a href="invoice-detail.html?id=${i.id}" class="cell-link text-mono">${i.id}</a></td>
         <td><span class="badge-status shadow">${i.type}</span></td>
         <td><div class="fw-600">${i.projectName || '-'}</div><div class="fs-12 text-muted">${i.customerName}</div></td>
-        <td class="fs-12 text-nowrap">${i.periodStart || i.periodEnd ? formatDate(i.periodStart) + ' —<br>' + formatDate(i.periodEnd) : '<span class="text-muted">-</span>'}</td>
+        <td class="fs-12 text-nowrap">${i.periodStart || i.periodEnd ? formatDate(i.periodStart) + ' -<br>' + formatDate(i.periodEnd) : '<span class="text-muted">-</span>'}</td>
         <td class="text-nowrap">${formatDate(i.invoiceDate)}</td>
         <td class="text-nowrap">${formatDate(i.dueDate)}</td>
         <td class="num">${i.items.length ? formatRupiah(i.amount) + '<div class="fs-11 text-muted">' + i.items.length + ' barang</div>' : '<span class="text-muted">belum ada barang</span>'}</td>
@@ -118,7 +118,7 @@
         <td><a href="invoice-detail.html?id=${i.id}" class="cell-link text-mono">${i.id}</a>${i.fromShadow ? '<div class="fs-11 text-muted" title="Awalnya invoice bayangan"><i class="bi bi-file-earmark-check me-1"></i>eks-bayangan</div>' : ''}</td>
         <td><span class="badge-status ${i.type === 'Sewa' ? 'issued' : 'partial'}">${i.type}</span></td>
         <td><div class="fw-600">${i.projectName || '-'}</div><div class="fs-12 text-muted">${i.customerName}</div></td>
-        <td class="fs-12 text-nowrap">${i.periodStart ? formatDate(i.periodStart) + ' —<br>' + formatDate(i.periodEnd) : '<span class="text-muted">' + (i.reference || '-') + '</span>'}</td>
+        <td class="fs-12 text-nowrap">${i.periodStart ? formatDate(i.periodStart) + ' -<br>' + formatDate(i.periodEnd) : '<span class="text-muted">' + (i.reference || '-') + '</span>'}</td>
         <td class="text-nowrap">${formatDate(i.invoiceDate)}</td>
         <td class="text-nowrap ${status === 'Overdue' ? 'qty-minus' : ''}">${formatDate(i.dueDate)}</td>
         <td class="num fw-600">${formatRupiah(i.amount)}</td>

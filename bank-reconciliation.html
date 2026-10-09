@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rekonsiliasi Bank - EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header">
+          <div class="page-header-left"><h2 class="page-header-title">Rekonsiliasi Bank</h2><p class="page-header-subtitle">Mencocokkan transaksi yang ada di sistem perusahaan dengan mutasi rekening bank</p></div>
+          <div class="page-header-actions"><a href="cash-report.html" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-bar-graph me-1"></i>Laporan Kas</a></div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-lg-5">
+            <div class="er-card h-100">
+              <div class="er-card-header"><h5 class="er-card-title">1. Rekening & Periode</h5></div>
+              <div class="er-card-body">
+                <div class="row g-3">
+                  <div class="col-12"><label class="form-label form-label-er">Rekening Bank *</label><select class="form-select" id="fAccount" onchange="load()"></select></div>
+                  <div class="col-6"><label class="form-label form-label-er">Dari</label><input type="date" class="form-control" id="fFrom" onchange="load()"></div>
+                  <div class="col-6"><label class="form-label form-label-er">Sampai</label><input type="date" class="form-control" id="fTo" onchange="load()"></div>
+                  <div class="col-12"><label class="form-label form-label-er">Saldo Akhir menurut Rekening Koran *</label><div class="input-group"><span class="input-group-text">Rp</span><input type="number" class="form-control text-end" id="fStatement" oninput="renderSummary()"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-7">
+            <div class="er-card h-100">
+              <div class="er-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="er-card-title mb-0">2. Mutasi Rekening Koran <span class="fs-12 text-muted fw-normal">(opsional, untuk cocok otomatis)</span></h5>
+                <button class="btn btn-outline-secondary btn-sm" onclick="sampleStatement()" title="Buat contoh mutasi dari data sistem untuk mencoba fitur ini"><i class="bi bi-magic me-1"></i>Contoh Mutasi</button>
+              </div>
+              <div class="er-card-body">
+                <textarea class="form-control text-mono fs-12" id="fCsv" rows="5" placeholder="tanggal;keterangan;debit;kredit&#10;2026-10-05;TRF MASUK PT DATA CENTER;0;15100000&#10;2026-10-31;BIAYA ADMIN;15000;0"></textarea>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2">
+                  <span class="fs-12 text-muted">Format CSV: <code>tanggal;keterangan;debit;kredit</code> (debit = uang keluar, kredit = uang masuk) atau <code>tanggal;keterangan;jumlah(±)</code></span>
+                  <div class="d-flex gap-2">
+                    <label class="btn btn-outline-secondary btn-sm mb-0"><i class="bi bi-upload me-1"></i>Pilih File<input type="file" accept=".csv,.txt" hidden onchange="readFile(this)"></label>
+                    <button class="btn btn-primary btn-sm" onclick="readStatement()"><i class="bi bi-arrow-repeat me-1"></i>Baca & Cocokkan</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4" id="kpis"></div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-xl-6">
+            <div class="er-card h-100">
+              <div class="er-card-header"><h5 class="er-card-title">Transaksi di Sistem <span class="fs-12 text-muted fw-normal">- centang yang sudah muncul di rekening koran</span></h5></div>
+              <div class="er-card-body"><div class="er-table-wrapper"><table class="er-table">
+                <thead><tr><th style="width:36px"><input type="checkbox" class="form-check-input" id="checkAll" onchange="toggleAll(this.checked)" title="Centang semua"></th><th>Tanggal</th><th>No. Bon / Keterangan</th><th class="num">Masuk</th><th class="num">Keluar</th></tr></thead>
+                <tbody id="sysBody"></tbody>
+              </table></div></div>
+            </div>
+          </div>
+          <div class="col-xl-6">
+            <div class="er-card h-100">
+              <div class="er-card-header"><h5 class="er-card-title">Mutasi Rekening Koran</h5></div>
+              <div class="er-card-body"><div class="er-table-wrapper"><table class="er-table">
+                <thead><tr><th>Tanggal</th><th>Keterangan</th><th class="num">Masuk</th><th class="num">Keluar</th><th>Status</th></tr></thead>
+                <tbody id="bankBody"></tbody>
+              </table></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-lg-7">
+            <div class="er-card h-100">
+              <div class="er-card-header"><h5 class="er-card-title">3. Hasil Rekonsiliasi</h5></div>
+              <div class="er-card-body"><table class="w-100 fs-13" id="reconTable"></table></div>
+            </div>
+          </div>
+          <div class="col-lg-5">
+            <div class="er-card h-100">
+              <div class="er-card-body d-flex flex-column justify-content-center gap-2">
+                <div id="resultBox"></div>
+                <button class="btn btn-primary" onclick="save()"><i class="bi bi-check2-square me-1"></i>Simpan Rekonsiliasi</button>
+                <div class="fs-12 text-muted">Transaksi yang dicentang ditandai <strong>sudah direkonsiliasi</strong> (ikon ✓ di Buku Kas & Bank) dan tidak bisa dihapus lagi.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="er-card">
+          <div class="er-card-header"><h5 class="er-card-title">Riwayat Rekonsiliasi</h5></div>
+          <div class="er-card-body"><div class="er-table-wrapper"><table class="er-table">
+            <thead><tr><th>No.</th><th>Rekening</th><th>Periode</th><th class="num">Saldo Sistem</th><th class="num">Saldo Rek. Koran</th><th class="num">Selisih</th><th class="num">Cocok</th><th>Status</th><th>Oleh</th></tr></thead>
+            <tbody id="historyBody"></tbody>
+          </table></div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Catat mutasi bank ke sistem -->
+  <div class="modal fade" id="recordModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" id="recTitle">Catat Mutasi ke Sistem</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="alert alert-light border py-2 fs-13" id="recInfo"></div>
+        <div class="row g-3">
+          <div class="col-12"><label class="form-label form-label-er">Kategori *</label><select class="form-select" id="recCategory"></select></div>
+          <div class="col-12"><label class="form-label form-label-er">Keterangan *</label><input type="text" class="form-control" id="recDesc"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+        <button class="btn btn-primary" onclick="submitRecord()"><i class="bi bi-check-lg me-1"></i>Catat</button>
+      </div>
+    </div></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    initApp('bank-reconciliation.html', [{label:'Piutang & Keuangan',href:'#'},{label:'Rekonsiliasi Bank'}], 'Rekonsiliasi Bank');
+    const CB = BizLogic.CashBank;
+    const today = new Date().toISOString().split('T')[0];
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const banks = MockData.accounts.filter(a => CB.kindOf(a) === 'Bank');
+
+    let sys = [];          // entri sistem pada periode
+    let bankRows = [];     // mutasi rekening koran
+    let pairs = {};        // bankIdx → entryId
+    let checked = new Set();
+
+    document.getElementById('fAccount').innerHTML = banks.map(a => `<option value="${a.id}">${a.name} - ${a.accountNumber}</option>`).join('');
+    document.getElementById('fAccount').value = getUrlParam('account') || banks[0].id;
+    document.getElementById('fFrom').value = getUrlParam('from') || today.substr(0, 8) + '01';
+    document.getElementById('fTo').value = getUrlParam('to') || today;
+
+    const P = () => ({ acc: document.getElementById('fAccount').value, from: document.getElementById('fFrom').value, to: document.getElementById('fTo').value });
+    const entryOf = id => sys.find(e => e.id === id);
+    const pairedBankIdx = id => Object.keys(pairs).find(k => pairs[k] === id);
+
+    function load() {
+      const { acc, from, to } = P();
+      sys = CB.entries(acc).filter(e => e.date >= from && e.date <= to);
+      bankRows = []; pairs = {};
+      checked = new Set(sys.filter(e => e.reconciled).map(e => e.id));
+      document.getElementById('fCsv').value = '';
+      document.getElementById('fStatement').value = '';
+      renderAll();
+    }
+
+    function readFile(input) {
+      const f = input.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = () => { document.getElementById('fCsv').value = r.result; readStatement(); };
+      r.readAsText(f);
+      input.value = '';
+    }
+
+    function readStatement() {
+      const res = CB.parseStatement(document.getElementById('fCsv').value);
+      if (res.errors.length) showToast(res.errors.slice(0, 3).join('<br>'), 'warning');
+      if (!res.rows.length) { showToast('Tidak ada baris mutasi yang terbaca', 'error'); return; }
+      bankRows = res.rows;
+      rematch();
+      showToast(`${bankRows.length} mutasi terbaca, ${Object.keys(pairs).length} cocok otomatis`, 'success');
+    }
+
+    function rematch() {
+      pairs = CB.autoMatch(sys, bankRows);
+      checked = new Set(sys.filter(e => e.reconciled).map(e => e.id).concat(Object.values(pairs)));
+      renderAll();
+    }
+
+    // Contoh mutasi: semua transaksi sistem kecuali 1 bon merah terakhir (cek/transfer belum dicairkan),
+    // ditambah biaya admin & jasa giro yang belum dicatat di sistem.
+    function sampleStatement() {
+      const { acc, from, to } = P();
+      if (!sys.length) { showToast('Tidak ada transaksi sistem pada periode ini untuk dijadikan contoh', 'warning'); return; }
+      const lastOut = sys.filter(e => e.type === 'OUT').slice(-1)[0];
+      const lines = ['tanggal;keterangan;debit;kredit'];
+      let bal = CB.balance(acc, from, true);
+      sys.filter(e => e !== lastOut || sys.length < 2).forEach(e => {
+        lines.push(`${e.date};${(e.type === 'IN' ? 'TRF MASUK ' : 'TRF KELUAR ') + (e.party || e.description).toUpperCase()};${e.type === 'OUT' ? e.amount : 0};${e.type === 'IN' ? e.amount : 0}`);
+        bal += e.type === 'IN' ? e.amount : -e.amount;
+      });
+      lines.push(`${to};BIAYA ADMIN BULANAN;15000;0`);
+      lines.push(`${to};JASA GIRO;0;25000`);
+      bal += 25000 - 15000;
+      document.getElementById('fCsv').value = lines.join('\n');
+      document.getElementById('fStatement').value = bal;
+      readStatement();
+    }
+
+    function toggle(id, on) {
+      if (on) checked.add(id); else { checked.delete(id); const k = pairedBankIdx(id); if (k != null) delete pairs[k]; }
+      renderAll();
+    }
+    function toggleAll(on) {
+      sys.forEach(e => { if (!e.reconciled) { if (on) checked.add(e.id); else checked.delete(e.id); } });
+      if (!on) Object.keys(pairs).forEach(k => { if (!entryOf(pairs[k]).reconciled) delete pairs[k]; });
+      renderAll();
+    }
+
+    function renderAll() {
+      document.getElementById('sysBody').innerHTML = sys.map(e => {
+        const k = pairedBankIdx(e.id);
+        return `<tr class="${checked.has(e.id) ? '' : 'table-warning'}">
+          <td><input type="checkbox" class="form-check-input" ${checked.has(e.id) ? 'checked' : ''} ${e.reconciled ? 'disabled title="Sudah direkonsiliasi sebelumnya"' : ''} onchange="toggle('${e.id}', this.checked)"></td>
+          <td class="text-nowrap fs-12">${formatDate(e.date)}</td>
+          <td><span class="text-mono fs-12">${e.voucherNo}</span>${e.reconciled ? ' <i class="bi bi-check-circle-fill text-success" title="Sudah direkonsiliasi"></i>' : ''}${k != null ? ' <span class="badge bg-success-subtle text-success">↔ mutasi #' + (+k + 1) + '</span>' : ''}<div class="fs-12">${esc(e.description)}</div></td>
+          <td class="num ${e.type === 'IN' ? 'qty-plus' : 'zero'}">${e.type === 'IN' ? formatRupiah(e.amount) : '-'}</td>
+          <td class="num ${e.type === 'OUT' ? 'qty-minus' : 'zero'}">${e.type === 'OUT' ? formatRupiah(e.amount) : '-'}</td></tr>`;
+      }).join('') || '<tr><td colspan="5" class="text-center text-muted py-4">Tidak ada transaksi di sistem pada periode ini</td></tr>';
+      document.getElementById('checkAll').checked = sys.length > 0 && sys.every(e => checked.has(e.id));
+
+      document.getElementById('bankBody').innerHTML = bankRows.map(b => {
+        const eid = pairs[b.idx];
+        return `<tr class="${eid ? '' : 'table-warning'}">
+          <td class="text-nowrap fs-12">#${b.idx + 1} · ${formatDate(b.date)}</td>
+          <td class="fs-12">${esc(b.description)}</td>
+          <td class="num ${b.type === 'IN' ? 'qty-plus' : 'zero'}">${b.type === 'IN' ? formatRupiah(b.amount) : '-'}</td>
+          <td class="num ${b.type === 'OUT' ? 'qty-minus' : 'zero'}">${b.type === 'OUT' ? formatRupiah(b.amount) : '-'}</td>
+          <td>${eid ? `<span class="badge bg-success-subtle text-success">Cocok ${entryOf(eid).voucherNo}</span>` : `<button class="btn btn-outline-primary btn-sm py-0" onclick="openRecord(${b.idx})" title="Belum ada di sistem - catat sebagai bon">Catat ke Sistem</button>`}</td></tr>`;
+      }).join('') || '<tr><td colspan="5" class="text-center text-muted py-4">Belum ada mutasi. Tempel / pilih file CSV, atau klik "Contoh Mutasi".</td></tr>';
+      renderSummary();
+    }
+
+    function calc() {
+      const { acc, from, to } = P();
+      const systemBal = CB.balance(acc, to);
+      const stmtRaw = document.getElementById('fStatement').value;
+      const stmt = stmtRaw === '' ? null : Math.round(Number(stmtRaw));
+      const sysOpen = sys.filter(e => !checked.has(e.id));
+      const bankOpen = bankRows.filter(b => pairs[b.idx] == null);
+      const s = (list, t) => list.filter(x => x.type === t).reduce((a, x) => a + x.amount, 0);
+      const adjBank = stmt == null ? null : stmt + s(sysOpen, 'IN') - s(sysOpen, 'OUT');
+      const adjSys = systemBal + s(bankOpen, 'IN') - s(bankOpen, 'OUT');
+      return { acc, from, to, systemBal, stmt, sysOpen, bankOpen, s, adjBank, adjSys, diff: adjBank == null ? null : adjBank - adjSys };
+    }
+
+    function renderSummary() {
+      const c = calc();
+      document.getElementById('kpis').innerHTML = [
+        ['blue', 'bi-pc-display', 'Saldo menurut Sistem', formatRupiah(c.systemBal)],
+        ['purple', 'bi-bank', 'Saldo Rekening Koran', c.stmt == null ? '<span class="text-muted fs-6">belum diisi</span>' : formatRupiah(c.stmt)],
+        [c.diff ? 'red' : 'green', c.diff ? 'bi-exclamation-triangle' : 'bi-check-circle', 'Selisih setelah penyesuaian', c.diff == null ? '-' : formatRupiah(c.diff)],
+        ['orange', 'bi-list-check', 'Transaksi Cocok', `${sys.filter(e => checked.has(e.id)).length} / ${sys.length}`]
+      ].map(([col, i, l, v]) => `<div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon ${col}"><i class="bi ${i}"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${v}</div><div class="kpi-label">${l}</div></div></div></div>`).join('');
+
+      const row = (label, val, cls) => `<tr class="${cls || ''}"><td class="py-1">${label}</td><td class="text-end py-1">${val}</td></tr>`;
+      document.getElementById('reconTable').innerHTML =
+        row('<strong>Saldo menurut Rekening Koran</strong>', c.stmt == null ? '-' : formatRupiah(c.stmt)) +
+        row(`+ Masuk di sistem, belum muncul di bank (${c.sysOpen.filter(e => e.type === 'IN').length})`, formatRupiah(c.s(c.sysOpen, 'IN'))) +
+        row(`− Keluar di sistem, belum muncul di bank (${c.sysOpen.filter(e => e.type === 'OUT').length})`, formatRupiah(c.s(c.sysOpen, 'OUT'))) +
+        row('= Saldo Bank disesuaikan', c.adjBank == null ? '-' : formatRupiah(c.adjBank), 'fw-600 border-top') +
+        row('&nbsp;', '') +
+        row('<strong>Saldo menurut Sistem</strong>', formatRupiah(c.systemBal)) +
+        row(`+ Mutasi masuk bank, belum dicatat (${c.bankOpen.filter(b => b.type === 'IN').length})`, formatRupiah(c.s(c.bankOpen, 'IN'))) +
+        row(`− Mutasi keluar bank, belum dicatat (${c.bankOpen.filter(b => b.type === 'OUT').length})`, formatRupiah(c.s(c.bankOpen, 'OUT'))) +
+        row('= Saldo Sistem disesuaikan', formatRupiah(c.adjSys), 'fw-600 border-top');
+
+      document.getElementById('resultBox').innerHTML = c.diff == null
+        ? '<div class="alert alert-light border py-2 fs-13 mb-0">Isi <strong>Saldo Akhir menurut Rekening Koran</strong> untuk melihat hasilnya.</div>'
+        : c.diff === 0
+          ? `<div class="alert alert-success py-2 fs-13 mb-0"><i class="bi bi-check-circle me-1"></i><strong>Cocok.</strong> Saldo bank & sistem sama setelah penyesuaian.${c.bankOpen.length ? ' Catat dulu mutasi bank yang belum ada di sistem (biaya admin, bunga, dll.).' : ''}</div>`
+          : `<div class="alert alert-danger py-2 fs-13 mb-0"><i class="bi bi-exclamation-triangle me-1"></i><strong>Ada selisih ${formatRupiah(c.diff)}.</strong> Periksa transaksi yang belum dicentang / mutasi yang belum tercatat.</div>`;
+    }
+
+    // ---------- Catat mutasi bank ke sistem ----------
+    let recRow = null;
+    function guessCategory(b) {
+      const d = b.description.toLowerCase();
+      if (b.type === 'OUT') return /admin|biaya|pajak|materai|pph/.test(d) ? 'bank_out_admin' : /pinjam|angsur|kredit/.test(d) ? 'bank_out_loan' : 'bank_out_supplier';
+      return /bunga|giro|jasa/.test(d) ? 'bank_in_interest' : /pinjam/.test(d) ? 'bank_in_loan' : 'bank_in_ar';
+    }
+    function openRecord(idx) {
+      recRow = bankRows[idx];
+      const acc = CB.account(P().acc);
+      document.getElementById('recTitle').textContent = recRow.type === 'IN' ? 'Catat Bon Biru dari Mutasi' : 'Catat Bon Merah dari Mutasi';
+      document.getElementById('recInfo').innerHTML = `${acc.name} · ${formatDate(recRow.date)} · <strong class="${recRow.type === 'IN' ? 'text-primary' : 'text-danger'}">${recRow.type === 'IN' ? 'Masuk' : 'Keluar'} ${formatRupiah(recRow.amount)}</strong>`;
+      document.getElementById('recCategory').innerHTML = CB.categoriesFor('Bank', recRow.type).map(k => `<option value="${k}">${CB.categoryLabel(k)}</option>`).join('');
+      document.getElementById('recCategory').value = guessCategory(recRow);
+      document.getElementById('recDesc').value = recRow.description;
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('recordModal')).show();
+    }
+    function submitRecord() {
+      const res = CB.addEntry({
+        type: recRow.type, date: recRow.date, accountId: P().acc, amount: recRow.amount,
+        category: document.getElementById('recCategory').value,
+        description: document.getElementById('recDesc').value, reference: 'Mutasi bank ' + recRow.date
+      });
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      bootstrap.Modal.getInstance(document.getElementById('recordModal')).hide();
+      showToast(res.entry.voucherNo + ' dicatat', 'success');
+      const keep = new Set(checked);
+      sys = CB.entries(P().acc).filter(e => e.date >= P().from && e.date <= P().to);
+      pairs = CB.autoMatch(sys, bankRows);
+      checked = new Set([...keep, ...Object.values(pairs)]);
+      renderAll();
+    }
+
+    // ---------- Simpan ----------
+    function save() {
+      const c = calc();
+      if (c.stmt == null) { showToast('Isi saldo akhir menurut rekening koran', 'error'); return; }
+      if (c.diff !== 0 && !confirm(`Masih ada selisih ${formatRupiah(c.diff)}. Tetap simpan dengan status "Ada Selisih"?`)) return;
+      const res = CB.saveReconciliation({
+        accountId: c.acc, start: c.from, end: c.to, statementBalance: c.stmt, difference: c.diff,
+        matchedIds: sys.filter(e => checked.has(e.id) && !e.reconciled).map(e => e.id),
+        unmatchedSystemIds: c.sysOpen.map(e => e.id), unmatchedBank: c.bankOpen
+      });
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      showToast(`Rekonsiliasi ${res.reconciliation.id} disimpan - ${res.reconciliation.status}`, res.reconciliation.difference === 0 ? 'success' : 'warning');
+      const stmt = c.stmt;
+      sys = CB.entries(c.acc).filter(e => e.date >= c.from && e.date <= c.to);
+      renderAll();
+      document.getElementById('fStatement').value = stmt;
+      renderSummary(); renderHistory();
+    }
+
+    function renderHistory() {
+      document.getElementById('historyBody').innerHTML = (MockData.reconciliations || []).slice().reverse().map(r => `<tr>
+        <td class="text-mono">${r.id}</td><td>${esc(r.accountName)}</td>
+        <td class="fs-12 text-nowrap">${formatDate(r.start)} - ${formatDate(r.end)}</td>
+        <td class="num">${formatRupiah(r.systemBalance)}</td><td class="num">${formatRupiah(r.statementBalance)}</td>
+        <td class="num ${r.difference ? 'qty-minus fw-600' : 'zero'}">${formatRupiah(r.difference)}</td>
+        <td class="num">${r.matchedCount}</td>
+        <td><span class="badge-status ${r.status === 'Cocok' ? 'paid' : 'overdue'}">${r.status}</span></td>
+        <td class="fs-12">${esc(r.user)}<div class="text-muted">${formatDate(r.date)}</div></td></tr>`).join('') ||
+        '<tr><td colspan="9" class="text-center text-muted py-4">Belum ada rekonsiliasi</td></tr>';
+    }
+
+    load();
+    renderHistory();
+  </script>
+</body>
+</html>

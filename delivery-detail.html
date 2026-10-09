@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Detail Pengiriman — EquipRent Enterprise</title>
+  <title>Detail Pengiriman - EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -103,7 +103,8 @@
         ${dlv.status === 'Arrived' ? `<button class="btn btn-success btn-sm" onclick="openPodModal()"><i class="bi bi-check-circle me-1"></i>Complete Handover (PoD)</button>
                                       <button class="btn btn-outline-danger btn-sm" onclick="openFailModal()"><i class="bi bi-exclamation-triangle me-1"></i>Report Issue</button>` : ''}
         ${dlv.status === 'Failed' ? `<button class="btn btn-primary btn-sm" onclick="rescheduleDelivery()"><i class="bi bi-arrow-repeat me-1"></i>Reschedule</button>` : ''}
-        <button class="btn btn-outline-secondary btn-sm" onclick="showToast('Print initiated','info')"><i class="bi bi-printer me-1"></i>Cetak</button>
+        ${dlv.status === 'Preparing' || dlv.status === 'Rescheduled' ? `<button class="btn btn-primary btn-sm" onclick="openAssign()"><i class="bi bi-person-plus me-1"></i>Tugaskan Driver</button>` : ''}
+        <button class="btn btn-outline-secondary btn-sm" onclick="printSJ()"><i class="bi bi-printer me-1"></i>Cetak Surat Jalan</button>
       </div>`;
 
     document.getElementById('detailBody').innerHTML = `
@@ -140,6 +141,13 @@
         </div>
       </div>` : ''}
 
+      ${dlv.arrivalPhoto || dlv.arrivalNotes ? `
+      <div class="alert alert-info mt-4 mb-0">
+        <h6 class="alert-heading fw-600 mb-2"><i class="bi bi-camera me-2"></i>Laporan Kedatangan Driver</h6>
+        ${dlv.arrivalNotes ? `<p class="mb-2">${dlv.arrivalNotes}</p>` : ''}
+        ${dlv.arrivalPhoto ? `<img src="${dlv.arrivalPhoto}" alt="Foto kedatangan" class="rounded border" style="max-width:280px;max-height:200px">` : ''}
+      </div>` : ''}
+
       ${dlv.failureInfo ? `
       <div class="alert alert-danger mt-4 mb-0">
         <h6 class="alert-heading fw-600 mb-2"><i class="bi bi-exclamation-triangle me-2"></i>Delivery Failed</h6>
@@ -155,7 +163,7 @@
       <h6 class="fw-600 mt-4 mb-3">Delivery Timeline</h6>
       ${renderActivityTimeline([
         {time:(dlv.createdAt || '09:00'),date:dlv.deliveryDate,action:'Delivery created',user:'Admin',type:'info'},
-        ...(dlv.driverName?[{time:(dlv.createdAt || '09:30'),date:dlv.deliveryDate,action:`Driver ${dlv.driverName} assigned`,user:'Admin',type:'info'}]:[]),
+        ...(dlv.driverName?[{time:(dlv.assignedAt||'').split(' ')[1] || '09:30',date:(dlv.assignedAt||'').split(' ')[0] || dlv.deliveryDate,action:`Driver ${dlv.driverName} assigned`,user:'Admin',type:'info'}]:[]),
         ...(dlv.departedAt?[{time:dlv.departedAt.split(' ')[1],date:dlv.departedAt.split(' ')[0],action:'Delivery departed',user:dlv.driverName,type:'warning'}]:[]),
         ...(dlv.arrivedAt?[{time:dlv.arrivedAt.split(' ')[1],date:dlv.arrivedAt.split(' ')[0],action:'Delivery arrived at destination',user:dlv.driverName,type:'info'}]:[]),
         ...(dlv.completedAt?[{time:dlv.completedAt.split(' ')[1],date:dlv.completedAt.split(' ')[0],action:'Delivery completed - items handed over',user:dlv.driverName,type:'success'}]:[]),
@@ -219,16 +227,55 @@
     }
 
     function rescheduleDelivery() {
-      const newDateStr = prompt('Enter new delivery date (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
-      if (newDateStr) {
-        const res = BizLogic.Delivery.updateStatus(dlv.id, 'Rescheduled', { newDate: newDateStr });
-        if (res.success) {
+      BizLogic.showConfirmModal('Jadwalkan Ulang', 'Pilih tanggal kirim baru untuk <strong>' + dlv.id + '</strong>. Setelah itu tugaskan driver lagi.',
+        '<i class="bi bi-arrow-repeat me-1"></i>Jadwalkan Ulang', 'btn-primary',
+        function(f) {
+          const res = BizLogic.Delivery.updateStatus(dlv.id, 'Rescheduled', { newDate: f.newDate });
+          if (!res.success) { showToast(res.error, 'error'); return; }
           showToast('Delivery rescheduled', 'success');
           setTimeout(() => location.reload(), 600);
-        } else {
-          showToast(res.error, 'error');
-        }
-      }
+        },
+        [{ id: 'newDate', label: 'Tanggal Kirim Baru', type: 'date', required: true }]);
+    }
+
+    // Tugaskan driver & kendaraan (DLV Preparing / Rescheduled)
+    function openAssign() {
+      const drivers = MockData.drivers.filter(d => d.status === 'Available');
+      if (!drivers.length) { showToast('Tidak ada driver yang tersedia', 'warning'); return; }
+      const vehicles = MockData.vehicles.filter(v => v.status === 'Available');
+      BizLogic.showConfirmModal('Tugaskan Driver', 'Pilih driver & kendaraan untuk <strong>' + dlv.id + '</strong>.',
+        '<i class="bi bi-person-check me-1"></i>Tugaskan', 'btn-primary',
+        function(f) {
+          const res = BizLogic.Delivery.assign(dlv.id, { driverId: f.driverId, vehicleId: f.vehicleId, deliveryDate: f.deliveryDate });
+          if (!res.success) { showToast(res.error, 'error'); return; }
+          showToast('Driver ditugaskan', 'success');
+          setTimeout(() => location.reload(), 600);
+        },
+        [{ id: 'driverId', label: 'Driver', type: 'select', options: drivers.map(d => ({ value: d.id, label: d.name })) },
+         { id: 'vehicleId', label: 'Kendaraan', type: 'select', options: [{ value: '', label: '- Tanpa kendaraan -' }].concat(vehicles.map(v => ({ value: v.id, label: v.plate + ' - ' + v.brand }))) },
+         { id: 'deliveryDate', label: 'Tanggal Kirim', type: 'date', value: dlv.deliveryDate }]);
+    }
+
+    // Cetak Surat Jalan Kirim
+    function printSJ() {
+      const c = MockData.company;
+      const rows = dlv.items.map((i, n) => `<tr><td>${n + 1}</td><td>${i.name}</td><td>${i.qty}</td><td></td></tr>`).join('');
+      const signs = ['Dibuat oleh', 'Gudang', 'Driver', 'Penerima'].map(t => `<div>${t}<div class="line"></div></div>`).join('');
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>${dlv.sjNo || dlv.id}</title>
+        <style>body{font-family:Arial,sans-serif;font-size:13px;margin:32px;color:#111}h2{margin:0}table{width:100%;border-collapse:collapse;margin-top:16px}
+        th,td{border:1px solid #999;padding:6px 8px;text-align:left}.meta td{border:none;padding:2px 0}
+        .sign{display:flex;justify-content:space-between;margin-top:48px;text-align:center}.sign div{width:22%}.sign .line{margin-top:60px;border-top:1px solid #111}</style></head><body>
+        <div style="display:flex;justify-content:space-between"><div><h2>${c.name}</h2><div>${c.address}</div><div>${c.phone}</div></div>
+        <div style="text-align:right"><h2>SURAT JALAN PENGIRIMAN</h2><div>No. ${dlv.sjNo || '-'}</div><div>${dlv.id} / ${dlv.rentalId}</div></div></div>
+        <table class="meta"><tr><td style="width:110px">Tanggal</td><td>: ${formatDate(dlv.deliveryDate)}</td><td style="width:110px">Driver</td><td>: ${dlv.driverName || '-'}</td></tr>
+        <tr><td>Customer</td><td>: ${dlv.customerName}</td><td>Kendaraan</td><td>: ${dlv.vehiclePlate || '-'}</td></tr>
+        <tr><td>Proyek</td><td>: ${dlv.projectName}</td><td>Tujuan</td><td>: ${dlv.destination || '-'}</td></tr></table>
+        <table><thead><tr><th style="width:40px">No</th><th>Nama Alat</th><th style="width:80px">Qty</th><th>Keterangan</th></tr></thead><tbody>${rows}</tbody></table>
+        <div class="sign">${signs}</div></body></html>`;
+      const w = window.open('', '_blank');
+      w.document.write(html);
+      w.document.close();
+      setTimeout(() => w.print(), 400);
     }
   </script>
 </body>

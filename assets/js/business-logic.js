@@ -1,5 +1,5 @@
 /* ============================================================
-   EquipRent Enterprise — Business Logic Engine
+   EquipRent Enterprise - Business Logic Engine
    Centralized state transitions, stock management, validation
    ============================================================ */
 
@@ -43,19 +43,21 @@ BizLogic.DeliveryTransitions = {
   'Preparing':   ['Assigned'],
   'Assigned':    ['Departed'],
   'Departed':    ['Arrived', 'Failed'],
-  'Arrived':     ['Completed'],
+  'Arrived':     ['Completed', 'Failed'],   // Failed di lokasi: mis. alat ditolak customer
   'Failed':      ['Rescheduled'],
   'Rescheduled': ['Assigned'],
   'Completed':   []
 };
 
+// Received / Partially Received diatur oleh penerimaan barang (createGoodsReceipt)
 BizLogic.PurchaseTransitions = {
-  'Draft':      ['Ordered', 'Cancelled'],
-  'Ordered':    ['Approved', 'Cancelled'],
-  'Approved':   ['In Transit', 'Cancelled'],
-  'In Transit': ['Arrived', 'Partially Received'],
-  'Arrived':    ['Partially Received', 'Received'],
-  'Partially Received': ['Received'],
+  'Draft':      ['Approved', 'Cancelled'],
+  'Requested':  ['Approved', 'Cancelled'],
+  'Approved':   ['Ordered', 'Cancelled'],
+  'Ordered':    ['In Transit', 'Arrived', 'Cancelled'],
+  'In Transit': ['Arrived'],
+  'Arrived':    [],
+  'Partially Received': [],
   'Received':   ['Completed'],
   'Completed':  [],
   'Cancelled':  []
@@ -108,7 +110,7 @@ BizLogic.validateTransition = function(transitionMap, currentStatus, targetStatu
 };
 
 // ============================================================
-// STOCK MANAGER — kondisi fisik per gudang (MockData.stock)
+// STOCK MANAGER - kondisi fisik per gudang (MockData.stock)
 // row.total = qty fisik di gudang; available/reserved/damaged/maintenance = rinciannya.
 // Jangan ubah total langsung dari halaman: gunakan BizLogic.StockLedger.post()
 // supaya ledger (stockMutations) dan baris stok selalu sinkron.
@@ -235,7 +237,7 @@ BizLogic.Stock = {
 };
 
 // ============================================================
-// STOCK LEDGER — Perpindahan Stok (MockData.stockMutations)
+// STOCK LEDGER - Perpindahan Stok (MockData.stockMutations)
 // Sumber kebenaran qty untuk Rekap Stok:
 //   stok gudang  = masuk ke gudang - keluar dari gudang
 //   stok proyek  = SJ kirim ke proyek - SJ pulang - hilang
@@ -617,12 +619,8 @@ BizLogic.Rental = {
       return { success: false, error: 'Cannot reject from status: ' + rental.status };
     }
 
-    // Release any existing reservations
-    var branch = rental.branch ? rental.branch.replace(' Warehouse', '') : 'Cileungsi';
-    rental.items.forEach(function(item) {
-      BizLogic.Stock.release(item.name, branch, item.quantity);
-    });
-
+    // Penyewaan Pending belum memesan stok (stok baru dipesan saat disetujui), jadi tidak ada yang dilepas.
+    // Melepas di sini dulu bisa ikut melepas pesanan penyewaan lain di gudang yang sama.
     var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
     rental.status = 'Rejected';
     rental.rejectedBy = user.name || 'Manager';
@@ -698,6 +696,33 @@ BizLogic.Rental = {
     );
 
     return { success: true };
+  },
+
+  // Perpanjangan sewa: ubah Tanggal Kembali (tagihan tetap dihitung dari SJ kirim/pulang)
+  extend: function(rentalId, newDate, reason) {
+    var rental = MockData.rentals.find(function(r) { return r.id === rentalId; });
+    if (!rental) return { success: false, error: 'Rental not found' };
+    var allowed = ['Approved', 'Preparing', 'Partially Delivered', 'On Rental', 'Partially Returned', 'Overdue'];
+    if (allowed.indexOf(rental.status) === -1) return { success: false, error: 'Penyewaan berstatus ' + rental.status + ' tidak bisa diperpanjang' };
+    if (!newDate) return { success: false, error: 'Isi tanggal kembali yang baru' };
+    if (newDate <= rental.returnDate) return { success: false, error: 'Tanggal baru harus setelah tanggal kembali sekarang (' + rental.returnDate + ')' };
+    if (!String(reason || '').trim()) return { success: false, error: 'Alasan perpanjangan wajib diisi' };
+
+    var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
+    if (!MockData.extensions) MockData.extensions = [];
+    var ext = {
+      id: MockData.generateId('EXT', 'extensions'),
+      rentalId: rental.id, projectId: rental.projectId, customerName: rental.customerName,
+      oldReturnDate: rental.returnDate, newReturnDate: newDate,
+      days: BizLogic.Billing.days(rental.returnDate, newDate) - 1,
+      reason: String(reason).trim(), date: new Date().toISOString().split('T')[0], user: user.name || 'Admin'
+    };
+    MockData.extensions.push(ext);
+    rental.returnDate = newDate;
+    MockData.save('extensions');
+    MockData.save('rentals');
+    BizLogic.Activity.log('Rental ' + rental.id + ' diperpanjang s/d ' + newDate + ' (' + ext.days + ' hari)', 'info');
+    return { success: true, extension: ext };
   },
 
   isOverdue: function(rental) {
@@ -836,10 +861,12 @@ BizLogic.Delivery = {
     }
 
     if (newStatus === 'Arrived') {
-      delivery.arrivedAt = new Date().toISOString().replace('T', ' ').substring(0, 16);
+      delivery.arrivedAt = (extraData && extraData.arrivedAt) || new Date().toISOString().replace('T', ' ').substring(0, 16);
       if (extraData && extraData.proofOfDelivery) {
         delivery.proofOfDelivery = extraData.proofOfDelivery;
       }
+      if (extraData && extraData.arrivalPhoto) delivery.arrivalPhoto = extraData.arrivalPhoto;
+      if (extraData && extraData.arrivalNotes) delivery.arrivalNotes = extraData.arrivalNotes;
     }
 
     if (newStatus === 'Completed') {
@@ -898,6 +925,34 @@ BizLogic.Delivery = {
     MockData.save('deliveries');
     BizLogic.Activity.log('Delivery ' + deliveryId + ' status changed to ' + newStatus, newStatus === 'Failed' ? 'danger' : 'info');
 
+    return { success: true };
+  },
+
+  // Tugaskan driver & kendaraan ke DLV yang belum punya driver (Preparing) atau dijadwal ulang (Rescheduled)
+  assign: function(deliveryId, data) {
+    data = data || {};
+    var delivery = MockData.deliveries.find(function(d) { return d.id === deliveryId; });
+    if (!delivery) return { success: false, error: 'Delivery not found' };
+    if (delivery.status !== 'Preparing' && delivery.status !== 'Rescheduled') {
+      return { success: false, error: 'Driver hanya bisa ditugaskan saat status Preparing / Rescheduled' };
+    }
+    var driver = MockData.drivers.find(function(d) { return d.id === data.driverId; });
+    if (!driver) return { success: false, error: 'Pilih driver' };
+    if (driver.status !== 'Available') return { success: false, error: 'Driver ' + driver.name + ' sedang ' + driver.status };
+    var vehicle = data.vehicleId ? MockData.vehicles.find(function(v) { return v.id === data.vehicleId; }) : null;
+    if (data.vehicleId && (!vehicle || vehicle.status !== 'Available')) return { success: false, error: 'Kendaraan tidak tersedia' };
+
+    if (data.deliveryDate) delivery.deliveryDate = data.deliveryDate;
+    delivery.driverId = driver.id; delivery.driverName = driver.name;
+    driver.status = 'On Delivery'; driver.currentDelivery = delivery.id;
+    if (vehicle) {
+      delivery.vehicleId = vehicle.id; delivery.vehiclePlate = vehicle.plate;
+      vehicle.status = 'On Delivery'; vehicle.currentDelivery = delivery.id;
+    }
+    delivery.status = 'Assigned';
+    delivery.assignedAt = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    MockData.save('deliveries'); MockData.save('drivers'); MockData.save('vehicles');
+    BizLogic.Activity.log('Delivery ' + delivery.id + ' ditugaskan ke ' + driver.name, 'info');
     return { success: true };
   },
 
@@ -1182,7 +1237,7 @@ BizLogic.Repair = {
     
     if (newStatus === 'Unrepairable') {
       // Afkir: keluar dari stok gudang (kondisi rusak)
-      BizLogic.StockLedger.post({
+      var disposed = BizLogic.StockLedger.post({
         type: 'DISPOSAL',
         from: { type: 'warehouse', id: BizLogic.StockLedger.warehouseIdOf(repair.branch) },
         to: { type: 'disposed' },
@@ -1190,6 +1245,12 @@ BizLogic.Repair = {
         notes: (extraData && extraData.notes) || 'Tidak dapat diperbaiki',
         items: [{ equipment: repair.equipmentName, qty: repair.quantity }]
       }, { source: 'damaged' });
+      if (!disposed.success) {
+        repair.status = 'In Repair';
+        repair.completionDate = null;
+        return { success: false, error: disposed.error };
+      }
+      repair.disposalNo = disposed.mutation.no;
       BizLogic.Movement.create('Disposal', repair.equipmentName, repair.quantity, repair.branch + ' Warehouse (Damaged)', 'Disposed', repair.id);
     }
 
@@ -1222,11 +1283,90 @@ BizLogic.Claim = {
       // Invoice klaim masuk ke piutang
       var invoice = BizLogic.Invoice.createForClaim(claim);
       claim.invoiceId = invoice.id;
+      claim.invoiceStatus = invoice.status;
+    }
+    if (newStatus === 'Closed') {
+      claim.closedDate = new Date().toISOString().split('T')[0];
+      if (extraData && extraData.reason) claim.closeReason = extraData.reason;
     }
 
     MockData.save('claims');
     BizLogic.Activity.log('Claim ' + claim.id + ' status changed to ' + newStatus, 'warning');
     return { success: true };
+  },
+
+  // Nilai klaim default per unit: hilang = nilai ganti (harga sewa/bulan × 10), rusak = 30% nilai ganti (biaya perbaikan).
+  // Nilai bisa diubah di claim-detail sebelum invoice dibuat.
+  REPLACEMENT_FACTOR: 10,
+  DAMAGE_RATE: 0.3,
+  unitValues: function(projectId, equipment) {
+    var replace = BizLogic.Billing.unitPrice(projectId, equipment) * this.REPLACEMENT_FACTOR;
+    return { lost: replace, damaged: Math.round(replace * this.DAMAGE_RATE) };
+  },
+
+  // Buat klaim dari hasil inspeksi pengembalian (1 klaim per alat yang rusak / hilang / missing)
+  createFromReturn: function(returnId) {
+    var ret = MockData.returns.find(function(r) { return r.id === returnId; });
+    if (!ret) return { success: false, error: 'Return not found' };
+    if (ret.status !== 'Completed') return { success: false, error: 'Selesaikan inspeksi dulu sebelum membuat klaim' };
+    if (MockData.claims.some(function(c) { return c.returnId === ret.id; })) return { success: false, error: 'Klaim untuk ' + ret.id + ' sudah dibuat' };
+    var self = this, created = [];
+    ret.items.forEach(function(item) {
+      var lost = (item.lost || 0) + (item.missing || 0), dmg = item.damaged || 0;
+      if (!lost && !dmg) return;
+      var v = self.unitValues(ret.projectId, item.name);
+      var parts = [];
+      if (dmg) parts.push('Rusak ' + dmg + (item.damageNotes ? ' (' + item.damageNotes + ')' : ''));
+      if (item.lost) parts.push('Hilang ' + item.lost);
+      if (item.missing) parts.push('Missing ' + item.missing);
+      var claim = {
+        id: MockData.generateId('CLM', 'claims'),
+        returnId: ret.id, rentalId: ret.rentalId,
+        projectId: ret.projectId, projectName: ret.projectName,
+        customerId: ret.customerId, customerName: ret.customerName,
+        equipment: item.name, quantity: lost + dmg,
+        damagedQty: dmg, lostQty: lost,
+        reason: parts.join(', '),
+        claimAmount: dmg * v.damaged + lost * v.lost,
+        customerConfirmation: 'Waiting', status: 'Draft', invoiceId: null, invoiceStatus: null,
+        createdDate: new Date().toISOString().split('T')[0]
+      };
+      MockData.claims.push(claim);
+      created.push(claim);
+      BizLogic.Activity.log('Claim ' + claim.id + ' created for ' + item.name, 'warning');
+    });
+    if (!created.length) return { success: false, error: 'Tidak ada barang rusak / hilang untuk diklaim' };
+    MockData.save('claims');
+    return { success: true, claims: created };
+  },
+
+  // Ubah nilai klaim (sebelum diterbitkan invoice)
+  setAmount: function(claimId, amount, note) {
+    var claim = MockData.claims.find(function(c) { return c.id === claimId; });
+    if (!claim) return { success: false, error: 'Claim not found' };
+    if (['Draft', 'Pending Customer Confirmation', 'Waiting Customer Confirmation', 'Disputed'].indexOf(claim.status) === -1) {
+      return { success: false, error: 'Nilai klaim tidak bisa diubah setelah disetujui / ditagihkan' };
+    }
+    var amt = Math.round(Number(amount));
+    if (isNaN(amt) || amt <= 0) return { success: false, error: 'Nilai klaim harus lebih dari 0' };
+    claim.amountHistory = (claim.amountHistory || []).concat([{ from: claim.claimAmount, to: amt, note: note || '', date: new Date().toISOString().split('T')[0] }]);
+    claim.claimAmount = amt;
+    MockData.save('claims');
+    BizLogic.Activity.log('Nilai klaim ' + claim.id + ' diubah jadi Rp ' + amt.toLocaleString('id-ID'), 'info');
+    return { success: true };
+  },
+
+  // Dipanggil setelah pembayaran: klaim yang invoicenya lunas → Paid
+  syncFromInvoice: function(inv) {
+    if (inv.type !== 'Klaim') return;
+    var changed = false;
+    MockData.claims.forEach(function(c) {
+      if (c.invoiceId !== inv.id) return;
+      c.invoiceStatus = inv.status;
+      if (inv.status === 'Paid' && c.status === 'Invoiced') { c.status = 'Paid'; c.paidDate = inv.paidDate; }
+      changed = true;
+    });
+    if (changed) MockData.save('claims');
   }
 };
 
@@ -1235,20 +1375,52 @@ BizLogic.Claim = {
 // ============================================================
 
 BizLogic.Purchase = {
+  RECEIVABLE: ['Ordered', 'In Transit', 'Arrived', 'Partially Received'],
+
+  // Draft/Requested → Approved → Ordered → In Transit → Arrived; Cancelled sebelum ada barang diterima
+  updateStatus: function(purchaseId, newStatus, extraData) {
+    var po = MockData.purchases.find(function(p) { return p.id === purchaseId; });
+    if (!po) return { success: false, error: 'Purchase Order not found' };
+    if (!BizLogic.validateTransition(BizLogic.PurchaseTransitions, po.status, newStatus)) {
+      return { success: false, error: 'Tidak bisa mengubah status ' + po.status + ' → ' + newStatus };
+    }
+    if (newStatus === 'Cancelled' && po.items.some(function(i) { return (i.received || 0) > 0; })) {
+      return { success: false, error: 'PO yang sudah ada barang diterima tidak bisa dibatalkan' };
+    }
+    var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
+    var now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    po.status = newStatus;
+    po.history = (po.history || []).concat([{ status: newStatus, date: now, user: user.name || 'Admin', notes: (extraData && extraData.notes) || '' }]);
+    if (newStatus === 'Approved') { po.approvedBy = user.name || 'Manager'; po.approvedDate = now; }
+    if (newStatus === 'Cancelled') po.cancelReason = (extraData && extraData.notes) || '';
+    MockData.save('purchases');
+    BizLogic.Activity.log('PO ' + po.id + ' → ' + newStatus, newStatus === 'Cancelled' ? 'danger' : 'info');
+    return { success: true };
+  },
+
   createGoodsReceipt: function(purchaseId, receivedItems, details) {
+    details = details || {};
     var po = MockData.purchases.find(function(p) { return p.id === purchaseId; });
     if (!po) return { success: false, error: 'Purchase Order not found' };
 
-    var allowedStatuses = ['Ordered', 'Approved', 'In Transit', 'Arrived', 'Partially Received'];
-    if (allowedStatuses.indexOf(po.status) === -1) {
+    if (this.RECEIVABLE.indexOf(po.status) === -1) {
       return { success: false, error: 'Cannot receive items for PO in status: ' + po.status };
+    }
+    receivedItems = (receivedItems || []).filter(function(ri) { return Number(ri.qty) > 0; });
+    if (!receivedItems.length) return { success: false, error: 'Isi jumlah barang yang diterima' };
+    for (var i = 0; i < receivedItems.length; i++) {
+      var ri = receivedItems[i];
+      var pi = po.items.find(function(x) { return x.name === ri.name; });
+      var rest = pi ? pi.qty - (pi.received || 0) : 0;
+      if (!pi) return { success: false, error: ri.name + ' tidak ada di PO' };
+      if (ri.qty > rest) return { success: false, error: ri.name + ': diterima ' + ri.qty + ', sisa pesanan hanya ' + rest };
     }
 
     var gr = {
       id: MockData.generateId('GR', 'goodsReceipts'),
       purchaseId: po.id,
       vendor: po.vendor || po.supplier,
-      branch: details.branch || 'Cileungsi Warehouse',
+      branch: details.branch || ((po.branch || 'Cileungsi').replace(' Warehouse', '') + ' Warehouse'),
       receiptDate: details.receiptDate || new Date().toISOString().split('T')[0],
       receivedBy: details.receivedBy || JSON.parse(sessionStorage.getItem('er_user') || '{}').name || 'Warehouse Staff',
       notes: details.notes || '',
@@ -1277,7 +1449,7 @@ BizLogic.Purchase = {
     });
 
     // Pembelian: + stok gudang
-    BizLogic.StockLedger.post({
+    var posted = BizLogic.StockLedger.post({
       type: 'PURCHASE',
       date: gr.receiptDate,
       from: { type: 'supplier', name: gr.vendor || 'Supplier' },
@@ -1285,12 +1457,14 @@ BizLogic.Purchase = {
       reference: po.id + ' / ' + gr.id,
       items: receivedItems.map(function(ri) { return { equipment: ri.name, qty: ri.qty }; })
     });
+    if (posted.success) { gr.stockDocNo = posted.mutation.no; MockData.save('goodsReceipts'); }
 
     if (allReceived) {
       po.status = 'Received';
     } else if (anyReceived) {
       po.status = 'Partially Received';
     }
+    po.history = (po.history || []).concat([{ status: po.status, date: gr.receiptDate, user: gr.receivedBy, notes: gr.id }]);
 
     MockData.save('purchases');
     BizLogic.Activity.log('Goods Receipt ' + gr.id + ' created for PO ' + po.id, 'success');
@@ -1300,7 +1474,7 @@ BizLogic.Purchase = {
 };
 
 // ============================================================
-// BILLING — Rekapitulasi Tagihan sewa (Piutang)
+// BILLING - Rekapitulasi Tagihan sewa (Piutang)
 // Periode sewa per alat ditarik dari ledger perpindahan stok:
 //   awal  = tanggal SJ kirim ke proyek
 //   akhir = tanggal SJ pulang / hilang (FIFO: unit yang dikirim duluan dianggap pulang duluan)
@@ -1372,7 +1546,7 @@ BizLogic.Billing = {
   },
 
   // Rekap tagihan untuk satu periode.
-  // opts: { monthDays, endOverrides: { [line.key]: 'YYYY-MM-DD' } } — override hanya untuk alat yang belum pulang
+  // opts: { monthDays, endOverrides: { [line.key]: 'YYYY-MM-DD' } } - override hanya untuk alat yang belum pulang
   recap: function(projectId, periodStart, periodEnd, opts) {
     opts = opts || {};
     var self = this;
@@ -1433,7 +1607,7 @@ BizLogic.Billing = {
 };
 
 // ============================================================
-// INVOICE — tagihan (Sewa dari rekap, Klaim dari claim)
+// INVOICE - tagihan (Sewa dari rekap, Klaim dari claim)
 // Status disimpan: Shadow | Issued | Partially Paid | Paid | Cancelled. "Overdue" dihitung saat tampil.
 // Shadow = invoice bayangan: dicatat dulu walau datanya belum lengkap, belum masuk piutang
 // sampai diterbitkan (status → Issued). Flag fromShadow tetap menempel setelah diterbitkan.
@@ -1598,7 +1772,7 @@ BizLogic.Invoice = {
     return { items: out, error: error };
   },
 
-  // Buat / ubah invoice bayangan — semua field opsional kecuali customer; barang ditambah manual.
+  // Buat / ubah invoice bayangan - semua field opsional kecuali customer; barang ditambah manual.
   // data: { customerId, projectId, type, periodStart, periodEnd, monthDays, items[], invoiceDate, dueDays, taxRate, accountId, notes }
   saveShadow: function(data, invoiceId) {
     data = data || {};
@@ -1689,7 +1863,7 @@ BizLogic.Invoice = {
 };
 
 // ============================================================
-// PAYMENT — pembayaran tagihan (cicilan / lunas) + jurnal buku bank
+// PAYMENT - pembayaran tagihan (cicilan / lunas) + jurnal buku bank
 // ============================================================
 
 BizLogic.Payment = {
@@ -1726,21 +1900,277 @@ BizLogic.Payment = {
 
     BizLogic.Invoice._syncStatus(inv);
     MockData.save('invoices');
+    BizLogic.Claim.syncFromInvoice(inv);
 
-    if (!MockData.ledger) MockData.ledger = [];
-    MockData.ledger.push({
-      id: MockData.generateId('TRX', 'ledger'),
-      date: pay.date,
-      bankAccountId: acc.id,
+    // Bon Biru otomatis: piutang tunai (akun Kas) atau terima pembayaran piutang (akun Bank)
+    BizLogic.CashBank._push({
+      date: pay.date, accountId: acc.id, type: 'IN',
+      category: BizLogic.CashBank.kindOf(acc) === 'Kas' ? 'kas_in_ar' : 'bank_in_ar',
       reference: pay.id + ' / ' + inv.id,
-      description: 'Pembayaran ' + pay.kind.toLowerCase() + ' ' + inv.id + ' — ' + inv.customerName,
-      type: 'IN',
-      amount: amt
+      description: 'Pembayaran ' + pay.kind.toLowerCase() + ' ' + inv.id + ' - ' + inv.customerName,
+      amount: amt, source: 'payment'
     });
     MockData.save('ledger');
 
     BizLogic.Activity.log('Pembayaran ' + pay.id + ' (' + pay.kind + ') untuk ' + inv.id + ': Rp ' + amt.toLocaleString('id-ID'), 'success');
     return { success: true, payment: pay };
+  }
+};
+
+// ============================================================
+// KAS & BANK - Buku Kas/Bank, Bon Biru (masuk) / Bon Merah (keluar), pindah dana,
+// Laporan Kas, Rekonsiliasi Bank.
+// Entri ledger: { id TRX, voucherNo BB-/BM-YYMM-NNN, date, bankAccountId, type IN|OUT, category,
+//   reference, description, party, amount, source manual|payment|transfer, transferId, reconciled, reconId }
+// ============================================================
+
+BizLogic.CashBank = {
+  // Kategori mengikuti format Laporan Kas. transferOnly = hanya dibuat lewat "Pindah Dana".
+  CATEGORIES: {
+    // I. CASH ACCOUNT - A. Kas Masuk (Bon Biru)
+    kas_in_transfer:   { kind: 'Kas',  type: 'IN',  label: 'Terima Pemindahan / Penarikan dari Saldo Bank ke Tunai', transferOnly: true },
+    kas_in_sale:       { kind: 'Kas',  type: 'IN',  label: 'Penjualan Tunai' },
+    kas_in_ar:         { kind: 'Kas',  type: 'IN',  label: 'Pembayaran Piutang Tunai' },
+    kas_in_dp:         { kind: 'Kas',  type: 'IN',  label: 'Penerimaan Uang Muka Customer' },
+    kas_in_loan:       { kind: 'Kas',  type: 'IN',  label: 'Terima Pinjaman' },
+    kas_in_refund:     { kind: 'Kas',  type: 'IN',  label: 'Pengembalian Uang dari Supplier / Koreksi Biaya / Pengembalian Pinjaman Karyawan' },
+    kas_in_other:      { kind: 'Kas',  type: 'IN',  label: 'Pendapatan Lain-lain' },
+    // I. CASH ACCOUNT - B. Kas Keluar (Bon Merah)
+    kas_out_opex:      { kind: 'Kas',  type: 'OUT', label: 'Biaya-biaya Operasional' },
+    kas_out_supplier:  { kind: 'Kas',  type: 'OUT', label: 'Pembayaran Hutang Supplier' },
+    kas_out_payroll:   { kind: 'Kas',  type: 'OUT', label: 'Pembayaran Gaji, Sewa dan Pajak' },
+    kas_out_advance:   { kind: 'Kas',  type: 'OUT', label: 'Pemberian Kasbon Karyawan' },
+    kas_out_loan:      { kind: 'Kas',  type: 'OUT', label: 'Bayar Pinjaman' },
+    // II. BANK ACCOUNT - A. Bank Masuk (Bon Biru)
+    bank_in_loan:      { kind: 'Bank', type: 'IN',  label: 'Penerimaan Pinjaman' },
+    bank_in_ar:        { kind: 'Bank', type: 'IN',  label: 'Terima Pembayaran Piutang' },
+    bank_in_dp:        { kind: 'Bank', type: 'IN',  label: 'Penerimaan Uang Muka dari Customer' },
+    bank_in_refund:    { kind: 'Bank', type: 'IN',  label: 'Pengembalian dari Supplier' },
+    bank_in_transfer:  { kind: 'Bank', type: 'IN',  label: 'Terima Pindah Dana dari Bank Lain Perusahaan', transferOnly: true },
+    bank_in_interest:  { kind: 'Bank', type: 'IN',  label: 'Bunga / Jasa Giro' },
+    // II. BANK ACCOUNT - B. Bank Keluar (Bon Merah)
+    bank_out_cash:     { kind: 'Bank', type: 'OUT', label: 'Penarikan Tunai dari Saldo Bank untuk Mengisi Kas', transferOnly: true },
+    bank_out_supplier: { kind: 'Bank', type: 'OUT', label: 'Pembayaran Supplier (Pembelian Barang / Jasa / Aset)' },
+    bank_out_loan:     { kind: 'Bank', type: 'OUT', label: 'Pembayaran Pinjaman' },
+    bank_out_admin:    { kind: 'Bank', type: 'OUT', label: 'Biaya Administrasi Bank dan Pajak Bank' },
+    bank_out_transfer: { kind: 'Bank', type: 'OUT', label: 'Pindah Dana ke Bank Lain Perusahaan', transferOnly: true }
+  },
+
+  kindOf: function(acc) { return acc && acc.kind === 'Kas' ? 'Kas' : 'Bank'; },
+  account: function(id) { return MockData.accounts.find(function(a) { return a.id === id; }); },
+  categoryLabel: function(key) { var c = this.CATEGORIES[key]; return c ? c.label : (key || '-'); },
+
+  // Kategori untuk dropdown Bon: sesuai jenis akun & arah, tanpa yang khusus pindah dana
+  categoriesFor: function(kind, type, includeTransfer) {
+    var C = this.CATEGORIES;
+    return Object.keys(C).filter(function(k) {
+      return C[k].kind === kind && C[k].type === type && (includeTransfer || !C[k].transferOnly);
+    });
+  },
+
+  // Entri lama tanpa kategori: anggap pembayaran piutang
+  categoryOf: function(e) {
+    if (e.category) return e.category;
+    var kind = this.kindOf(this.account(e.bankAccountId));
+    return e.type === 'IN' ? (kind === 'Kas' ? 'kas_in_ar' : 'bank_in_ar') : (kind === 'Kas' ? 'kas_out_opex' : 'bank_out_admin');
+  },
+
+  entries: function(accountId) {
+    return (MockData.ledger || []).filter(function(e) { return !accountId || e.bankAccountId === accountId; })
+      .slice().sort(function(a, b) { return a.date.localeCompare(b.date) || a.id.localeCompare(b.id); });
+  },
+
+  // Saldo s/d tanggal (inklusif). before=true → sebelum tanggal tsb (saldo awal periode)
+  balance: function(accountId, date, before) {
+    var acc = this.account(accountId);
+    var bal = (acc && Number(acc.openingBalance)) || 0;
+    (MockData.ledger || []).forEach(function(e) {
+      if (e.bankAccountId !== accountId) return;
+      if (date && (before ? e.date >= date : e.date > date)) return;
+      bal += e.type === 'IN' ? e.amount : -e.amount;
+    });
+    return bal;
+  },
+
+  nextVoucher: function(type, date) {
+    var prefix = (type === 'IN' ? 'BB' : 'BM') + '-' + (date || new Date().toISOString().split('T')[0]).substr(2, 5).replace('-', '') + '-';
+    var max = 0;
+    (MockData.ledger || []).forEach(function(e) {
+      if (e.voucherNo && e.voucherNo.indexOf(prefix) === 0) max = Math.max(max, parseInt(e.voucherNo.substr(prefix.length), 10) || 0);
+    });
+    return prefix + String(max + 1).padStart(3, '0');
+  },
+
+  _push: function(d) {
+    if (!MockData.ledger) MockData.ledger = [];
+    var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
+    var e = {
+      id: MockData.generateId('TRX', 'ledger'),
+      voucherNo: this.nextVoucher(d.type, d.date),
+      date: d.date, bankAccountId: d.accountId, type: d.type, category: d.category,
+      reference: d.reference || '', description: d.description || '', party: d.party || '',
+      amount: d.amount, source: d.source || 'manual', transferId: d.transferId || null,
+      reconciled: false, user: user.name || 'System', createdAt: new Date().toISOString()
+    };
+    MockData.ledger.push(e);
+    return e;
+  },
+
+  _checkFunds: function(acc, amount, date) {
+    var bal = this.balance(acc.id);
+    var balAt = this.balance(acc.id, date);
+    var min = Math.min(bal, balAt);
+    if (amount > min) return 'Saldo ' + acc.name + ' tidak cukup (saldo Rp ' + min.toLocaleString('id-ID') + ')';
+    return null;
+  },
+
+  // Bon Biru / Bon Merah manual. data: { type, date, accountId, category, amount, reference, description, party }
+  addEntry: function(data) {
+    data = data || {};
+    var acc = this.account(data.accountId);
+    if (!acc) return { success: false, error: 'Pilih akun kas / bank' };
+    var type = data.type === 'OUT' ? 'OUT' : 'IN';
+    var cat = this.CATEGORIES[data.category];
+    if (!cat || cat.kind !== this.kindOf(acc) || cat.type !== type) return { success: false, error: 'Pilih kategori yang sesuai' };
+    if (cat.transferOnly) return { success: false, error: 'Kategori ini dicatat lewat "Pindah Dana"' };
+    var amt = Math.round(Number(data.amount));
+    if (isNaN(amt) || amt <= 0) return { success: false, error: 'Jumlah harus lebih dari 0' };
+    if (!String(data.description || '').trim()) return { success: false, error: 'Keterangan wajib diisi' };
+    var date = data.date || new Date().toISOString().split('T')[0];
+    if (type === 'OUT') { var err = this._checkFunds(acc, amt, date); if (err) return { success: false, error: err }; }
+
+    var e = this._push({ date: date, accountId: acc.id, type: type, category: data.category, amount: amt,
+      reference: String(data.reference || '').trim(), description: String(data.description).trim(), party: String(data.party || '').trim() });
+    MockData.save('ledger');
+    BizLogic.Activity.log((type === 'IN' ? 'Bon Biru ' : 'Bon Merah ') + e.voucherNo + ' - ' + acc.name + ': Rp ' + amt.toLocaleString('id-ID'), type === 'IN' ? 'success' : 'warning');
+    return { success: true, entry: e };
+  },
+
+  // Pindah dana: Bank → Kas (penarikan tunai) atau Bank → Bank lain perusahaan
+  transfer: function(data) {
+    data = data || {};
+    var from = this.account(data.fromId), to = this.account(data.toId);
+    if (!from || !to) return { success: false, error: 'Pilih akun asal dan tujuan' };
+    if (from.id === to.id) return { success: false, error: 'Akun asal dan tujuan tidak boleh sama' };
+    if (this.kindOf(from) !== 'Bank') return { success: false, error: 'Pindah dana hanya dari akun Bank (ke Kas atau Bank lain)' };
+    var amt = Math.round(Number(data.amount));
+    if (isNaN(amt) || amt <= 0) return { success: false, error: 'Jumlah harus lebih dari 0' };
+    var date = data.date || new Date().toISOString().split('T')[0];
+    var err = this._checkFunds(from, amt, date); if (err) return { success: false, error: err };
+
+    var toKas = this.kindOf(to) === 'Kas';
+    var tid = 'TF-' + Date.now();
+    var desc = String(data.description || '').trim() || (toKas ? 'Penarikan tunai untuk mengisi ' + to.name : 'Pindah dana ke ' + to.name);
+    var out = this._push({ date: date, accountId: from.id, type: 'OUT', category: toKas ? 'bank_out_cash' : 'bank_out_transfer',
+      amount: amt, reference: data.reference || '', description: desc, party: to.name, source: 'transfer', transferId: tid });
+    var inn = this._push({ date: date, accountId: to.id, type: 'IN', category: toKas ? 'kas_in_transfer' : 'bank_in_transfer',
+      amount: amt, reference: out.voucherNo, description: desc, party: from.name, source: 'transfer', transferId: tid });
+    out.reference = out.reference || inn.voucherNo;
+    MockData.save('ledger');
+    BizLogic.Activity.log('Pindah dana ' + from.name + ' → ' + to.name + ': Rp ' + amt.toLocaleString('id-ID'), 'info');
+    return { success: true, out: out, in: inn };
+  },
+
+  // Hapus entri manual / pindah dana (keduanya). Entri dari pembayaran invoice & yang sudah direkonsiliasi tidak bisa.
+  remove: function(entryId) {
+    var e = (MockData.ledger || []).find(function(x) { return x.id === entryId; });
+    if (!e) return { success: false, error: 'Transaksi tidak ditemukan' };
+    if (e.source === 'payment') return { success: false, error: 'Transaksi dari pembayaran invoice tidak bisa dihapus di sini' };
+    var group = e.transferId ? MockData.ledger.filter(function(x) { return x.transferId === e.transferId; }) : [e];
+    if (group.some(function(x) { return x.reconciled; })) return { success: false, error: 'Transaksi sudah direkonsiliasi, tidak bisa dihapus' };
+    MockData.ledger = MockData.ledger.filter(function(x) { return group.indexOf(x) < 0; });
+    MockData.save('ledger');
+    BizLogic.Activity.log('Transaksi ' + group.map(function(x) { return x.voucherNo; }).join(' & ') + ' dihapus', 'danger');
+    return { success: true };
+  },
+
+  // Laporan Kas: per jenis akun (Kas / Bank), saldo awal, masuk & keluar per kategori, saldo akhir
+  report: function(start, end, accountId) {
+    var self = this;
+    var out = {};
+    ['Kas', 'Bank'].forEach(function(kind) {
+      var accs = MockData.accounts.filter(function(a) { return self.kindOf(a) === kind && (!accountId || a.id === accountId); });
+      var ids = accs.map(function(a) { return a.id; });
+      var sec = { kind: kind, accounts: accs, opening: 0, closing: 0, totalIn: 0, totalOut: 0, rows: {} };
+      self.categoriesFor(kind, 'IN', true).concat(self.categoriesFor(kind, 'OUT', true)).forEach(function(k) { sec.rows[k] = { amount: 0, count: 0 }; });
+      accs.forEach(function(a) { sec.opening += self.balance(a.id, start, true); });
+      (MockData.ledger || []).forEach(function(e) {
+        if (ids.indexOf(e.bankAccountId) < 0 || e.date < start || e.date > end) return;
+        var k = self.categoryOf(e);
+        var r = sec.rows[k] = sec.rows[k] || { amount: 0, count: 0 };
+        r.amount += e.amount; r.count++;
+        if (e.type === 'IN') sec.totalIn += e.amount; else sec.totalOut += e.amount;
+      });
+      sec.closing = sec.opening + sec.totalIn - sec.totalOut;
+      out[kind] = sec;
+    });
+    return out;
+  },
+
+  // ---------- Rekonsiliasi Bank ----------
+  // Parse mutasi rekening koran (CSV: tanggal;keterangan;debit;kredit ATAU tanggal;keterangan;jumlah(+/-)).
+  // Sudut pandang rekening koran: kredit = uang masuk, debit = uang keluar.
+  parseStatement: function(text) {
+    var rows = [], errors = [];
+    String(text || '').split(/\r?\n/).forEach(function(line, n) {
+      if (!line.trim()) return;
+      var c = line.split(/[;,\t]/).map(function(s) { return s.trim().replace(/^"|"$/g, ''); });
+      var m = c[0].match(/^(\d{4})-(\d{2})-(\d{2})$/) || c[0].match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (!m) { if (n > 0) errors.push('Baris ' + (n + 1) + ': tanggal tidak dikenali'); return; } // baris judul dilewati
+      var date = m[0].indexOf('/') > 0 ? m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2) : m[0];
+      var num = function(s) { return Math.round(Number(String(s || '0').replace(/[^\d\-]/g, '')) || 0); };
+      var amount, type;
+      if (c.length >= 4) { var db = num(c[2]), cr = num(c[3]); type = cr > 0 ? 'IN' : 'OUT'; amount = cr > 0 ? cr : db; }
+      else { var v = num(c[2]); type = v >= 0 ? 'IN' : 'OUT'; amount = Math.abs(v); }
+      if (!amount) { errors.push('Baris ' + (n + 1) + ': jumlah kosong'); return; }
+      rows.push({ idx: rows.length, date: date, description: c[1] || '', type: type, amount: amount });
+    });
+    return { rows: rows, errors: errors };
+  },
+
+  // Cocokkan otomatis: jumlah & arah sama, tanggal selisih ≤ 3 hari, entri sistem yang terdekat
+  autoMatch: function(sysEntries, bankRows) {
+    var used = {}, pairs = {};
+    bankRows.forEach(function(b) {
+      var best = null, bestGap = 99;
+      sysEntries.forEach(function(e) {
+        if (used[e.id] || e.type !== b.type || e.amount !== b.amount) return;
+        var gap = Math.abs((new Date(e.date) - new Date(b.date)) / 864e5);
+        if (gap <= 3 && gap < bestGap) { best = e; bestGap = gap; }
+      });
+      if (best) { used[best.id] = true; pairs[b.idx] = best.id; }
+    });
+    return pairs; // { bankRowIdx: ledgerEntryId }
+  },
+
+  // Simpan rekonsiliasi. data: { accountId, start, end, statementBalance, matchedIds[], unmatchedSystemIds[], unmatchedBank[], difference }
+  saveReconciliation: function(data) {
+    var acc = this.account(data.accountId);
+    if (!acc || this.kindOf(acc) !== 'Bank') return { success: false, error: 'Pilih rekening bank' };
+    var stmt = Math.round(Number(data.statementBalance));
+    if (data.statementBalance === '' || isNaN(stmt)) return { success: false, error: 'Isi saldo akhir menurut rekening koran' };
+    var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
+    if (!MockData.reconciliations) MockData.reconciliations = [];
+    var rec = {
+      id: MockData.generateId('REK', 'reconciliations'),
+      accountId: acc.id, accountName: acc.name, start: data.start, end: data.end,
+      systemBalance: this.balance(acc.id, data.end), statementBalance: stmt,
+      matchedCount: (data.matchedIds || []).length,
+      unmatchedSystem: (data.unmatchedSystemIds || []).length,
+      unmatchedBank: (data.unmatchedBank || []).length,
+      date: new Date().toISOString().split('T')[0], user: user.name || 'System'
+    };
+    // Selisih setelah memperhitungkan transaksi yang belum cocok (dihitung halaman); default: saldo koran − saldo sistem
+    rec.difference = data.difference != null ? Math.round(Number(data.difference)) : rec.statementBalance - rec.systemBalance;
+    rec.status = rec.difference === 0 ? 'Cocok' : 'Ada Selisih';
+    (MockData.ledger || []).forEach(function(e) {
+      if ((data.matchedIds || []).indexOf(e.id) >= 0) { e.reconciled = true; e.reconId = rec.id; }
+    });
+    MockData.reconciliations.push(rec);
+    MockData.save('ledger');
+    MockData.save('reconciliations');
+    BizLogic.Activity.log('Rekonsiliasi ' + acc.name + ' ' + data.start + ' s/d ' + data.end + ': ' + rec.status, rec.difference === 0 ? 'success' : 'warning');
+    return { success: true, reconciliation: rec };
   }
 };
 

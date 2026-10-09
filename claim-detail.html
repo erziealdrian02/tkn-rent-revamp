@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Detail Klaim — EquipRent Enterprise</title>
+  <title>Detail Klaim - EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -28,13 +28,10 @@
   <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
-    const cid = getUrlParam('id') || 'CLM-001';
-    let clm = (MockData.claims||[]).find(c => c.id === cid);
-    if (!clm) {
-        clm = {
-            id: cid, returnId: 'RET-001', customerId: 'CUS-001', customerName: 'PT Adhi Karya', equipment: 'Excavator PC200', quantity: 1, claimAmount: 5000000, status: 'Draft', createdDate: '2023-11-01', disputeReason: null
-        };
-    }
+    const cid = getUrlParam('id');
+    const clm = (MockData.claims||[]).find(c => c.id === cid);
+    if (!clm) { location.replace('claims.html'); throw new Error('Klaim tidak ditemukan: ' + cid); }
+    const editable = ['Draft', 'Pending Customer Confirmation', 'Waiting Customer Confirmation', 'Disputed'].includes(clm.status);
 
     initApp('claims.html',[{label:'Penyewaan',href:'#'},{label:'Claims',href:'claims.html'},{label:clm.id}],clm.id);
 
@@ -57,8 +54,10 @@
             <button class="btn btn-danger btn-sm" onclick="disputeClaim()"><i class="bi bi-x-circle me-1"></i>Customer Disputed</button>
         ` : ''}
         ${clm.status === 'Approved' ? `<button class="btn btn-primary btn-sm" onclick="invoiceClaim()"><i class="bi bi-receipt me-1"></i>Generate Invoice</button>` : ''}
-        ${clm.status === 'Disputed' ? `<button class="btn btn-success btn-sm" onclick="approveClaim()"><i class="bi bi-check-circle me-1"></i>Force Approve (Manager)</button>` : ''}
-        <button class="btn btn-outline-secondary btn-sm" onclick="showToast('Print initiated','info')"><i class="bi bi-printer me-1"></i>Cetak</button>
+        ${clm.status === 'Disputed' && canDo('Claims', 'Approve') ? `<button class="btn btn-success btn-sm" onclick="approveClaim()"><i class="bi bi-check-circle me-1"></i>Force Approve (Manager)</button>` : ''}
+        ${clm.status === 'Disputed' || clm.status === 'Paid' || clm.status === 'Invoiced' ? `<button class="btn btn-outline-secondary btn-sm" onclick="closeClaim()"><i class="bi bi-archive me-1"></i>Tutup Klaim</button>` : ''}
+        ${editable ? `<button class="btn btn-outline-primary btn-sm" onclick="editAmount()"><i class="bi bi-pencil me-1"></i>Ubah Nilai Klaim</button>` : ''}
+        <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak</button>
       </div>`;
 
     document.getElementById('detailBody').innerHTML = `
@@ -69,10 +68,14 @@
             <div class="info-item"><span class="info-label">Claim Number</span><span class="info-value text-mono">${clm.id}</span></div>
             <div class="info-item"><span class="info-label">Source Return</span><span class="info-value">${clm.returnId?`<a href="return-detail.html?id=${clm.returnId}">${clm.returnId}</a>`:'-'}</span></div>
             <div class="info-item"><span class="info-label">Customer</span><span class="info-value">${clm.customerName}</span></div>
+            <div class="info-item"><span class="info-label">Proyek</span><span class="info-value">${clm.projectId ? `<a href="project-detail.html?id=${clm.projectId}">${clm.projectName}</a>` : '-'}</span></div>
             <div class="info-item"><span class="info-label">Equipment</span><span class="info-value fw-600">${clm.equipment}</span></div>
-            <div class="info-item"><span class="info-label">Quantity Lost/Missing</span><span class="info-value">${clm.quantity}</span></div>
+            <div class="info-item"><span class="info-label">Alasan</span><span class="info-value">${clm.reason || '-'}</span></div>
+            <div class="info-item"><span class="info-label">Qty Rusak / Hilang</span><span class="info-value">${clm.quantity}</span></div>
             <div class="info-item"><span class="info-label">Claim Amount</span><span class="info-value text-danger fw-700">${formatRupiah(clm.claimAmount)}</span></div>
-            ${clm.invoiceId ? `<div class="info-item"><span class="info-label">Generated Invoice</span><span class="info-value"><a href="invoice-detail.html?id=${clm.invoiceId}">${clm.invoiceId}</a></span></div>` : ''}
+            ${clm.invoiceId ? `<div class="info-item"><span class="info-label">Generated Invoice</span><span class="info-value"><a href="invoice-detail.html?id=${clm.invoiceId}">${clm.invoiceId}</a> ${(() => { const inv = MockData.invoices.find(i => i.id === clm.invoiceId); return inv ? invoiceStatusBadge(BizLogic.Invoice.statusOf(inv)) : ''; })()}</span></div>` : ''}
+            ${clm.paidDate ? `<div class="info-item"><span class="info-label">Lunas</span><span class="info-value">${formatDate(clm.paidDate)}</span></div>` : ''}
+            ${clm.closedDate ? `<div class="info-item"><span class="info-label">Ditutup</span><span class="info-value">${formatDate(clm.closedDate)}${clm.closeReason ? ' — ' + clm.closeReason : ''}</span></div>` : ''}
           </div>
         </div>
         <div class="col-md-6">
@@ -89,12 +92,40 @@
                 <li><strong>Pending Confirmation:</strong> Awaiting customer agreement</li>
                 <li><strong>Approved:</strong> Customer agrees to the replacement value</li>
                 <li><strong>Invoiced:</strong> Bill sent to customer</li>
-                <li><strong>Paid:</strong> Claim closed</li>
+                <li><strong>Paid:</strong> otomatis saat invoice klaim lunas</li>
+                <li><strong>Closed:</strong> klaim ditutup (lunas, atau sengketa dibatalkan)</li>
             </ul>
           </div>
+          ${(clm.amountHistory || []).length ? `<h6 class="fw-600 mt-3 mb-2">Riwayat Perubahan Nilai</h6>
+          <table class="w-100 fs-13">${clm.amountHistory.map(h => `<tr><td class="py-1">${formatDate(h.date)}</td><td class="py-1 text-muted">${formatRupiah(h.from)} → <strong>${formatRupiah(h.to)}</strong></td><td class="py-1">${h.note || ''}</td></tr>`).join('')}</table>` : ''}
         </div>
       </div>
     `;
+
+    function editAmount() {
+      BizLogic.showConfirmModal('Ubah Nilai Klaim', 'Nilai sekarang <strong>' + formatRupiah(clm.claimAmount) + '</strong>. Bisa diubah sampai klaim disetujui.',
+        '<i class="bi bi-check-lg me-1"></i>Simpan', 'btn-primary',
+        function(f) {
+          const res = BizLogic.Claim.setAmount(clm.id, f.amount, f.note);
+          if (!res.success) { showToast(res.error, 'error'); return; }
+          showToast('Nilai klaim diperbarui', 'success');
+          setTimeout(() => location.reload(), 600);
+        },
+        [{ id: 'amount', label: 'Nilai Klaim (Rp)', type: 'number', value: clm.claimAmount },
+         { id: 'note', label: 'Catatan', type: 'textarea', placeholder: 'Mis. hasil negosiasi dengan customer' }]);
+    }
+
+    function closeClaim() {
+      BizLogic.showConfirmModal('Tutup Klaim', 'Tutup klaim <strong>' + clm.id + '</strong>?' + (clm.status === 'Invoiced' ? ' Invoice klaim belum lunas.' : ''),
+        '<i class="bi bi-archive me-1"></i>Tutup Klaim', 'btn-secondary',
+        function(f) {
+          const res = BizLogic.Claim.updateStatus(clm.id, 'Closed', { reason: f.reason });
+          if (!res.success) { showToast(res.error, 'error'); return; }
+          showToast('Klaim ditutup', 'success');
+          setTimeout(() => location.reload(), 600);
+        },
+        [{ id: 'reason', label: 'Alasan', type: 'textarea', placeholder: clm.status === 'Disputed' ? 'Mis. klaim dibatalkan, customer tidak setuju' : 'Mis. selesai' }]);
+    }
 
     function submitClaim() {
         const res = BizLogic.Claim.updateStatus(clm.id, 'Pending Customer Confirmation');

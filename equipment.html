@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Alat Berat — EquipRent Enterprise</title>
+  <title>Alat Berat - EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -84,9 +84,13 @@
                 <label class="form-label form-label-er">Tanggal Pembelian</label>
                 <input type="date" class="form-control" id="eqDate">
               </div>
-              <div class="col-md-6">
+              <div class="col-md-3">
                 <label class="form-label form-label-er">Harga Pembelian (Rp)</label>
                 <input type="number" class="form-control" id="eqPrice" value="0">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label form-label-er" title="Tarif default saat proyek belum punya harga satuan">Tarif Sewa / Bulan (Rp)</label>
+                <input type="number" class="form-control" id="eqRate" value="0">
               </div>
               <div class="col-md-4">
                 <label class="form-label form-label-er">Cabang Saat Ini <span class="text-danger">*</span></label>
@@ -179,7 +183,8 @@
         availability: document.getElementById('eqStatus').value,
         project: null,
         status: document.getElementById('eqStatus').value,
-        rate: document.getElementById('eqPrice').value || 0
+        rate: Number(document.getElementById('eqRate').value) || 0,
+        purchasePrice: Number(document.getElementById('eqPrice').value) || 0
       };
 
       MockData.equipment.push(newEq);

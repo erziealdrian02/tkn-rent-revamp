@@ -1,5 +1,5 @@
 /* ============================================================
-   EquipRent Enterprise — Internasionalisasi (i18n)
+   EquipRent Enterprise - Internasionalisasi (i18n)
    Mendukung: id (Bahasa Indonesia), en (English)
    ============================================================ */
 
@@ -24,7 +24,7 @@ const Translations = {
     purchases: 'Pembelian', goods_receipts: 'Penerimaan Barang', repairs: 'Perbaikan',
     maintenance: 'Perawatan', customers: 'Pelanggan', drivers: 'Pengemudi',
     vehicles: 'Kendaraan', company_accounts: 'Rekening Perusahaan', invoices: 'Invoice',
-    bank_ledger: 'Buku Bank', users: 'Pengguna', roles: 'Peran',
+    bank_ledger: 'Buku Kas & Bank', cash_report: 'Laporan Kas', bank_reconciliation: 'Rekonsiliasi Bank', users: 'Pengguna', roles: 'Peran',
     my_deliveries: 'Pengiriman Saya', profile: 'Profil',
 
     dark_mode: 'Mode Gelap', light_mode: 'Mode Terang', toggle_theme: 'Ganti Tema',
@@ -180,7 +180,7 @@ const Translations = {
     purchases: 'Purchases', goods_receipts: 'Goods Receipts', repairs: 'Repairs',
     maintenance: 'Maintenance', customers: 'Customers', drivers: 'Drivers',
     vehicles: 'Vehicles', company_accounts: 'Company Accounts', invoices: 'Invoices',
-    bank_ledger: 'Bank Ledger', users: 'Users', roles: 'Roles',
+    bank_ledger: 'Cash & Bank Book', cash_report: 'Cash Report', bank_reconciliation: 'Bank Reconciliation', users: 'Users', roles: 'Roles',
     my_deliveries: 'My Deliveries', profile: 'Profile',
 
     dark_mode: 'Dark Mode', light_mode: 'Light Mode', toggle_theme: 'Toggle Theme',

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Rental — EquipRent Enterprise</title>
+  <title>Create Rental - EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -221,7 +221,7 @@
           </select>
         </td>
         <td><span class="badge-status available" id="avail-${idx}">-</span></td>
-        <td><input type="number" class="form-control form-control-sm" value="1" min="1" onchange="calcRow(${idx})"></td>
+        <td><input type="number" class="form-control form-control-sm" value="1" min="1" onchange="updateAvailability(this.closest('tr').querySelector('select'), ${idx})"></td>
         <td><input type="text" class="form-control form-control-sm" id="rate-${idx}" readonly value="-"></td>
         <td><input type="number" class="form-control form-control-sm" value="3" onchange="calcRow(${idx})"></td>
         <td><strong id="subtotal-${idx}">-</strong></td>
@@ -235,15 +235,29 @@
       calcSummary();
     }
 
+    // Stok tersedia di gudang (Branch) yang dipilih — sama dengan yang dicek saat persetujuan.
+    // Tarif: harga satuan di kebutuhan proyek (dipakai saat menagih), kalau tidak ada pakai tarif alat.
     function updateAvailability(sel, idx) {
       const opt = sel.options[sel.selectedIndex];
-      const avail = opt.dataset.avail || '-';
-      const rate = opt.dataset.rate || 0;
-      document.getElementById(`avail-${idx}`).textContent = avail === '-' ? '-' : avail + ' units';
+      const name = opt.dataset.name;
+      const branch = document.getElementById('branchSelect').value.replace(' Warehouse', '');
+      const avail = name ? BizLogic.Stock.getAvailable(name, branch) : '-';
+      const rate = name ? BizLogic.Billing.unitPrice(document.getElementById('projectSelect').value, name) : 0;
+      opt.dataset.rate = rate;
+      const qty = Number(sel.closest('tr').querySelector('[type="number"]').value) || 0;
+      const badge = document.getElementById(`avail-${idx}`);
+      badge.textContent = avail === '-' ? '-' : avail + ' unit di ' + branch;
+      badge.className = 'badge-status ' + (avail !== '-' && qty > avail ? 'overdue' : 'available');
       document.getElementById(`rate-${idx}`).value = rate > 0 ? formatRupiah(rate) : '-';
       sel.closest('tr').querySelector('[type="number"]').__rate = Number(rate);
       calcRow(idx);
     }
+
+    function refreshAllRows() {
+      document.querySelectorAll('#equipmentBody tr[data-row]').forEach(tr => updateAvailability(tr.querySelector('select'), tr.dataset.row));
+    }
+    document.getElementById('branchSelect').addEventListener('change', refreshAllRows);
+    document.getElementById('projectSelect').addEventListener('change', refreshAllRows);
 
     function calcRow(idx) {
       const row = document.querySelector(`tr[data-row="${idx}"]`);

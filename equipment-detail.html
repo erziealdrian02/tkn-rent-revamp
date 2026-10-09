@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Detail Alat Berat — EquipRent Enterprise</title>
+  <title>Detail Alat Berat - EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -33,7 +33,7 @@
     const equip = MockData.equipment.find(e => e.id === eid) || MockData.equipment[0];
     initApp('equipment.html',[{label:'Inventaris',href:'#'},{label:'Alat Berat',href:'equipment.html'},{label:equip.id}],`${equip.name} (${equip.id})`);
 
-    const movements = MockData.movements.filter(m => m.assetId === equip.id);
+    const movements = MockData.movements.filter(m => m.assetId === equip.id || (!m.assetId && m.equipment === equip.name));
 
     document.getElementById('detailHeader').innerHTML = `
       <div class="detail-header-left">
@@ -106,7 +106,15 @@
       </tbody></table></div>
     </div>`;
 
-    tc += `<div class="er-tab-content" id="tab-maintenance"><div class="empty-state"><i class="bi bi-wrench"></i><h5>No Maintenance Records</h5><p>This equipment has no maintenance history.</p></div></div>`;
+    // Perawatan & perbaikan untuk jenis alat ini
+    const mts = (MockData.maintenance || []).filter(m => m.equipment === equip.name);
+    const reps = (MockData.repairs || []).filter(r => r.equipmentName === equip.name);
+    const svcRows = mts.map(m => ({ id: m.id, href: 'maintenance-detail.html?id=' + m.id, kind: 'Perawatan · ' + m.type, branch: m.branch, qty: m.quantity, date: m.startDate, status: m.status, note: m.resolution || m.notes }))
+      .concat(reps.map(r => ({ id: r.id, href: 'repair-detail.html?id=' + r.id, kind: 'Perbaikan', branch: r.branch, qty: r.quantity, date: r.createdDate, status: r.status, note: r.notes || r.problem })))
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    tc += `<div class="er-tab-content" id="tab-maintenance">${svcRows.length ? `<div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No.</th><th>Jenis</th><th>Cabang</th><th class="num">Qty</th><th>Tanggal</th><th>Status</th><th>Catatan</th></tr></thead><tbody>
+      ${svcRows.map(r => `<tr><td><a href="${r.href}" class="cell-link text-mono">${r.id}</a></td><td>${r.kind}</td><td>${r.branch}</td><td class="num">${r.qty}</td><td>${formatDate(r.date)}</td><td>${statusBadge(r.status)}</td><td class="fs-12">${r.note || '-'}</td></tr>`).join('')}
+      </tbody></table></div>` : '<div class="empty-state"><i class="bi bi-wrench"></i><h5>Belum Ada Perawatan / Perbaikan</h5><p>Belum ada riwayat perawatan atau perbaikan untuk alat ini.</p></div>'}</div>`;
 
     // Timeline
     tc += `<div class="er-tab-content" id="tab-timeline">

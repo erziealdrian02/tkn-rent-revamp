@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Accounts — EquipRent Enterprise</title>
+  <title>Accounts - EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -15,10 +15,10 @@
     <main class="app-main">
       <header class="app-header" id="appHeader"></header>
       <div class="app-content">
-        <div class="page-header"><div class="page-header-left"><h2 class="page-header-title">Bank Accounts</h2><p class="page-header-subtitle">Manage company bank accounts for billing</p></div>
-        <div class="page-header-actions"><button class="btn btn-primary btn-sm" onclick="showToast('Add account','info')"><i class="bi bi-plus-lg me-1"></i>Add Account</button></div></div>
+        <div class="page-header"><div class="page-header-left"><h2 class="page-header-title">Rekening Perusahaan</h2><p class="page-header-subtitle">Akun Kas (tunai) dan Bank perusahaan beserta saldo awalnya</p></div>
+        <div class="page-header-actions"><button class="btn btn-primary btn-sm" onclick="showToast('Add account','info')"><i class="bi bi-plus-lg me-1"></i>Tambah Akun</button></div></div>
         <div class="er-card"><div class="er-card-body">
-          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>ID</th><th>Account Name</th><th>Bank</th><th>Account Number</th><th>Holder Name</th><th>Status</th><th>Aksi</th></tr></thead>
+          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>ID</th><th>Jenis</th><th>Nama Akun</th><th>Bank</th><th>No. Rekening</th><th>Atas Nama / Pemegang</th><th class="num">Saldo Awal</th><th class="num">Saldo Saat Ini</th><th>Status</th><th>Aksi</th></tr></thead>
           <tbody id="tableBody"></tbody></table></div>
         </div></div>
       </div>
@@ -31,20 +31,31 @@
       <div class="modal-content">
         <form id="accountForm" class="needs-validation" novalidate>
           <div class="modal-header">
-            <h5 class="modal-title">Add New Bank Account</h5>
+            <h5 class="modal-title">Tambah Akun Kas / Bank</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
             <div class="row g-3">
               <div class="col-md-6">
-                <label class="form-label form-label-er">Account Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="accName" required placeholder="e.g. BCA Operational">
+                <label class="form-label form-label-er">Jenis Akun <span class="text-danger">*</span></label>
+                <select class="form-select" id="accKind" onchange="onKindChange()">
+                  <option value="Bank">Bank</option>
+                  <option value="Kas">Kas (Tunai)</option>
+                </select>
               </div>
               <div class="col-md-6">
+                <label class="form-label form-label-er">Saldo Awal</label>
+                <div class="input-group"><span class="input-group-text">Rp</span><input type="number" class="form-control text-end" id="accOpening" value="0"></div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label form-label-er">Account Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="accName" required placeholder="e.g. BCA Operational / Kas Kantor">
+              </div>
+              <div class="col-md-6 bank-only">
                 <label class="form-label form-label-er">Bank Name <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="accBank" required placeholder="e.g. BCA">
               </div>
-              <div class="col-md-6">
+              <div class="col-md-6 bank-only">
                 <label class="form-label form-label-er">Account Number <span class="text-danger">*</span></label>
                 <input type="text" class="form-control text-mono" id="accNumber" required>
               </div>
@@ -55,6 +66,7 @@
               <div class="col-md-6">
                 <label class="form-label form-label-er">Account Type</label>
                 <select class="form-select" id="accType">
+                  <option value="Petty Cash">Petty Cash / Kas Kecil</option>
                   <option value="Operational">Operational</option>
                   <option value="Corporate">Corporate</option>
                   <option value="Savings">Savings</option>
@@ -87,9 +99,19 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
-    initApp('accounts.html',[{label:'Settings',href:'#'},{label:'Accounts'}],'Bank Accounts');
+    initApp('accounts.html',[{label:'Data Master',href:'#'},{label:'Rekening Perusahaan'}],'Rekening Perusahaan');
+    const CB = BizLogic.CashBank;
+
+    // Akun Kas tidak punya nama bank / nomor rekening
+    function onKindChange() {
+      const kas = document.getElementById('accKind').value === 'Kas';
+      document.querySelectorAll('.bank-only').forEach(el => { el.classList.toggle('d-none', kas); el.querySelector('input').required = !kas; });
+      document.getElementById('accType').value = kas ? 'Petty Cash' : 'Operational';
+    }
+    onKindChange();
 
     document.querySelector('.page-header-actions .btn-primary').setAttribute('data-bs-toggle', 'modal');
     document.querySelector('.page-header-actions .btn-primary').setAttribute('data-bs-target', '#addAccountModal');
@@ -111,11 +133,14 @@
         return;
       }
 
+      const kas = document.getElementById('accKind').value === 'Kas';
       const newAcc = {
         id: MockData.generateId('ACC', 'accounts'),
         name: document.getElementById('accName').value,
-        bank: document.getElementById('accBank').value,
-        accountNumber: document.getElementById('accNumber').value,
+        kind: kas ? 'Kas' : 'Bank',
+        bank: kas ? '-' : document.getElementById('accBank').value,
+        accountNumber: kas ? '-' : document.getElementById('accNumber').value,
+        openingBalance: Math.round(Number(document.getElementById('accOpening').value) || 0),
         accountHolder: document.getElementById('accHolder').value,
         type: document.getElementById('accType').value,
         branch: document.getElementById('accBranch').value,
@@ -130,14 +155,19 @@
       
       this.reset();
       this.classList.remove('was-validated');
-      
+      onKindChange();
+
       renderTable();
     });
 
     function renderTable() {
       document.getElementById('tableBody').innerHTML=MockData.accounts.map(a=>`<tr>
-        <td class="text-mono">${a.id}</td><td><span class="fw-600">${a.name}</span></td>
+        <td class="text-mono">${a.id}</td>
+        <td><span class="badge ${CB.kindOf(a) === 'Kas' ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary'}"><i class="bi ${CB.kindOf(a) === 'Kas' ? 'bi-cash-stack' : 'bi-bank'} me-1"></i>${CB.kindOf(a)}</span></td>
+        <td><a href="finance-ledger.html?account=${a.id}" class="fw-600 cell-link">${a.name}</a></td>
         <td>${a.bank}</td><td class="text-mono">${a.accountNumber}</td><td>${a.accountHolder}</td>
+        <td class="num">${formatRupiah(Number(a.openingBalance) || 0)}</td>
+        <td class="num fw-600">${formatRupiah(CB.balance(a.id))}</td>
         <td><span class="badge-status ${a.status==='Active'?'good':'draft'}">${a.status}</span></td>
         <td><button class="btn-action" onclick="showToast('Edit Account','info')"><i class="bi bi-pencil"></i></button></td>
       </tr>`).join('');

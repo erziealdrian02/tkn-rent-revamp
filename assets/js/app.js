@@ -1,5 +1,5 @@
 ﻿/* ============================================================
-   EquipRent Enterprise — Shared Application Logic
+   EquipRent Enterprise - Shared Application Logic
    ============================================================ */
 
 // ---- AUTH ----
@@ -15,6 +15,89 @@ function checkAuth() {
 function logout() {
   sessionStorage.removeItem('er_user');
   window.location.href = 'login.html';
+}
+
+// ---- HAK AKSES (MockData.permissions.matrix) ----
+// Halaman → modul di matriks hak akses. Halaman yang tidak terdaftar boleh dibuka semua role.
+const PAGE_MODULE = {
+  'dashboard.html': 'Dashboard',
+  'rentals.html': 'Rentals', 'rental-create.html': 'Rentals', 'rental-detail.html': 'Rentals',
+  'projects.html': 'Projects', 'project-create.html': 'Projects', 'project-detail.html': 'Projects',
+  'claims.html': 'Claims', 'claim-detail.html': 'Claims',
+  'deliveries.html': 'Deliveries', 'delivery-detail.html': 'Deliveries',
+  'returns.html': 'Returns', 'return-detail.html': 'Returns',
+  'stock.html': 'Stock', 'stock-mutations.html': 'Stock', 'stock-transfer.html': 'Stock', 'project-stock.html': 'Stock', 'stock-report.html': 'Stock',
+  'equipment.html': 'Equipment', 'equipment-detail.html': 'Equipment', 'repairs.html': 'Equipment', 'repair-detail.html': 'Equipment',
+  'maintenance.html': 'Equipment', 'maintenance-detail.html': 'Equipment',
+  'branches.html': 'Branches', 'branch-detail.html': 'Branches',
+  'movements.html': 'Movements', 'movement-detail.html': 'Movements',
+  'purchases.html': 'Purchases', 'purchase-create.html': 'Purchases', 'purchase-detail.html': 'Purchases',
+  'goods-receipts.html': 'Purchases', 'goods-receipt-detail.html': 'Purchases',
+  'customers.html': 'Customers', 'customer-detail.html': 'Customers',
+  'drivers.html': 'Drivers', 'driver-detail.html': 'Drivers',
+  'vehicles.html': 'Vehicles', 'vehicle-detail.html': 'Vehicles',
+  'accounts.html': 'Accounts', 'finance-ledger.html': 'Accounts', 'cash-report.html': 'Accounts', 'bank-reconciliation.html': 'Accounts',
+  'billing.html': 'Invoices', 'invoices.html': 'Invoices', 'invoice-detail.html': 'Invoices', 'invoice-shadow.html': 'Invoices',
+  'payments.html': 'Invoices', 'receivables.html': 'Invoices',
+  'users.html': 'Users', 'roles.html': 'Roles', 'role-create.html': 'Roles'
+};
+const DRIVER_PAGES = ['driver-dashboard.html', 'driver-deliveries.html', 'driver-delivery-detail.html'];
+
+function roleRule(role) {
+  const m = (typeof MockData !== 'undefined' && MockData.permissions && MockData.permissions.matrix) || {};
+  return m[role] || { allowed: ['Dashboard'], actions: ['View'] };
+}
+
+// Aksi yang boleh untuk modul tsb ([] = tidak punya akses)
+function roleActions(role, module) {
+  const r = roleRule(role);
+  const all = ['View', 'Create', 'Update', 'Delete', 'Approve'];
+  if (r.default === true) return (r.exceptions && r.exceptions[module]) || all;
+  if (r.modules) return r.modules[module] || [];
+  return (r.allowed || []).indexOf(module) >= 0 ? (r.actions || ['View']) : [];
+}
+
+function canDo(module, action, user) {
+  user = user || JSON.parse(sessionStorage.getItem('er_user') || 'null');
+  return !!user && roleActions(user.role, module).indexOf(action || 'View') >= 0;
+}
+
+function canAccessPage(page, user) {
+  user = user || JSON.parse(sessionStorage.getItem('er_user') || 'null');
+  if (!user) return false;
+  if (user.role === 'Driver') return DRIVER_PAGES.indexOf(page) >= 0;
+  if (DRIVER_PAGES.indexOf(page) >= 0) return canDo('Deliveries', 'View', user);
+  const mod = PAGE_MODULE[page];
+  return !mod || canDo(mod, 'View', user);
+}
+
+// Data pengemudi milik user login (role Driver) — dicocokkan lewat driverId atau nama
+function currentDriver(user) {
+  user = user || JSON.parse(sessionStorage.getItem('er_user') || 'null');
+  if (!user || typeof MockData === 'undefined') return null;
+  return MockData.drivers.find(d => d.id === user.driverId) || MockData.drivers.find(d => d.name === user.name) || null;
+}
+
+// Pengiriman untuk portal driver: driver hanya lihat tugasnya; admin yang membuka portal lihat semua yang sudah ada driver
+function myDeliveries(user) {
+  user = user || JSON.parse(sessionStorage.getItem('er_user') || 'null');
+  if (user && user.role === 'Driver') {
+    const drv = currentDriver(user);
+    return drv ? MockData.deliveries.filter(d => d.driverId === drv.id) : [];
+  }
+  return MockData.deliveries.filter(d => d.driverId);
+}
+
+function homePageFor(user) {
+  if (user.role === 'Driver') return 'driver-dashboard.html';
+  const first = Object.keys(PAGE_MODULE).find(p => canAccessPage(p, user));
+  return first || 'login.html';
+}
+
+// Tampilkan pesan kalau sebelumnya ditolak masuk ke halaman tertentu
+function showDeniedNotice() {
+  const denied = getUrlParam('denied');
+  if (denied) setTimeout(() => showToast('Role Anda tidak punya akses ke halaman ' + denied, 'warning'), 300);
 }
 
 // ---- THEME ----
@@ -143,11 +226,14 @@ function renderSidebar(user, activePage) {
     html += sidebarLink('payments.html', 'bi-cash-coin', 'Payments', activePage);
     html += sidebarLink('receivables.html', 'bi-journal-text', 'Receivables Report', activePage);
     html += sidebarLink('finance-ledger.html', 'bi-wallet2', 'Bank Ledger', activePage);
+    html += sidebarLink('cash-report.html', 'bi-file-earmark-bar-graph', 'Cash Report', activePage);
+    html += sidebarLink('bank-reconciliation.html', 'bi-check2-square', 'Bank Reconciliation', activePage);
     html += sidebarSection('ADMINISTRATION');
     html += sidebarLink('users.html', 'bi-person-gear', 'Users', activePage);
     html += sidebarLink('roles.html', 'bi-shield-lock', 'Roles', activePage);
   }
   html += '</nav>';
+  html = pruneEmptySections(html);
   const theme = document.documentElement.getAttribute('data-theme') || 'light';
   html += `
     <div class="sidebar-footer">
@@ -178,6 +264,7 @@ function sidebarSection(title) {
 
 function sidebarLink(href, icon, label, activePage) {
   const fileName = href.split('/').pop().split('?')[0];
+  if (href !== '#' && !canAccessPage(fileName)) return '';
   const isActive = activePage === fileName || activePage === label.toLowerCase();
   return `<a href="${href}" class="sidebar-link ${isActive ? 'active' : ''}"><i class="bi ${icon}"></i>${label}</a>`;
 }
@@ -228,11 +315,14 @@ function renderSidebarI18n(user, activePage) {
     html += sidebarLinkI18n('payments.html', 'bi-cash-coin', t('payments'), activePage, 'payments.html');
     html += sidebarLinkI18n('receivables.html', 'bi-journal-text', t('receivables_report'), activePage, 'receivables.html');
     html += sidebarLinkI18n('finance-ledger.html', 'bi-wallet2', t('bank_ledger'), activePage, 'finance-ledger.html');
+    html += sidebarLinkI18n('cash-report.html', 'bi-file-earmark-bar-graph', t('cash_report'), activePage, 'cash-report.html');
+    html += sidebarLinkI18n('bank-reconciliation.html', 'bi-check2-square', t('bank_reconciliation'), activePage, 'bank-reconciliation.html');
     html += sidebarSectionI18n(t('administration'));
     html += sidebarLinkI18n('users.html', 'bi-person-gear', t('users'), activePage, 'users.html');
     html += sidebarLinkI18n('roles.html', 'bi-shield-lock', t('roles'), activePage, 'roles.html');
   }
   html += '</nav>';
+  html = pruneEmptySections(html);
   const theme = document.documentElement.getAttribute('data-theme') || 'light';
   const themeLabel = theme === 'dark' ? t('light_mode') : t('dark_mode');
   html += `
@@ -262,7 +352,13 @@ function sidebarSectionI18n(title) {
   return `<div class="sidebar-section"><div class="sidebar-section-title">${title}</div></div>`;
 }
 
+// Buang judul grup sidebar yang semua menunya tersembunyi karena hak akses
+function pruneEmptySections(html) {
+  return html.replace(/<div class="sidebar-section"><div class="sidebar-section-title">[^<]*<\/div><\/div>(?=<div class="sidebar-section">|<\/nav>)/g, '');
+}
+
 function sidebarLinkI18n(href, icon, label, activePage, pageFile) {
+  if (href !== '#' && !canAccessPage(pageFile)) return '';
   const isActive = activePage === pageFile;
   return `<a href="${href}" class="sidebar-link ${isActive ? 'active' : ''}"><i class="bi ${icon}"></i>${label}</a>`;
 }
@@ -459,7 +555,7 @@ function performGlobalSearch(query) {
   if (rentals.length) {
     html += `<div class="search-result-group"><div class="search-result-group-title">${grpRentals}</div>`;
     rentals.slice(0, 5).forEach(r => {
-      html += `<a href="rental-detail.html?id=${r.id}" class="search-result-item"><i class="bi bi-file-earmark-text"></i><div><strong>${r.id}</strong> — ${r.customerName}<br><span class="text-muted fs-11">${r.projectName}</span></div></a>`;
+      html += `<a href="rental-detail.html?id=${r.id}" class="search-result-item"><i class="bi bi-file-earmark-text"></i><div><strong>${r.id}</strong> - ${r.customerName}<br><span class="text-muted fs-11">${r.projectName}</span></div></a>`;
     });
     html += '</div>';
   }
@@ -468,7 +564,7 @@ function performGlobalSearch(query) {
   if (projects.length) {
     html += `<div class="search-result-group"><div class="search-result-group-title">${grpProjects}</div>`;
     projects.slice(0, 5).forEach(p => {
-      html += `<a href="project-detail.html?id=${p.id}" class="search-result-item"><i class="bi bi-folder"></i><div><strong>${p.id}</strong> — ${p.name}<br><span class="text-muted fs-11">${p.customerName}</span></div></a>`;
+      html += `<a href="project-detail.html?id=${p.id}" class="search-result-item"><i class="bi bi-folder"></i><div><strong>${p.id}</strong> - ${p.name}<br><span class="text-muted fs-11">${p.customerName}</span></div></a>`;
     });
     html += '</div>';
   }
@@ -477,7 +573,7 @@ function performGlobalSearch(query) {
   if (equip.length) {
     html += `<div class="search-result-group"><div class="search-result-group-title">${grpEquipment}</div>`;
     equip.slice(0, 5).forEach(e => {
-      html += `<a href="equipment-detail.html?id=${e.id}" class="search-result-item"><i class="bi bi-tools"></i><div><strong>${e.id}</strong> — ${e.name}<br><span class="text-muted fs-11">${e.serial}</span></div></a>`;
+      html += `<a href="equipment-detail.html?id=${e.id}" class="search-result-item"><i class="bi bi-tools"></i><div><strong>${e.id}</strong> - ${e.name}<br><span class="text-muted fs-11">${e.serial}</span></div></a>`;
     });
     html += '</div>';
   }
@@ -486,7 +582,7 @@ function performGlobalSearch(query) {
   if (customers.length) {
     html += `<div class="search-result-group"><div class="search-result-group-title">${grpCustomers}</div>`;
     customers.slice(0, 5).forEach(c => {
-      html += `<a href="customer-detail.html?id=${c.id}" class="search-result-item"><i class="bi bi-people"></i><div><strong>${c.code}</strong> — ${c.name}<br><span class="text-muted fs-11">${c.pic}</span></div></a>`;
+      html += `<a href="customer-detail.html?id=${c.id}" class="search-result-item"><i class="bi bi-people"></i><div><strong>${c.code}</strong> - ${c.name}<br><span class="text-muted fs-11">${c.pic}</span></div></a>`;
     });
     html += '</div>';
   }
@@ -495,7 +591,7 @@ function performGlobalSearch(query) {
   if (invoices.length) {
     html += `<div class="search-result-group"><div class="search-result-group-title">${grpInvoices}</div>`;
     invoices.slice(0, 5).forEach(i => {
-      html += `<a href="invoice-detail.html?id=${i.id}" class="search-result-item"><i class="bi bi-receipt"></i><div><strong>${i.id}</strong> — ${i.customerName}<br><span class="text-muted fs-11">${formatRupiah(i.amount)}</span></div></a>`;
+      html += `<a href="invoice-detail.html?id=${i.id}" class="search-result-item"><i class="bi bi-receipt"></i><div><strong>${i.id}</strong> - ${i.customerName}<br><span class="text-muted fs-11">${formatRupiah(i.amount)}</span></div></a>`;
     });
     html += '</div>';
   }
@@ -504,7 +600,7 @@ function performGlobalSearch(query) {
   if (deliveries.length) {
     html += `<div class="search-result-group"><div class="search-result-group-title">${grpDeliveries}</div>`;
     deliveries.slice(0, 5).forEach(d => {
-      html += `<a href="delivery-detail.html?id=${d.id}" class="search-result-item"><i class="bi bi-truck"></i><div><strong>${d.id}</strong> — ${d.customerName}<br><span class="text-muted fs-11">${d.driverName || unassignedTxt}</span></div></a>`;
+      html += `<a href="delivery-detail.html?id=${d.id}" class="search-result-item"><i class="bi bi-truck"></i><div><strong>${d.id}</strong> - ${d.customerName}<br><span class="text-muted fs-11">${d.driverName || unassignedTxt}</span></div></a>`;
     });
     html += '</div>';
   }
@@ -601,6 +697,14 @@ function renderActivityTimeline(activities) {
 function initApp(pageName, breadcrumbs, title) {
   const user = checkAuth();
   if (!user) return null;
+
+  // Halaman yang tidak boleh dibuka role ini → arahkan ke halaman awal role tsb
+  const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+  if (!canAccessPage(currentPage, user)) {
+    window.location.replace(homePageFor(user) + '?denied=' + encodeURIComponent(currentPage));
+    throw new Error('Akses ditolak: ' + currentPage); // hentikan script halaman
+  }
+  showDeniedNotice();
 
   initTheme();
 
