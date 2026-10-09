@@ -1,18 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>EquipRent Enterprise</title>
-  <script>
-    const user = sessionStorage.getItem('er_user');
-    if (user) {
-      const u = JSON.parse(user);
-      window.location.href = u.role === 'Driver' ? 'driver-dashboard.html' : 'dashboard.html';
-    } else {
-      window.location.href = 'login.html';
-    }
-  </script>
+  <!-- Prototype ada di folder equiprent-enterprise/ (struktur sama dengan branch main) -->
+  <meta http-equiv="refresh" content="0; url=equiprent-enterprise/index.html">
+  <script>window.location.replace('equiprent-enterprise/index.html');</script>
 </head>
-<body></body>
+<body>
+  <p>Mengalihkan ke <a href="equiprent-enterprise/index.html">EquipRent Enterprise</a>...</p>
+</body>
 </html>

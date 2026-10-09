@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EquipRent Enterprise</title>
+  <script>
+    const user = sessionStorage.getItem('er_user');
+    if (user) {
+      const u = JSON.parse(user);
+      window.location.href = u.role === 'Driver' ? 'driver-dashboard.html' : 'dashboard.html';
+    } else {
+      window.location.href = 'login.html';
+    }
+  </script>
+</head>
+<body></body>
+</html>
