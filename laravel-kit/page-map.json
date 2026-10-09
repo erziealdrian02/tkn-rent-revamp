@@ -1,0 +1,660 @@
+{
+  "$comment": "Skema halaman prototype → Laravel. Dipakai convert.php. Ubah \"view\" untuk memindah folder Blade; jangan ubah \"uri\" (lihat README).",
+  "app_name": "EquipRent Enterprise",
+  "groups": [
+    {
+      "key": "-",
+      "label": "Umum",
+      "pages": [
+        {
+          "html": "index.html",
+          "view": "home",
+          "uri": "/",
+          "route": "home",
+          "layout": "standalone",
+          "title": "EquipRent Enterprise",
+          "permission": null
+        },
+        {
+          "html": "login.html",
+          "view": "auth.login",
+          "uri": "/login",
+          "route": "auth.login",
+          "layout": "standalone",
+          "title": "Login",
+          "permission": null
+        },
+        {
+          "html": "dashboard.html",
+          "view": "dashboard.index",
+          "uri": "/dashboard",
+          "route": "dashboard.index",
+          "layout": "app",
+          "title": "Dasbor",
+          "permission": "Dashboard"
+        }
+      ]
+    },
+    {
+      "key": "rental",
+      "label": "PENYEWAAN",
+      "pages": [
+        {
+          "html": "rentals.html",
+          "view": "rentals.index",
+          "uri": "/rentals",
+          "route": "rentals.index",
+          "layout": "app",
+          "title": "Penyewaan",
+          "permission": "Rentals"
+        },
+        {
+          "html": "rental-create.html",
+          "view": "rentals.create",
+          "uri": "/rental-create",
+          "route": "rentals.create",
+          "layout": "app",
+          "title": "Create Rental",
+          "permission": "Rentals"
+        },
+        {
+          "html": "rental-detail.html",
+          "view": "rentals.show",
+          "uri": "/rental-detail",
+          "route": "rentals.show",
+          "layout": "app",
+          "title": "Detail Penyewaan",
+          "permission": "Rentals"
+        },
+        {
+          "html": "projects.html",
+          "view": "projects.index",
+          "uri": "/projects",
+          "route": "projects.index",
+          "layout": "app",
+          "title": "Proyek",
+          "permission": "Projects"
+        },
+        {
+          "html": "project-create.html",
+          "view": "projects.create",
+          "uri": "/project-create",
+          "route": "projects.create",
+          "layout": "app",
+          "title": "Create New Project",
+          "permission": "Projects"
+        },
+        {
+          "html": "project-detail.html",
+          "view": "projects.show",
+          "uri": "/project-detail",
+          "route": "projects.show",
+          "layout": "app",
+          "title": "Detail Proyek",
+          "permission": "Projects"
+        },
+        {
+          "html": "claims.html",
+          "view": "claims.index",
+          "uri": "/claims",
+          "route": "claims.index",
+          "layout": "app",
+          "title": "Klaim",
+          "permission": "Claims"
+        },
+        {
+          "html": "claim-detail.html",
+          "view": "claims.show",
+          "uri": "/claim-detail",
+          "route": "claims.show",
+          "layout": "app",
+          "title": "Detail Klaim",
+          "permission": "Claims"
+        }
+      ]
+    },
+    {
+      "key": "stock-recap",
+      "label": "REKAP STOK",
+      "pages": [
+        {
+          "html": "deliveries.html",
+          "view": "deliveries.index",
+          "uri": "/deliveries",
+          "route": "deliveries.index",
+          "layout": "app",
+          "title": "Pengiriman",
+          "permission": "Deliveries"
+        },
+        {
+          "html": "delivery-detail.html",
+          "view": "deliveries.show",
+          "uri": "/delivery-detail",
+          "route": "deliveries.show",
+          "layout": "app",
+          "title": "Detail Pengiriman",
+          "permission": "Deliveries"
+        },
+        {
+          "html": "returns.html",
+          "view": "returns.index",
+          "uri": "/returns",
+          "route": "returns.index",
+          "layout": "app",
+          "title": "Pengembalian",
+          "permission": "Returns"
+        },
+        {
+          "html": "return-detail.html",
+          "view": "returns.show",
+          "uri": "/return-detail",
+          "route": "returns.show",
+          "layout": "app",
+          "title": "Detail Pengembalian",
+          "permission": "Returns"
+        },
+        {
+          "html": "stock.html",
+          "view": "stock.index",
+          "uri": "/stock",
+          "route": "stock.index",
+          "layout": "app",
+          "title": "Stok Gudang",
+          "permission": "Stock"
+        },
+        {
+          "html": "stock-mutations.html",
+          "view": "stock.mutations",
+          "uri": "/stock-mutations",
+          "route": "stock.mutations",
+          "layout": "app",
+          "title": "Perpindahan Stok",
+          "permission": "Stock"
+        },
+        {
+          "html": "stock-transfer.html",
+          "view": "stock.transfer",
+          "uri": "/stock-transfer",
+          "route": "stock.transfer",
+          "layout": "standalone",
+          "title": "Transfer Stok",
+          "permission": "Stock"
+        },
+        {
+          "html": "project-stock.html",
+          "view": "stock.project",
+          "uri": "/project-stock",
+          "route": "stock.project",
+          "layout": "app",
+          "title": "Stok Proyek",
+          "permission": "Stock"
+        },
+        {
+          "html": "stock-report.html",
+          "view": "stock.report",
+          "uri": "/stock-report",
+          "route": "stock.report",
+          "layout": "app",
+          "title": "Laporan Stok",
+          "permission": "Stock"
+        }
+      ]
+    },
+    {
+      "key": "inventory",
+      "label": "INVENTARIS",
+      "pages": [
+        {
+          "html": "equipment.html",
+          "view": "equipment.index",
+          "uri": "/equipment",
+          "route": "equipment.index",
+          "layout": "app",
+          "title": "Alat Berat",
+          "permission": "Equipment"
+        },
+        {
+          "html": "equipment-detail.html",
+          "view": "equipment.show",
+          "uri": "/equipment-detail",
+          "route": "equipment.show",
+          "layout": "app",
+          "title": "Detail Alat Berat",
+          "permission": "Equipment"
+        },
+        {
+          "html": "branches.html",
+          "view": "branches.index",
+          "uri": "/branches",
+          "route": "branches.index",
+          "layout": "app",
+          "title": "Cabang",
+          "permission": "Branches"
+        },
+        {
+          "html": "branch-detail.html",
+          "view": "branches.show",
+          "uri": "/branch-detail",
+          "route": "branches.show",
+          "layout": "app",
+          "title": "Detail Cabang",
+          "permission": "Branches"
+        },
+        {
+          "html": "movements.html",
+          "view": "movements.index",
+          "uri": "/movements",
+          "route": "movements.index",
+          "layout": "app",
+          "title": "Pergerakan",
+          "permission": "Movements"
+        },
+        {
+          "html": "movement-detail.html",
+          "view": "movements.show",
+          "uri": "/movement-detail",
+          "route": "movements.show",
+          "layout": "app",
+          "title": "Detail Pergerakan",
+          "permission": "Movements"
+        },
+        {
+          "html": "purchases.html",
+          "view": "purchases.index",
+          "uri": "/purchases",
+          "route": "purchases.index",
+          "layout": "app",
+          "title": "Pembelian",
+          "permission": "Purchases"
+        },
+        {
+          "html": "purchase-create.html",
+          "view": "purchases.create",
+          "uri": "/purchase-create",
+          "route": "purchases.create",
+          "layout": "app",
+          "title": "Create New Purchase",
+          "permission": "Purchases"
+        },
+        {
+          "html": "purchase-detail.html",
+          "view": "purchases.show",
+          "uri": "/purchase-detail",
+          "route": "purchases.show",
+          "layout": "app",
+          "title": "Detail Pembelian",
+          "permission": "Purchases"
+        },
+        {
+          "html": "goods-receipts.html",
+          "view": "goods-receipts.index",
+          "uri": "/goods-receipts",
+          "route": "goods-receipts.index",
+          "layout": "app",
+          "title": "Penerimaan Barang",
+          "permission": "Purchases"
+        },
+        {
+          "html": "goods-receipt-detail.html",
+          "view": "goods-receipts.show",
+          "uri": "/goods-receipt-detail",
+          "route": "goods-receipts.show",
+          "layout": "app",
+          "title": "Detail Penerimaan Barang",
+          "permission": "Purchases"
+        },
+        {
+          "html": "repairs.html",
+          "view": "repairs.index",
+          "uri": "/repairs",
+          "route": "repairs.index",
+          "layout": "app",
+          "title": "Perbaikan",
+          "permission": "Equipment"
+        },
+        {
+          "html": "repair-detail.html",
+          "view": "repairs.show",
+          "uri": "/repair-detail",
+          "route": "repairs.show",
+          "layout": "app",
+          "title": "Detail Perbaikan",
+          "permission": "Equipment"
+        },
+        {
+          "html": "maintenance.html",
+          "view": "maintenance.index",
+          "uri": "/maintenance",
+          "route": "maintenance.index",
+          "layout": "app",
+          "title": "Perawatan",
+          "permission": "Equipment"
+        },
+        {
+          "html": "maintenance-detail.html",
+          "view": "maintenance.show",
+          "uri": "/maintenance-detail",
+          "route": "maintenance.show",
+          "layout": "app",
+          "title": "Detail Perawatan",
+          "permission": "Equipment"
+        }
+      ]
+    },
+    {
+      "key": "master",
+      "label": "DATA MASTER",
+      "pages": [
+        {
+          "html": "customers.html",
+          "view": "master.customers.index",
+          "uri": "/customers",
+          "route": "master.customers.index",
+          "layout": "app",
+          "title": "Pelanggan",
+          "permission": "Customers"
+        },
+        {
+          "html": "customer-detail.html",
+          "view": "master.customers.show",
+          "uri": "/customer-detail",
+          "route": "master.customers.show",
+          "layout": "app",
+          "title": "Detail Pelanggan",
+          "permission": "Customers"
+        },
+        {
+          "html": "drivers.html",
+          "view": "master.drivers.index",
+          "uri": "/drivers",
+          "route": "master.drivers.index",
+          "layout": "app",
+          "title": "Pengemudi",
+          "permission": "Drivers"
+        },
+        {
+          "html": "driver-detail.html",
+          "view": "master.drivers.show",
+          "uri": "/driver-detail",
+          "route": "master.drivers.show",
+          "layout": "app",
+          "title": "Detail Pengemudi",
+          "permission": "Drivers"
+        },
+        {
+          "html": "vehicles.html",
+          "view": "master.vehicles.index",
+          "uri": "/vehicles",
+          "route": "master.vehicles.index",
+          "layout": "app",
+          "title": "Kendaraan",
+          "permission": "Vehicles"
+        },
+        {
+          "html": "vehicle-detail.html",
+          "view": "master.vehicles.show",
+          "uri": "/vehicle-detail",
+          "route": "master.vehicles.show",
+          "layout": "app",
+          "title": "Detail Kendaraan",
+          "permission": "Vehicles"
+        },
+        {
+          "html": "accounts.html",
+          "view": "master.accounts.index",
+          "uri": "/accounts",
+          "route": "master.accounts.index",
+          "layout": "app",
+          "title": "Accounts",
+          "permission": "Accounts"
+        }
+      ]
+    },
+    {
+      "key": "finance",
+      "label": "PIUTANG & KEUANGAN",
+      "pages": [
+        {
+          "html": "billing.html",
+          "view": "finance.billing",
+          "uri": "/billing",
+          "route": "finance.billing",
+          "layout": "app",
+          "title": "Rekap Tagihan",
+          "permission": "Invoices"
+        },
+        {
+          "html": "invoices.html",
+          "view": "finance.invoices.index",
+          "uri": "/invoices",
+          "route": "finance.invoices.index",
+          "layout": "app",
+          "title": "Invoice",
+          "permission": "Invoices"
+        },
+        {
+          "html": "invoice-detail.html",
+          "view": "finance.invoices.show",
+          "uri": "/invoice-detail",
+          "route": "finance.invoices.show",
+          "layout": "app",
+          "title": "Detail Invoice",
+          "permission": "Invoices"
+        },
+        {
+          "html": "invoice-shadow.html",
+          "view": "finance.invoices.shadow",
+          "uri": "/invoice-shadow",
+          "route": "finance.invoices.shadow",
+          "layout": "app",
+          "title": "Invoice Bayangan",
+          "permission": "Invoices"
+        },
+        {
+          "html": "payments.html",
+          "view": "finance.payments",
+          "uri": "/payments",
+          "route": "finance.payments",
+          "layout": "app",
+          "title": "Pembayaran Tagihan",
+          "permission": "Invoices"
+        },
+        {
+          "html": "receivables.html",
+          "view": "finance.receivables",
+          "uri": "/receivables",
+          "route": "finance.receivables",
+          "layout": "app",
+          "title": "Laporan Piutang",
+          "permission": "Invoices"
+        },
+        {
+          "html": "finance-ledger.html",
+          "view": "finance.cash-bank-ledger",
+          "uri": "/finance-ledger",
+          "route": "finance.cash-bank-ledger",
+          "layout": "app",
+          "title": "Buku Kas & Bank",
+          "permission": "Accounts"
+        },
+        {
+          "html": "cash-report.html",
+          "view": "finance.cash-report",
+          "uri": "/cash-report",
+          "route": "finance.cash-report",
+          "layout": "app",
+          "title": "Laporan Kas",
+          "permission": "Accounts"
+        },
+        {
+          "html": "bank-reconciliation.html",
+          "view": "finance.bank-reconciliation",
+          "uri": "/bank-reconciliation",
+          "route": "finance.bank-reconciliation",
+          "layout": "app",
+          "title": "Rekonsiliasi Bank",
+          "permission": "Accounts"
+        }
+      ]
+    },
+    {
+      "key": "accounting",
+      "label": "AKUNTANSI",
+      "pages": [
+        {
+          "html": "coa.html",
+          "view": "accounting.coa",
+          "uri": "/coa",
+          "route": "accounting.coa",
+          "layout": "app",
+          "title": "Bagan Akun (COA)",
+          "permission": "Accounting"
+        },
+        {
+          "html": "journal.html",
+          "view": "accounting.journal",
+          "uri": "/journal",
+          "route": "accounting.journal",
+          "layout": "app",
+          "title": "Jurnal",
+          "permission": "Accounting"
+        },
+        {
+          "html": "general-ledger.html",
+          "view": "accounting.general-ledger",
+          "uri": "/general-ledger",
+          "route": "accounting.general-ledger",
+          "layout": "app",
+          "title": "Buku Besar",
+          "permission": "Accounting"
+        },
+        {
+          "html": "worksheet.html",
+          "view": "accounting.worksheet",
+          "uri": "/worksheet",
+          "route": "accounting.worksheet",
+          "layout": "app",
+          "title": "Kertas Kerja",
+          "permission": "Accounting"
+        },
+        {
+          "html": "adjustments.html",
+          "view": "accounting.adjustments",
+          "uri": "/adjustments",
+          "route": "accounting.adjustments",
+          "layout": "app",
+          "title": "Jurnal Penyesuaian",
+          "permission": "Accounting"
+        },
+        {
+          "html": "profit-loss.html",
+          "view": "accounting.profit-loss",
+          "uri": "/profit-loss",
+          "route": "accounting.profit-loss",
+          "layout": "app",
+          "title": "Laba Rugi",
+          "permission": "Accounting"
+        },
+        {
+          "html": "balance-sheet.html",
+          "view": "accounting.balance-sheet",
+          "uri": "/balance-sheet",
+          "route": "accounting.balance-sheet",
+          "layout": "app",
+          "title": "Neraca",
+          "permission": "Accounting"
+        }
+      ]
+    },
+    {
+      "key": "tax",
+      "label": "PAJAK",
+      "pages": [
+        {
+          "html": "tax-ppn.html",
+          "view": "tax.ppn",
+          "uri": "/tax-ppn",
+          "route": "tax.ppn",
+          "layout": "app",
+          "title": "PPN",
+          "permission": "Tax"
+        },
+        {
+          "html": "tax-pph23.html",
+          "view": "tax.pph23",
+          "uri": "/tax-pph23",
+          "route": "tax.pph23",
+          "layout": "app",
+          "title": "PPh 23",
+          "permission": "Tax"
+        }
+      ]
+    },
+    {
+      "key": "admin",
+      "label": "ADMINISTRASI",
+      "pages": [
+        {
+          "html": "users.html",
+          "view": "admin.users.index",
+          "uri": "/users",
+          "route": "admin.users.index",
+          "layout": "app",
+          "title": "Pengguna",
+          "permission": "Users"
+        },
+        {
+          "html": "roles.html",
+          "view": "admin.roles.index",
+          "uri": "/roles",
+          "route": "admin.roles.index",
+          "layout": "app",
+          "title": "Roles & Permissions",
+          "permission": "Roles"
+        },
+        {
+          "html": "role-create.html",
+          "view": "admin.roles.create",
+          "uri": "/role-create",
+          "route": "admin.roles.create",
+          "layout": "app",
+          "title": "Create New Role",
+          "permission": "Roles"
+        }
+      ]
+    },
+    {
+      "key": "driver",
+      "label": "PORTAL DRIVER (login Driver)",
+      "pages": [
+        {
+          "html": "driver-dashboard.html",
+          "view": "driver.dashboard",
+          "uri": "/driver-dashboard",
+          "route": "driver.dashboard",
+          "layout": "app",
+          "title": "Dasbor Pengemudi",
+          "permission": "Deliveries"
+        },
+        {
+          "html": "driver-deliveries.html",
+          "view": "driver.deliveries.index",
+          "uri": "/driver-deliveries",
+          "route": "driver.deliveries.index",
+          "layout": "app",
+          "title": "My Deliveries",
+          "permission": "Deliveries"
+        },
+        {
+          "html": "driver-delivery-detail.html",
+          "view": "driver.deliveries.show",
+          "uri": "/driver-delivery-detail",
+          "route": "driver.deliveries.show",
+          "layout": "app",
+          "title": "Delivery Detail - Driver Portal",
+          "permission": "Deliveries"
+        }
+      ]
+    }
+  ]
+}
