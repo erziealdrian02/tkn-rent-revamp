@@ -1,6 +1,6 @@
 # laravel-kit — Prototype HTML → Laravel Blade
 
-Kit ini memindahkan 67 halaman prototype (yang sekarang semua ada di root) ke struktur Laravel yang rapi per modul, cukup dengan **satu perintah**. Prototype aslinya tidak diubah.
+Kit ini memindahkan 71 halaman prototype (yang sekarang semua ada di root) ke struktur Laravel yang rapi per modul, cukup dengan **satu perintah**. Prototype aslinya tidak diubah.
 
 Ini adalah **Tahap 2 (slicing UI)** di `md_ai/laravel_phase_2_ui_integration.md`. Hasilnya tampil 100% sama dengan prototype karena JS prototype masih dipakai apa adanya. Data dinamis dari database dikerjakan di tahap berikutnya.
 
@@ -51,7 +51,8 @@ resources/views/
 ├── deliveries/{index,show}         returns/{index,show}
 ├── stock/{index,mutations,transfer,project,report}
 ├── equipment/{index,show}          branches/{index,show}       movements/{index,show}
-├── purchases/{index,create,show}   goods-receipts/{index,show}
+├── purchasing/{requests,vendors,report,payables}               purchasing/orders/{index,create,show}
+├── purchasing/goods-receipts/{index,show}
 ├── master/{drivers,vehicles}/{index,show}                      master/accounts/index
 ├── finance/{cash-bank-ledger,cash-report,bank-reconciliation}
 ├── accounting/{coa,journal,general-ledger,worksheet,adjustments,profit-loss,balance-sheet}

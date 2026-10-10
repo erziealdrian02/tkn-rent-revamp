@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vendor - EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h2 class="page-header-title">Vendor / Supplier</h2>
+            <p class="page-header-subtitle">Data vendor dipakai di Purchase Request & Purchase Order: nama, alamat,
+              telepon, contact person</p>
+          </div>
+          <div class="page-header-actions" id="headerActions"></div>
+        </div>
+        <div class="er-card">
+          <div class="er-card-body">
+            <div class="table-toolbar">
+              <div class="table-toolbar-left">
+                <div class="table-search"><i class="bi bi-search"></i><input type="text"
+                    placeholder="Cari vendor, contact person..." id="searchInput" oninput="render()"></div>
+              </div>
+            </div>
+            <div class="er-table-wrapper">
+              <table class="er-table">
+                <thead>
+                  <tr>
+                    <th>Vendor</th>
+                    <th>Alamat</th>
+                    <th>Telepon</th>
+                    <th>Contact Person</th>
+                    <th class="num">PO</th>
+                    <th class="num">Total Pembelian</th>
+                    <th class="num">Sisa Hutang</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal fade" id="vendorModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="vTitle">Tambah Vendor</h5><button class="btn-close"
+            data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-8"><label class="form-label form-label-er">Nama Vendor *</label><input
+                class="form-control" id="vName"></div>
+            <div class="col-md-4"><label class="form-label form-label-er">Status</label><select class="form-select"
+                id="vStatus">
+                <option value="Active">Aktif</option>
+                <option value="Inactive">Tidak Aktif</option>
+              </select></div>
+            <div class="col-12"><label class="form-label form-label-er">Alamat *</label><textarea class="form-control"
+                rows="2" id="vAddress"></textarea></div>
+            <div class="col-md-4"><label class="form-label form-label-er">No. Telepon *</label><input
+                class="form-control" id="vPhone"></div>
+            <div class="col-md-4"><label class="form-label form-label-er">Contact Person *</label><input
+                class="form-control" id="vContact"></div>
+            <div class="col-md-4"><label class="form-label form-label-er">Email</label><input type="email"
+                class="form-control" id="vEmail"></div>
+            <div class="col-md-6"><label class="form-label form-label-er">NPWP</label><input
+                class="form-control text-mono" id="vTax"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+          <button class="btn btn-primary" onclick="saveVendor()"><i class="bi bi-check-lg me-1"></i>Simpan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    initApp('vendors.html', [{ label: 'Pembelian', href: '#' }, { label: 'Vendor' }], 'Vendor / Supplier');
+    const V = BizLogic.Vendor, P = BizLogic.Purchase;
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    let editId = null;
+    if (canDo('Purchases', 'Create')) document.getElementById('headerActions').innerHTML = '<button class="btn btn-primary btn-sm" onclick="openVendor()"><i class="bi bi-plus-lg me-1"></i>Tambah Vendor</button>';
+    const F = { vName: 'name', vAddress: 'address', vPhone: 'phone', vContact: 'contactPerson', vEmail: 'email', vTax: 'taxId', vStatus: 'status' };
+
+    function render() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      document.getElementById('tableBody').innerHTML = V.list().filter(v => !q || `${v.name} ${v.contactPerson} ${v.address}`.toLowerCase().includes(q)).map(v => {
+        const pos = MockData.purchases.filter(p => p.vendorId === v.id && p.status !== 'Cancelled');
+        const debt = pos.reduce((s, p) => s + Math.max(0, P.outstanding(p)), 0);
+        return `<tr>
+          <td><span class="fw-600">${esc(v.name)}</span><div class="fs-12 text-muted text-mono">${v.id}</div></td>
+          <td class="fs-13" style="max-width:260px">${esc(v.address)}</td>
+          <td class="text-nowrap">${esc(v.phone)}</td>
+          <td>${esc(v.contactPerson)}<div class="fs-12 text-muted">${esc(v.email || '')}</div></td>
+          <td class="num">${pos.length || '-'}</td>
+          <td class="num">${pos.length ? formatRupiah(pos.reduce((s, p) => s + p.totalAmount, 0)) : '-'}</td>
+          <td class="num ${debt ? 'fw-600' : 'text-muted'}">${debt ? formatRupiah(debt) : '-'}</td>
+          <td>${statusBadge(v.status)}</td>
+          <td class="text-nowrap"><a href="payables.html?vendor=${v.id}" class="btn-action" title="Hutang"><i class="bi bi-journal-text"></i></a>${editButton({ docType: 'Vendor', docId: v.id, docLabel: v.name, link: 'vendors.html' }, `<button class="btn-action" title="Ubah" onclick="openVendor('${v.id}')"><i class="bi bi-pencil"></i></button>`)}</td></tr>`;
+      }).join('') || '<tr><td colspan="9" class="text-center text-muted py-4">Belum ada vendor</td></tr>';
+    }
+    function openVendor(id) {
+      editId = id || null;
+      const v = id ? V.find(id) : {};
+      document.getElementById('vTitle').textContent = id ? 'Ubah Vendor ' + id : 'Tambah Vendor';
+      Object.keys(F).forEach(k => document.getElementById(k).value = v[F[k]] || (k === 'vStatus' ? 'Active' : ''));
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('vendorModal')).show();
+    }
+    function saveVendor() {
+      if (editId && !isAdmin()) { showToast('Hanya Admin yang boleh mengubah data', 'error'); return; }
+      const data = {}; Object.keys(F).forEach(k => data[F[k]] = document.getElementById(k).value);
+      const r = V.save(data, editId);
+      if (!r.success) { showToast(r.error, 'error'); return; }
+      bootstrap.Modal.getInstance(document.getElementById('vendorModal')).hide();
+      showToast('Vendor ' + r.vendor.name + ' disimpan', 'success');
+      render();
+    }
+    render();
+  </script>
+</body>
+
+</html>

@@ -37,6 +37,7 @@ const PAGE_MODULE = {
   'movements.html': 'Movements', 'movement-detail.html': 'Movements',
   'purchases.html': 'Purchases', 'purchase-create.html': 'Purchases', 'purchase-detail.html': 'Purchases',
   'goods-receipts.html': 'Purchases', 'goods-receipt-detail.html': 'Purchases',
+  'purchase-requests.html': 'Purchases', 'vendors.html': 'Purchases', 'purchase-report.html': 'Purchases', 'payables.html': 'Purchases',
   'drivers.html': 'Drivers', 'driver-detail.html': 'Drivers',
   'vehicles.html': 'Vehicles', 'vehicle-detail.html': 'Vehicles',
   'accounts.html': 'Accounts', 'finance-ledger.html': 'Accounts', 'cash-report.html': 'Accounts', 'bank-reconciliation.html': 'Accounts',
@@ -290,6 +291,7 @@ function statusBadge(status) {
     'in-maintenance': 'maintenance',
     'delivered': 'completed',
     'menunggu-acc': 'waiting', 'disetujui': 'approved', 'ditolak': 'rejected', 'selesai': 'completed',
+    'lunas': 'paid', 'uang-muka': 'waiting', 'sebagian': 'partial', 'belum-dibayar': 'issued', 'diajukan': 'waiting', 'dibuat-po': 'completed', 'requested': 'waiting',
   };
   const badgeCls = map[cls] || cls;
   return `<span class="badge-status ${badgeCls}">${status}</span>`;
@@ -342,8 +344,13 @@ function renderSidebarI18n(user, activePage) {
   html += L('equipment.html', 'bi-tools', 'equipment');
   html += L('branches.html', 'bi-building', 'branches');
   html += L('movements.html', 'bi-clock-history', 'movements');
-  html += L('purchases.html', 'bi-cart', 'purchases');
+  html += sidebarSectionI18n(t('purchasing_section'));
+  html += L('purchase-requests.html', 'bi-file-earmark-text', 'purchase_requests', canDo('Purchases', 'Approve') ? (MockData.purchaseRequests || []).filter(r => r.status === 'Diajukan').length : 0);
+  html += L('purchases.html', 'bi-cart', 'purchase_orders');
   html += L('goods-receipts.html', 'bi-box-seam', 'goods_receipts');
+  html += L('vendors.html', 'bi-shop', 'vendors');
+  html += L('purchase-report.html', 'bi-clipboard-data', 'purchase_report');
+  html += L('payables.html', 'bi-journal-minus', 'payables_report');
   html += sidebarSectionI18n(t('master_data'));
   html += L('drivers.html', 'bi-person-badge', 'drivers');
   html += L('vehicles.html', 'bi-truck-front', 'vehicles');

@@ -15,14 +15,14 @@
     <main class="app-main">
       <header class="app-header" id="appHeader"></header>
       <div class="app-content">
-        <div class="page-header"><div class="page-header-left"><h2 class="page-header-title">Pembelian</h2><p class="page-header-subtitle">Manage purchase orders and vendor relations</p></div>
-        <div class="page-header-actions"><a href="purchase-create.html" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>New Purchase</a></div></div>
+        <div class="page-header"><div class="page-header-left"><h2 class="page-header-title">Purchase Order</h2><p class="page-header-subtitle">PO ke vendor: barang & satuan, harga, term of payment, pajak, status pembayaran</p></div>
+        <div class="page-header-actions"><a href="purchase-requests.html" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-text me-1"></i>Purchase Request</a><a href="purchase-create.html" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>PO Baru</a></div></div>
         <div class="er-card"><div class="er-card-body">
           <div class="table-toolbar"><div class="table-toolbar-left">
             <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Search POs..." id="searchInput" oninput="filterData()"></div>
             <select class="filter-select" id="statusFilter" onchange="filterData()"><option value="">Semua Status</option><option value="Draft">Draft</option><option value="Approved">Disetujui</option><option value="Ordered">Dipesan</option><option value="In Transit">Dalam Pengiriman</option><option value="Arrived">Tiba</option><option value="Partially Received">Diterima Sebagian</option><option value="Received">Diterima</option><option value="Completed">Selesai</option><option value="Cancelled">Dibatalkan</option></select>
           </div></div>
-          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>PO Number</th><th>Vendor</th><th>Tanggal</th><th>Expected Date</th><th>Item</th><th>Total Amount</th><th>Status</th><th>Aksi</th></tr></thead>
+          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No. PO</th><th>Vendor</th><th>Tanggal</th><th>Term</th><th class="num">Total PO</th><th class="num">Dibayar</th><th class="num">Sisa Hutang</th><th>Jatuh Tempo</th><th>Status PO</th><th>Pembayaran</th><th></th></tr></thead>
           <tbody id="tableBody"></tbody></table></div>
         </div></div>
       </div>
@@ -31,9 +31,11 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
-    initApp('purchases.html',[{label:'Inventaris',href:'#'},{label:'Pembelian'}],'Pembelian');
+    initApp('purchases.html',[{label:'Pembelian',href:'#'},{label:'Purchase Order'}],'Purchase Order');
+    const P = BizLogic.Purchase, today0 = new Date().toISOString().split('T')[0];
     function filterData(){
       const q=document.getElementById('searchInput').value.toLowerCase();
       const s=document.getElementById('statusFilter').value;
@@ -42,13 +44,19 @@
         if(q&&!p.id.toLowerCase().includes(q)&&!vendor.toLowerCase().includes(q))return false;
         if(s&&p.status!==s)return false;return true;
       });
-      document.getElementById('tableBody').innerHTML=data.map(p=>`<tr>
-        <td><a href="purchase-detail.html?id=${p.id}" class="cell-link text-mono">${p.id}</a></td>
-        <td>${p.vendor || p.supplier || '-'}</td><td>${formatDate(p.poDate || p.purchaseDate)}</td><td>${formatDate(p.expectedDate)}</td>
-        <td>${p.items.length} tipe</td><td class="fw-600">${formatRupiah(p.totalAmount)}</td>
-        <td>${statusBadge(p.status)}</td>
+      document.getElementById('tableBody').innerHTML=data.slice().sort((a,b)=>(b.purchaseDate||'').localeCompare(a.purchaseDate||'')).map(p=>{
+        const owed = P.outstanding(p), due = P.dueDate(p);
+        return `<tr>
+        <td><a href="purchase-detail.html?id=${p.id}" class="cell-link text-mono">${p.id}</a>${p.prId ? `<div class="fs-11 text-muted">${p.prId}</div>` : ''}</td>
+        <td>${p.vendor || p.supplier || '-'}</td><td>${formatDate(p.poDate || p.purchaseDate)}</td>
+        <td class="fs-12">${P.termText(p)}</td>
+        <td class="num fw-600">${formatRupiah(p.totalAmount)}</td>
+        <td class="num">${formatRupiah(P.paid(p))}</td>
+        <td class="num ${owed > 0 ? 'fw-600' : 'text-muted'}">${owed > 0 ? formatRupiah(owed) : owed < 0 ? '<span class="fs-12">UM ' + formatRupiah(-owed) + '</span>' : '-'}</td>
+        <td class="${due && due < today0 && owed > 0 ? 'text-danger fw-600' : ''}">${due ? formatDate(due) : '-'}</td>
+        <td>${statusBadge(p.status)}</td><td>${statusBadge(P.payStatus(p))}</td>
         <td><a href="purchase-detail.html?id=${p.id}" class="btn-action"><i class="bi bi-eye"></i></a></td>
-      </tr>`).join('')||'<tr><td colspan="8" class="text-center text-muted py-4">Tidak ada pembelian ditemukan</td></tr>';
+      </tr>`;}).join('')||'<tr><td colspan="11" class="text-center text-muted py-4">Tidak ada pembelian ditemukan</td></tr>';
     }
     filterData();
   </script>

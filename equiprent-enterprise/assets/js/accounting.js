@@ -308,7 +308,7 @@ BizLogic.Accounting = {
         return s + it.qty * ((pi && Number(pi.price)) || costs[it.equipment] || 0);
       }, 0));
       var fromSupplier = d.type === 'PURCHASE' && d.from && d.from.type === 'supplier', party = (d.from && d.from.name) || (po && po.supplier) || '';
-      var ppn = fromSupplier ? Math.round(dpp * rate) : 0;
+      var ppn = fromSupplier ? Math.round(dpp * (po && po.taxRate != null ? Number(po.taxRate) : rate)) : 0; // tarif pajak sesuai PO
       var lines = [{ acc: A.PURCHASE, d: dpp, k: 0 }];
       if (ppn) lines.push({ acc: A.PPN, d: ppn, k: 0, tax: { kind: 'PPN_IN', dpp: dpp, poId: po ? po.id : null } });
       // Kelebihan alat (selisih lebih stock opname) = pendapatan lain-lain; produksi sendiri = hutang biaya produksi

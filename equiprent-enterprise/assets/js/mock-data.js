@@ -411,13 +411,48 @@ const MockData = {
   ],
 
   // ---- PURCHASES ----
+  // Term of payment: CASH (lunas saat barang diterima) | DP (uang muka dpPercent%, pelunasan saat diterima / tempo) | TEMPO (days hari setelah barang diterima)
+  // Pembayaran = Bon Merah kategori pembayaran supplier dengan referensi no. PO (payKind: DP | Pelunasan | Cicilan)
   purchases: [
-    { id: 'PO-001', expectedDate: '2026-07-05', createdBy: 'Joko Warehouse', supplierContact: '021-555-1001', supplier: 'PT Sumber Generator', purchaseDate: '2026-07-01', branch: 'Cileungsi', branchId: 'BR-001', totalItems: 2, totalAmount: 750000000, accountId: 'ACC-001', accountName: 'BCA Operational', status: 'Completed', items: [{name:'Generator 50 KVA', qty:5, received:5, price:100000000},{name:'Generator 100 KVA', qty:3, received:3, price:150000000}] },
-    { id: 'PO-002', expectedDate: '2026-07-18', createdBy: 'Joko Warehouse', supplierContact: '021-555-1002', supplier: 'PT Kabel Nusantara', purchaseDate: '2026-07-15', branch: 'Cileungsi', branchId: 'BR-001', totalItems: 2, totalAmount: 125000000, accountId: 'ACC-002', accountName: 'Mandiri Corporate', status: 'Completed', items: [{name:'Power Cable 50m', qty:50, received:50, price:1500000},{name:'Power Cable 100m', qty:20, received:20, price:2500000}] },
-    { id: 'PO-003', expectedDate: '2026-09-25', createdBy: 'Joko Warehouse', supplierContact: '021-555-1003', supplier: 'PT Alat Berat Indonesia', purchaseDate: '2026-08-20', branch: 'Bekasi', branchId: 'BR-002', totalItems: 3, totalAmount: 245000000, accountId: 'ACC-001', accountName: 'BCA Operational', status: 'Arrived', items: [{name:'Welding Machine 400A', qty:4, received:0, price:35000000},{name:'Air Compressor 10HP', qty:3, received:0, price:40000000},{name:'Submersible Pump 4"', qty:2, received:0, price:30000000}] },
-    { id: 'PO-004', expectedDate: '2026-10-12', createdBy: 'Joko Warehouse', supplierContact: '021-555-1001', supplier: 'PT Sumber Generator', purchaseDate: '2026-09-01', branch: 'Cileungsi', branchId: 'BR-001', totalItems: 1, totalAmount: 150000000, accountId: 'ACC-001', accountName: 'BCA Operational', status: 'In Transit', items: [{name:'Generator 100 KVA', qty:2, received:0, price:150000000}] },
-    { id: 'PO-005', expectedDate: '2026-10-15', createdBy: 'Joko Warehouse', supplierContact: '021-555-1004', supplier: 'PT Tangga Jaya', purchaseDate: '2026-09-03', branch: 'Cileungsi', branchId: 'BR-001', totalItems: 2, totalAmount: 22000000, accountId: 'ACC-002', accountName: 'Mandiri Corporate', status: 'Ordered', items: [{name:'Aluminium Ladder 6m', qty:10, received:0, price:1200000},{name:'Aluminium Ladder 8m', qty:5, received:0, price:2000000}] },
-    { id: 'PO-006', expectedDate: '2026-10-25', createdBy: 'Joko Warehouse', supplierContact: '0542-777-210', supplier: 'CV Lampu Terang', purchaseDate: '2026-10-06', branch: 'Balikpapan', branchId: 'BR-003', totalItems: 1, totalAmount: 70000000, accountId: 'ACC-001', accountName: 'BCA Operational', status: 'Draft', items: [{name:'Tower Light 4x1000W', qty:2, received:0, price:35000000}] },
+    { id: 'PO-001', prId: null, vendorId: 'VND-001', supplier: 'PT Sumber Generator', vendorAddress: 'Jl. Industri Raya No. 21, Cikarang', supplierContact: '021-555-1001', purchaseDate: '2026-07-01', expectedDate: '2026-07-05', branch: 'Cileungsi', branchId: 'BR-001', accountId: 'ACC-001', accountName: 'BCA Operational', status: 'Completed', createdBy: 'Rudi Purchasing',
+      paymentTerm: { type: 'TEMPO', days: 30 }, taxRate: 0.11, discount: 0, shipping: 0, subtotal: 950000000, tax: 104500000, totalAmount: 1054500000, totalItems: 2,
+      items: [{name:'Generator 50 KVA', unit:'Unit', qty:5, received:5, price:100000000},{name:'Generator 100 KVA', unit:'Unit', qty:3, received:3, price:150000000}] },
+    { id: 'PO-002', prId: null, vendorId: 'VND-002', supplier: 'PT Kabel Nusantara', vendorAddress: 'Jl. Daan Mogot KM 12, Jakarta Barat', supplierContact: '021-555-1002', purchaseDate: '2026-07-15', expectedDate: '2026-07-18', branch: 'Cileungsi', branchId: 'BR-001', accountId: 'ACC-002', accountName: 'Mandiri Corporate', status: 'Completed', createdBy: 'Rudi Purchasing',
+      paymentTerm: { type: 'TEMPO', days: 30 }, taxRate: 0.11, discount: 0, shipping: 0, subtotal: 125000000, tax: 13750000, totalAmount: 138750000, totalItems: 2,
+      items: [{name:'Power Cable 50m', unit:'Roll', qty:50, received:50, price:1500000},{name:'Power Cable 100m', unit:'Roll', qty:20, received:20, price:2500000}] },
+    { id: 'PO-003', prId: null, vendorId: 'VND-003', supplier: 'PT Alat Berat Indonesia', vendorAddress: 'Jl. Raya Narogong KM 8, Bekasi', supplierContact: '021-555-1003', purchaseDate: '2026-08-20', expectedDate: '2026-09-25', branch: 'Bekasi', branchId: 'BR-002', accountId: 'ACC-001', accountName: 'BCA Operational', status: 'Arrived', createdBy: 'Rudi Purchasing',
+      paymentTerm: { type: 'DP', dpPercent: 30, days: 14 }, taxRate: 0.11, discount: 0, shipping: 0, subtotal: 320000000, tax: 35200000, totalAmount: 355200000, totalItems: 3,
+      items: [{name:'Welding Machine 400A', unit:'Unit', qty:4, received:0, price:35000000},{name:'Air Compressor 10HP', unit:'Unit', qty:3, received:0, price:40000000},{name:'Submersible Pump 4"', unit:'Unit', qty:2, received:0, price:30000000}] },
+    { id: 'PO-004', prId: null, vendorId: 'VND-001', supplier: 'PT Sumber Generator', vendorAddress: 'Jl. Industri Raya No. 21, Cikarang', supplierContact: '021-555-1001', purchaseDate: '2026-09-01', expectedDate: '2026-10-12', branch: 'Cileungsi', branchId: 'BR-001', accountId: 'ACC-001', accountName: 'BCA Operational', status: 'In Transit', createdBy: 'Rudi Purchasing',
+      paymentTerm: { type: 'TEMPO', days: 45 }, taxRate: 0.11, discount: 0, shipping: 0, subtotal: 300000000, tax: 33000000, totalAmount: 333000000, totalItems: 1,
+      items: [{name:'Generator 100 KVA', unit:'Unit', qty:2, received:0, price:150000000}] },
+    { id: 'PO-005', prId: null, vendorId: 'VND-004', supplier: 'PT Tangga Jaya', vendorAddress: 'Jl. Pangeran Jayakarta No. 5, Jakarta Pusat', supplierContact: '021-555-1004', purchaseDate: '2026-09-03', expectedDate: '2026-10-15', branch: 'Cileungsi', branchId: 'BR-001', accountId: 'ACC-002', accountName: 'Mandiri Corporate', status: 'Ordered', createdBy: 'Rudi Purchasing',
+      paymentTerm: { type: 'CASH' }, taxRate: 0, discount: 0, shipping: 0, subtotal: 22000000, tax: 0, totalAmount: 22000000, totalItems: 2,
+      items: [{name:'Aluminium Ladder 6m', unit:'Unit', qty:10, received:0, price:1200000},{name:'Aluminium Ladder 8m', unit:'Unit', qty:5, received:0, price:2000000}] },
+    { id: 'PO-006', prId: 'PR-001', vendorId: 'VND-005', supplier: 'CV Lampu Terang', vendorAddress: 'Jl. MT Haryono No. 88, Balikpapan', supplierContact: '0542-777-210', purchaseDate: '2026-10-06', expectedDate: '2026-10-25', branch: 'Balikpapan', branchId: 'BR-003', accountId: 'ACC-001', accountName: 'BCA Operational', status: 'Draft', createdBy: 'Rudi Purchasing',
+      paymentTerm: { type: 'TEMPO', days: 30 }, taxRate: 0.11, discount: 0, shipping: 0, subtotal: 70000000, tax: 7700000, totalAmount: 77700000, totalItems: 1,
+      items: [{name:'Tower Light 4x1000W', unit:'Unit', qty:2, received:0, price:35000000}] },
+  ],
+
+  // ---- VENDOR / SUPPLIER ----
+  vendors: [
+    { id: 'VND-001', name: 'PT Sumber Generator', address: 'Jl. Industri Raya No. 21, Cikarang', phone: '021-555-1001', contactPerson: 'Bambang Sutrisno', email: 'sales@sumbergen.co.id', taxId: '02.111.222.3-413.000', status: 'Active' },
+    { id: 'VND-002', name: 'PT Kabel Nusantara', address: 'Jl. Daan Mogot KM 12, Jakarta Barat', phone: '021-555-1002', contactPerson: 'Wati Susanti', email: 'order@kabelnusa.co.id', taxId: '02.333.444.5-034.000', status: 'Active' },
+    { id: 'VND-003', name: 'PT Alat Berat Indonesia', address: 'Jl. Raya Narogong KM 8, Bekasi', phone: '021-555-1003', contactPerson: 'Hendra Gunawan', email: 'hendra@abi.co.id', taxId: '01.555.666.7-407.000', status: 'Active' },
+    { id: 'VND-004', name: 'PT Tangga Jaya', address: 'Jl. Pangeran Jayakarta No. 5, Jakarta Pusat', phone: '021-555-1004', contactPerson: 'Ani Lestari', email: 'ani@tanggajaya.co.id', taxId: '', status: 'Active' },
+    { id: 'VND-005', name: 'CV Lampu Terang', address: 'Jl. MT Haryono No. 88, Balikpapan', phone: '0542-777-210', contactPerson: 'Yusuf Rahman', email: 'yusuf@lamputerang.com', taxId: '03.777.888.9-721.000', status: 'Active' },
+    { id: 'VND-006', name: 'CV Trans Logistik', address: 'Jl. Cakung Cilincing No. 3, Jakarta Utara', phone: '021-555-1006', contactPerson: 'Dodi Saputra', email: 'ops@translogistik.co.id', taxId: '0712345678014000', status: 'Active' },
+  ],
+
+  // ---- PURCHASE REQUEST ----
+  // Draft → Diajukan → Disetujui (ACC) → Dibuat PO / Ditolak
+  purchaseRequests: [
+    { id: 'PR-001', date: '2026-10-03', vendorId: 'VND-005', vendorName: 'CV Lampu Terang', vendorAddress: 'Jl. MT Haryono No. 88, Balikpapan', vendorPhone: '0542-777-210', vendorContact: 'Yusuf Rahman',
+      branchId: 'BR-003', items: [{ name: 'Tower Light 4x1000W', unit: 'Unit', qty: 2, price: 35000000 }], notes: 'Penerangan proyek Kalimantan', status: 'Dibuat PO', poId: 'PO-006',
+      requestedBy: 'Joko Warehouse', requestedAt: '2026-10-03 09:00', approvedBy: 'Maya Finance', approvedAt: '2026-10-04 10:00' },
+    { id: 'PR-002', date: '2026-10-09', vendorId: 'VND-004', vendorName: 'PT Tangga Jaya', vendorAddress: 'Jl. Pangeran Jayakarta No. 5, Jakarta Pusat', vendorPhone: '021-555-1004', vendorContact: 'Ani Lestari',
+      branchId: 'BR-001', items: [{ name: 'Aluminium Ladder 6m', unit: 'Unit', qty: 20, price: 1200000 }, { name: 'Aluminium Ladder 8m', unit: 'Unit', qty: 10, price: 2000000 }], notes: 'Tambahan stok tangga, banyak permintaan sewa', status: 'Diajukan', poId: null,
+      requestedBy: 'Joko Warehouse', requestedAt: '2026-10-09 11:30' },
   ],
 
   // ---- MOVEMENTS ----
@@ -482,9 +517,9 @@ const MockData = {
     {"id":"TRX-014","voucherNo":"BM-2609-002","date":"2026-09-05","bankAccountId":"ACC-005","type":"OUT","category":"kas_out_opex","reference":"SJK-2609","description":"BBM & tol pengiriman alat","party":"SPBU / Jasa Marga","amount":1250000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance","coaId":"6-3003"},
     {"id":"TRX-015","voucherNo":"BM-2609-003","date":"2026-09-08","bankAccountId":"ACC-005","type":"OUT","category":"kas_out_advance","reference":"","description":"Kasbon driver","party":"Budi Santoso","amount":2000000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance"},
     {"id":"TRX-008","voucherNo":"BB-2609-003","date":"2026-09-10","bankAccountId":"ACC-004","type":"IN","category":"bank_in_ar","reference":"PAY-008 / INV-010","description":"Pembayaran cicilan INV-010 - PT Karya Engineering","party":"PT Karya Engineering","amount":8300000,"source":"payment","transferId":null,"reconciled":true,"user":"Maya Finance","reconId":"REK-001"},
-    {"id":"TRX-016","voucherNo":"BM-2609-004","date":"2026-09-12","bankAccountId":"ACC-002","type":"OUT","category":"bank_out_supplier","reference":"PO-005","description":"Pelunasan PO-005","party":"PT Tangga Jaya","amount":22000000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance"},
+    {"id":"TRX-016","voucherNo":"BM-2609-004","date":"2026-09-12","bankAccountId":"ACC-002","type":"OUT","category":"bank_out_supplier","reference":"PO-005","description":"Pelunasan PO-005","party":"PT Tangga Jaya","payKind":"Pelunasan","amount":22000000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance"},
     {"id":"TRX-006","voucherNo":"BB-2609-004","date":"2026-09-15","bankAccountId":"ACC-001","type":"IN","category":"bank_in_ar","reference":"PAY-006 / INV-006","description":"Pembayaran lunas INV-006 - PT Data Center Indonesia","party":"PT Data Center Indonesia","amount":28305000,"source":"payment","transferId":null,"reconciled":false,"user":"Maya Finance"},
-    {"id":"TRX-017","voucherNo":"BM-2609-005","date":"2026-09-18","bankAccountId":"ACC-001","type":"OUT","category":"bank_out_supplier","reference":"PO-003","description":"Pembayaran termin 1 PO-003","party":"PT Alat Berat Indonesia","amount":100000000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance"},
+    {"id":"TRX-017","voucherNo":"BM-2609-005","date":"2026-09-18","bankAccountId":"ACC-001","type":"OUT","category":"bank_out_supplier","reference":"PO-003","description":"Uang muka (DP) PO-003","party":"PT Alat Berat Indonesia","payKind":"DP","amount":100000000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance"},
     {"id":"TRX-010","voucherNo":"BB-2609-005","date":"2026-09-20","bankAccountId":"ACC-002","type":"IN","category":"bank_in_ar","reference":"PAY-010 / INV-008","description":"Pembayaran cicilan INV-008 - PT Infrastruktur Nusantara","party":"PT Infrastruktur Nusantara","amount":14500000,"source":"payment","transferId":null,"reconciled":false,"user":"Maya Finance"},
     {"id":"TRX-018","voucherNo":"BB-2609-006","date":"2026-09-22","bankAccountId":"ACC-002","type":"IN","category":"bank_in_dp","reference":"","description":"Uang muka sewa proyek baru","party":"PT Mitra Teknologi","amount":20000000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance"},
     {"id":"TRX-019","voucherNo":"BM-2609-006","date":"2026-09-25","bankAccountId":"ACC-005","type":"OUT","category":"kas_out_payroll","reference":"","description":"Gaji helper gudang September","party":"Karyawan harian","amount":6500000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance"},
@@ -774,7 +809,7 @@ const MockData = {
 
 // --- Persistence Logic ---
 // Naikkan angka ini setiap struktur data seed berubah, supaya localStorage lama di-reset.
-const MOCK_SCHEMA_VERSION = '7-alur-piutang';
+const MOCK_SCHEMA_VERSION = '8-purchasing';
 
 (function() {
   const STORAGE_PREFIX = 'equiprent_';

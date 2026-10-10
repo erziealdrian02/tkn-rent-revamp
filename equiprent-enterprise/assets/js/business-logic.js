@@ -1172,6 +1172,88 @@ BizLogic.Delivery = {
 };
 
 // ============================================================
+// VENDOR / SUPPLIER (master)
+// ============================================================
+
+BizLogic.Vendor = {
+  list: function() { return (MockData.vendors = MockData.vendors || []); },
+  find: function(id) { return this.list().find(function(v) { return v.id === id; }); },
+  // data: { name, address, phone, contactPerson, email, taxId, status }
+  save: function(data, editId) {
+    data = data || {};
+    if (!String(data.name || '').trim()) return { success: false, error: 'Nama vendor wajib diisi' };
+    if (!String(data.address || '').trim()) return { success: false, error: 'Alamat vendor wajib diisi' };
+    if (!String(data.phone || '').trim()) return { success: false, error: 'No. telepon wajib diisi' };
+    if (!String(data.contactPerson || '').trim()) return { success: false, error: 'Contact person wajib diisi' };
+    var v = editId ? this.find(editId) : null;
+    if (editId && !v) return { success: false, error: 'Vendor tidak ditemukan' };
+    if (!v) { v = { id: MockData.generateId('VND', 'vendors') }; this.list().push(v); }
+    ['name', 'address', 'phone', 'contactPerson', 'email', 'taxId'].forEach(function(k) { v[k] = String(data[k] || '').trim(); });
+    v.status = data.status || 'Active';
+    MockData.save('vendors');
+    return { success: true, vendor: v };
+  },
+  options: function(selected) {
+    return '<option value="">- Pilih vendor -</option>' + this.list().filter(function(v) { return v.status !== 'Inactive' || v.id === selected; })
+      .map(function(v) { return '<option value="' + v.id + '"' + (v.id === selected ? ' selected' : '') + '>' + v.name + '</option>'; }).join('');
+  }
+};
+
+// ============================================================
+// PURCHASE REQUEST - permintaan pembelian sebelum PO.
+// Draft → Diajukan → Disetujui (ACC) → Dibuat PO | Ditolak
+// ============================================================
+
+BizLogic.PurchaseRequest = {
+  list: function() { return (MockData.purchaseRequests = MockData.purchaseRequests || []); },
+  find: function(id) { return this.list().find(function(r) { return r.id === id; }); },
+  total: function(pr) { return pr.items.reduce(function(s, i) { return s + (Number(i.qty) || 0) * (Number(i.price) || 0); }, 0); },
+  // data: { vendorId, date, branchId, items:[{name, unit, qty, price}], notes }
+  save: function(data, editId, submit) {
+    data = data || {};
+    var v = BizLogic.Vendor.find(data.vendorId);
+    if (!v) return { success: false, error: 'Pilih vendor' };
+    var items = (data.items || []).filter(function(i) { return String(i.name || '').trim(); })
+      .map(function(i) { return { name: String(i.name).trim(), unit: String(i.unit || 'Unit').trim(), qty: Number(i.qty) || 0, price: Math.round(Number(i.price) || 0) }; });
+    if (!items.length) return { success: false, error: 'Tambahkan minimal satu barang' };
+    if (items.some(function(i) { return i.qty <= 0 || i.price <= 0; })) return { success: false, error: 'Qty dan harga harus lebih dari 0' };
+    var pr = editId ? this.find(editId) : null;
+    if (pr && ['Draft', 'Ditolak'].indexOf(pr.status) < 0) return { success: false, error: 'PR yang sudah diajukan tidak bisa diubah' };
+    var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
+    if (!pr) { pr = { id: MockData.generateId('PR', 'purchaseRequests'), status: 'Draft', poId: null, requestedBy: user.name || 'System' }; this.list().push(pr); }
+    Object.assign(pr, { date: data.date || new Date().toISOString().split('T')[0], vendorId: v.id, vendorName: v.name, vendorAddress: v.address,
+      vendorPhone: v.phone, vendorContact: v.contactPerson, branchId: data.branchId || 'BR-001', items: items, notes: String(data.notes || '').trim() });
+    MockData.save('purchaseRequests');
+    if (submit) return this.submit(pr.id);
+    return { success: true, request: pr };
+  },
+  submit: function(id) {
+    var pr = this.find(id);
+    if (!pr) return { success: false, error: 'PR tidak ditemukan' };
+    if (['Draft', 'Ditolak'].indexOf(pr.status) < 0) return { success: false, error: 'PR sudah diajukan' };
+    pr.status = 'Diajukan'; pr.requestedAt = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    MockData.save('purchaseRequests');
+    BizLogic.Notification.add('Purchase Request <strong>' + pr.id + '</strong> menunggu ACC', 'warning', 'bi-cart', 'purchase-requests.html');
+    return { success: true, request: pr };
+  },
+  review: function(id, approve, note) {
+    var pr = this.find(id);
+    if (!pr) return { success: false, error: 'PR tidak ditemukan' };
+    if (typeof canDo === 'function' && !canDo('Purchases', 'Approve')) return { success: false, error: 'Tidak punya hak ACC pembelian' };
+    if (pr.status !== 'Diajukan') return { success: false, error: 'Status ' + pr.status + ' tidak bisa diproses' };
+    if (!approve && !String(note || '').trim()) return { success: false, error: 'Isi alasan penolakan' };
+    var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
+    pr.status = approve ? 'Disetujui' : 'Ditolak';
+    pr[approve ? 'approvedBy' : 'rejectedBy'] = user.name || 'System';
+    pr[approve ? 'approvedAt' : 'rejectedAt'] = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    pr.reviewNote = String(note || '').trim();
+    MockData.save('purchaseRequests');
+    BizLogic.Activity.log('PR ' + pr.id + (approve ? ' disetujui' : ' ditolak'), approve ? 'success' : 'warning');
+    return { success: true, request: pr };
+  }
+};
+
+// ============================================================
 // PROYEK - tenggat waktu (end date) bisa disesuaikan, riwayat disimpan
 // ============================================================
 
@@ -1629,6 +1711,135 @@ BizLogic.Claim = {
 
 BizLogic.Purchase = {
   RECEIVABLE: ['Ordered', 'In Transit', 'Arrived', 'Partially Received'],
+
+  // ---------- Term of payment & pajak ----------
+  TERMS: { CASH: 'Cash (lunas saat barang diterima)', DP: 'Uang Muka + Pelunasan', TEMPO: 'Tempo' },
+  PAY_KINDS: { DP: 'Uang Muka (DP)', Pelunasan: 'Pelunasan', Cicilan: 'Cicilan' },
+  termOf: function(po) { return po.paymentTerm || { type: 'TEMPO', days: (MockData.settings && MockData.settings.paymentTermDays) || 30 }; },
+  termText: function(po) {
+    var t = this.termOf(po);
+    if (t.type === 'CASH') return 'Cash';
+    if (t.type === 'DP') return 'DP ' + (t.dpPercent || 0) + '%' + (t.days ? ', pelunasan ' + t.days + ' hari' : ', pelunasan saat diterima');
+    return 'Tempo ' + (t.days || 0) + ' hari';
+  },
+  // Hitung total PO. data: { items:[{qty, price}], taxRate, discount, shipping }
+  totals: function(items, taxRate, discount, shipping) {
+    var subtotal = Math.round((items || []).reduce(function(s, i) { return s + (Number(i.qty) || 0) * (Number(i.price) || 0); }, 0));
+    var base = subtotal - (Number(discount) || 0);
+    var tax = Math.round(base * (Number(taxRate) || 0));
+    return { subtotal: subtotal, discount: Number(discount) || 0, shipping: Number(shipping) || 0, tax: tax, totalAmount: base + tax + (Number(shipping) || 0) };
+  },
+  find: function(id) { return MockData.purchases.find(function(p) { return p.id === id; }); },
+  vendorName: function(po) { return po.vendor || po.supplier || '-'; },
+
+  // ---------- Pembayaran (Bon Merah kategori pembayaran supplier, referensi no. PO) ----------
+  payments: function(po) {
+    var CB = BizLogic.CashBank, re = new RegExp('\\b' + po.id + '\\b');
+    return CB.entries().filter(function(e) { return e.type === 'OUT' && /_supplier$/.test(CB.categoryOf(e)) && re.test(e.reference || ''); })
+      .map(function(e) { return Object.assign({}, e, { payKind: e.payKind || 'Pelunasan' }); });
+  },
+  paid: function(po, asOf) { return this.payments(po).filter(function(e) { return !asOf || e.date <= asOf; }).reduce(function(s, e) { return s + e.amount; }, 0); },
+  dpAmount: function(po) { var t = this.termOf(po); return t.type === 'DP' ? Math.round(po.totalAmount * (t.dpPercent || 0) / 100) : 0; },
+  receipts: function(po, asOf) {
+    return (MockData.goodsReceipts || []).filter(function(g) { return g.purchaseId === po.id && (!asOf || g.receiptDate <= asOf); })
+      .sort(function(a, b) { return a.receiptDate.localeCompare(b.receiptDate); });
+  },
+  // Nilai tagihan supplier = porsi barang yang sudah diterima × total PO (termasuk pajak, diskon, ongkir)
+  billed: function(po, asOf) {
+    if (po.status === 'Cancelled') return 0;
+    var ordered = po.items.reduce(function(s, i) { return s + i.qty * i.price; }, 0);
+    if (!ordered) return 0;
+    var recv = 0;
+    if (asOf) {
+      this.receipts(po, asOf).forEach(function(g) { g.items.forEach(function(gi) { var pi = po.items.find(function(x) { return x.name === gi.name; }); if (pi) recv += gi.qty * pi.price; }); });
+      if (!this.receipts(po).length) recv = po.items.reduce(function(s, i) { return s + (i.received || 0) * i.price; }, 0);
+    } else recv = po.items.reduce(function(s, i) { return s + (i.received || 0) * i.price; }, 0);
+    return Math.round(po.totalAmount * Math.min(1, recv / ordered));
+  },
+  // Sisa hutang (+) atau uang muka yang belum terpakai (−)
+  outstanding: function(po, asOf) { return this.billed(po, asOf) - this.paid(po, asOf); },
+  // Jatuh tempo pelunasan: tanggal barang diterima (terakhir) + hari tempo
+  dueDate: function(po) {
+    var r = this.receipts(po), last = r.length ? r[r.length - 1].receiptDate : (po.items.some(function(i) { return i.received; }) ? po.expectedDate : null);
+    if (!last) return null;
+    var t = this.termOf(po);
+    return t.type === 'CASH' ? last : BizLogic.Billing.addDays(last, t.days || 0);
+  },
+  agingBucket: function(po, asOf) {
+    var today = asOf || new Date().toISOString().split('T')[0], due = this.dueDate(po);
+    if (!due || due >= today) return 'current';
+    var late = BizLogic.Billing.days(due, today) - 1;
+    return late <= 30 ? 'd30' : late <= 60 ? 'd60' : late <= 90 ? 'd90' : 'd90plus';
+  },
+  payStatus: function(po) {
+    if (po.status === 'Cancelled') return 'Cancelled';
+    var paid = this.paid(po);
+    if (paid >= po.totalAmount && po.totalAmount > 0) return 'Lunas';
+    if (paid > 0 && this.billed(po) === 0) return 'Uang Muka';
+    if (paid > 0) return 'Sebagian';
+    return this.billed(po) > 0 ? 'Belum Dibayar' : '-';
+  },
+
+  // Catat pembayaran ke supplier → Bon Merah otomatis. data: { kind: DP|Pelunasan|Cicilan, amount, accountId, date, reference, notes }
+  pay: function(poId, data) {
+    data = data || {};
+    var po = this.find(poId);
+    if (!po) return { success: false, error: 'PO tidak ditemukan' };
+    if (['Draft', 'Requested', 'Cancelled'].indexOf(po.status) >= 0) return { success: false, error: 'PO belum disetujui / sudah dibatalkan' };
+    if (!this.PAY_KINDS[data.kind]) return { success: false, error: 'Pilih jenis pembayaran' };
+    var amt = Math.round(Number(data.amount) || 0), rest = po.totalAmount - this.paid(po);
+    if (amt <= 0) return { success: false, error: 'Jumlah harus lebih dari 0' };
+    if (amt > rest) return { success: false, error: 'Melebihi sisa nilai PO (' + rest.toLocaleString('id-ID') + ')' };
+    var acc = BizLogic.CashBank.account(data.accountId);
+    if (!acc) return { success: false, error: 'Pilih akun kas / bank' };
+    var r = BizLogic.CashBank.addEntry({
+      type: 'OUT', date: data.date, accountId: acc.id,
+      category: BizLogic.CashBank.kindOf(acc) === 'Kas' ? 'kas_out_supplier' : 'bank_out_supplier', amount: amt,
+      reference: po.id + (data.reference ? ' / ' + data.reference : ''), party: this.vendorName(po),
+      description: this.PAY_KINDS[data.kind] + ' ' + po.id + ' - ' + this.vendorName(po) + (data.notes ? ' (' + data.notes + ')' : '')
+    });
+    if (!r.success) return r;
+    r.entry.payKind = data.kind;
+    MockData.save('ledger');
+    return { success: true, entry: r.entry };
+  },
+
+  // Buat PO. data: { vendorId, prId, branchId, accountId, purchaseDate, expectedDate, items:[{name, unit, qty, price}], paymentTerm, taxRate, discount, shipping, status, notes }
+  create: function(data) {
+    data = data || {};
+    var v = BizLogic.Vendor.find(data.vendorId);
+    if (!v) return { success: false, error: 'Pilih vendor' };
+    var br = MockData.branches.find(function(b) { return b.id === data.branchId; });
+    if (!br) return { success: false, error: 'Pilih gudang tujuan' };
+    var items = (data.items || []).filter(function(i) { return String(i.name || '').trim(); })
+      .map(function(i) { return { name: String(i.name).trim(), unit: i.unit || 'Unit', qty: Number(i.qty) || 0, received: 0, price: Math.round(Number(i.price) || 0) }; });
+    if (!items.length) return { success: false, error: 'Tambahkan minimal satu barang' };
+    if (items.some(function(i) { return i.qty <= 0 || i.price <= 0; })) return { success: false, error: 'Qty dan harga harus lebih dari 0' };
+    if (data.prId) {
+      var srcPr = BizLogic.PurchaseRequest.find(data.prId);
+      if (!srcPr || srcPr.status !== 'Disetujui') return { success: false, error: 'Purchase Request ' + data.prId + (srcPr && srcPr.poId ? ' sudah dibuat ' + srcPr.poId : ' belum di-ACC') };
+    }
+    var term = data.paymentTerm || { type: 'TEMPO', days: 30 };
+    if (term.type === 'DP' && !(term.dpPercent > 0 && term.dpPercent < 100)) return { success: false, error: 'Persentase uang muka 1 - 99%' };
+    var acc = MockData.accounts.find(function(a) { return a.id === data.accountId; });
+    var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
+    var po = Object.assign({
+      id: MockData.generateId('PO', 'purchases'), prId: data.prId || null,
+      vendorId: v.id, supplier: v.name, vendorAddress: v.address, supplierContact: v.phone,
+      purchaseDate: data.purchaseDate || new Date().toISOString().split('T')[0], expectedDate: data.expectedDate || '',
+      branch: br.name.replace(' Warehouse', ''), branchId: br.id, accountId: acc ? acc.id : null, accountName: acc ? acc.name : '',
+      status: data.status === 'Requested' ? 'Requested' : 'Draft', createdBy: user.name || 'System', notes: data.notes || '',
+      paymentTerm: term, taxRate: Number(data.taxRate) || 0, totalItems: items.length, items: items
+    }, this.totals(items, data.taxRate, data.discount, data.shipping));
+    MockData.purchases.push(po);
+    MockData.save('purchases');
+    if (data.prId) {
+      var pr = BizLogic.PurchaseRequest.find(data.prId);
+      if (pr) { pr.status = 'Dibuat PO'; pr.poId = po.id; MockData.save('purchaseRequests'); }
+    }
+    BizLogic.Activity.log('PO ' + po.id + ' dibuat untuk ' + v.name + (data.prId ? ' dari ' + data.prId : ''), 'info');
+    return { success: true, purchase: po };
+  },
 
   // Draft/Requested → Approved → Ordered → In Transit → Arrived; Cancelled sebelum ada barang diterima
   updateStatus: function(purchaseId, newStatus, extraData) {

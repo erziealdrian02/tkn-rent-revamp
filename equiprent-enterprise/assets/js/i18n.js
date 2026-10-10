@@ -14,6 +14,8 @@ const Translations = {
 
     rental_section: 'PELANGGAN & ORDER', inventory: 'INVENTARIS', master_data: 'DATA MASTER', receivables_section: 'PIUTANG',
     sales: 'Penjualan', approvals: 'Persetujuan Order', edit_requests: 'Permintaan Perubahan',
+    purchasing_section: 'PEMBELIAN', purchase_requests: 'Purchase Request', purchase_orders: 'Purchase Order', vendors: 'Vendor / Supplier',
+    purchase_report: 'Laporan Pembelian', payables_report: 'Laporan Hutang Dagang',
     finance_billing: 'KEUANGAN', administration: 'ADMINISTRASI',
 
     dashboard: 'Dasbor', rentals: 'Penyewaan', projects: 'Proyek', deliveries: 'Surat Jalan & Pengiriman',
@@ -174,6 +176,8 @@ const Translations = {
 
     rental_section: 'CUSTOMERS & ORDERS', inventory: 'INVENTORY', master_data: 'MASTER DATA', receivables_section: 'RECEIVABLES',
     sales: 'Sales', approvals: 'Order Approval', edit_requests: 'Edit Requests',
+    purchasing_section: 'PURCHASING', purchase_requests: 'Purchase Request', purchase_orders: 'Purchase Order', vendors: 'Vendors',
+    purchase_report: 'Purchase Report', payables_report: 'Accounts Payable',
     finance_billing: 'FINANCE', administration: 'ADMINISTRATION',
 
     dashboard: 'Dashboard', rentals: 'Rentals', projects: 'Projects', deliveries: 'Delivery Notes',

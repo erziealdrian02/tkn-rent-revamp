@@ -36,6 +36,7 @@ Cara baca diagram:
 | 9 | [Kas & Bank](#9-kas--bank-laporan-kas--rekonsiliasi-bank) | Bon Biru / Bon Merah, pindah dana, Laporan Kas, Rekonsiliasi Bank |
 | 10 | [Akuntansi & Pajak](#10-akuntansi--pajak) | COA, jurnal Laporan Kas, buku besar, kertas kerja, penyesuaian, laba rugi, neraca, PPN & PPh 23 (XML Coretax) |
 | 11 | [Role, ACC Piutang, Penjualan, Ekspedisi & Permintaan Perubahan](#11-role-acc-piutang-penjualan-ekspedisi--permintaan-perubahan) | Alur terbaru dari catatan user Okt 2026 |
+| 12 | [Purchasing](#12-purchasing-purchase-request-purchase-order-pembayaran-laporan) | Purchase Request, Purchase Order (term & tax), uang muka / pelunasan / tempo, laporan pembelian & hutang dagang |
 
 ---
 
@@ -892,6 +893,43 @@ Admin->Sys:ubah datanya → "Selesai"
 
 ---
 
+## 12. Purchasing: Purchase Request, Purchase Order, Pembayaran, Laporan
+
+Dari catatan user (Okt 2026). Grup menu **PEMBELIAN**: `purchase-requests.html`, `purchases.html` / `purchase-create.html` / `purchase-detail.html`, `goods-receipts.html`, `vendors.html`, `purchase-report.html`, `payables.html`.
+
+| Bagian | Isi |
+|---|---|
+| Vendor (master) | Nama vendor, alamat, no. telepon, contact person (+ email, NPWP) |
+| 1. Purchase Request | Vendor (alamat, telp, contact person otomatis dari master), nama barang, satuan, qty, harga. Draft → Diajukan → ACC (Finance / Admin) → **Buat PO** / Ditolak |
+| 2. Purchase Order | Vendor + alamat, nama barang, satuan, harga, **term of payment** (Cash / Uang Muka % + pelunasan / Tempo N hari), **tax** (PPN 11% / tanpa), diskon, ongkir. Bisa ditarik dari PR. Cetak PO |
+| 3. Payment | Di detail PO: **Uang Muka (DP)**, **Pelunasan**, Cicilan → otomatis Bon Merah. **Tempo**: jatuh tempo = tanggal barang diterima + hari tempo |
+| 4. Laporan Pembelian | Per periode: per PO, per vendor, per barang (subtotal, PPN, total, diterima, dibayar) |
+| 5. Laporan Hutang Dagang | Per vendor: tagihan (barang diterima) − dibayar = sisa hutang, umur dari jatuh tempo (Belum JT, 1-30, 31-60, 61-90, >90), uang muka yang belum terpakai, rincian per PO |
+
+```
+title 12 - Purchasing
+
+actor Purchase
+actor Finance
+actor Logistik
+participant "Sistem" as Sys
+
+Purchase->Sys:Vendor (nama, alamat, telp, contact person)
+Purchase->Sys:Purchase Request: vendor + barang, satuan, harga → "Ajukan"
+Finance->Sys:"ACC" / "Tolak"
+Purchase->Sys:"Buat Purchase Order" → term of payment + tax → "Ajukan ACC"
+Finance->Sys:"Setujui PO" → "Pesan ke Supplier"
+opt term Uang Muka
+  Finance->Sys:"Bayar Supplier" → Uang Muka (DP) → Bon Merah
+end
+Logistik->Sys:"Receive Items" (Penerimaan Barang) → stok + hutang dagang
+note right of Sys:jatuh tempo = tanggal terima + tempo
+Finance->Sys:"Bayar Supplier" → Pelunasan / Cicilan → Bon Merah
+Finance->Sys:Laporan Hutang Dagang (umur hutang) · Laporan Pembelian
+```
+
+---
+
 ## Lampiran A - Peta Menu Sidebar
 
 | Grup | Menu | File |
@@ -916,8 +954,12 @@ Admin->Sys:ubah datanya → "Selesai"
 | INVENTARIS | Alat Berat | `equipment.html`, `equipment-detail.html` |
 | | Gudang | `branches.html`, `branch-detail.html` |
 | | Log Pergerakan Aset | `movements.html`, `movement-detail.html` |
-| | Pembelian | `purchases.html`, `purchase-create.html`, `purchase-detail.html` |
+| PEMBELIAN | Purchase Request | `purchase-requests.html` |
+| | Purchase Order | `purchases.html`, `purchase-create.html`, `purchase-detail.html` |
 | | Penerimaan Barang | `goods-receipts.html`, `goods-receipt-detail.html` |
+| | Vendor / Supplier | `vendors.html` |
+| | Laporan Pembelian | `purchase-report.html` |
+| | Laporan Hutang Dagang | `payables.html` |
 | DATA MASTER | Pengemudi | `drivers.html`, `driver-detail.html` |
 | | Kendaraan | `vehicles.html`, `vehicle-detail.html` |
 | | Rekening Perusahaan | `accounts.html` |

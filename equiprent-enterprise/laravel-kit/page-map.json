@@ -302,50 +302,92 @@
           "layout": "app",
           "title": "Detail Pergerakan",
           "permission": "Movements"
+        }
+      ]
+    },
+    {
+      "key": "purchasing",
+      "label": "PEMBELIAN",
+      "pages": [
+        {
+          "html": "purchase-requests.html",
+          "view": "purchasing.requests",
+          "uri": "/purchase-requests",
+          "route": "purchasing.requests",
+          "layout": "app",
+          "title": "Purchase Request",
+          "permission": "Purchases"
         },
         {
           "html": "purchases.html",
-          "view": "purchases.index",
+          "view": "purchasing.orders.index",
           "uri": "/purchases",
-          "route": "purchases.index",
+          "route": "purchasing.orders.index",
           "layout": "app",
           "title": "Pembelian",
           "permission": "Purchases"
         },
         {
           "html": "purchase-create.html",
-          "view": "purchases.create",
+          "view": "purchasing.orders.create",
           "uri": "/purchase-create",
-          "route": "purchases.create",
+          "route": "purchasing.orders.create",
           "layout": "app",
-          "title": "Create New Purchase",
+          "title": "Purchase Order Baru",
           "permission": "Purchases"
         },
         {
           "html": "purchase-detail.html",
-          "view": "purchases.show",
+          "view": "purchasing.orders.show",
           "uri": "/purchase-detail",
-          "route": "purchases.show",
+          "route": "purchasing.orders.show",
           "layout": "app",
           "title": "Detail Pembelian",
           "permission": "Purchases"
         },
         {
           "html": "goods-receipts.html",
-          "view": "goods-receipts.index",
+          "view": "purchasing.goods-receipts.index",
           "uri": "/goods-receipts",
-          "route": "goods-receipts.index",
+          "route": "purchasing.goods-receipts.index",
           "layout": "app",
           "title": "Penerimaan Barang",
           "permission": "Purchases"
         },
         {
           "html": "goods-receipt-detail.html",
-          "view": "goods-receipts.show",
+          "view": "purchasing.goods-receipts.show",
           "uri": "/goods-receipt-detail",
-          "route": "goods-receipts.show",
+          "route": "purchasing.goods-receipts.show",
           "layout": "app",
           "title": "Detail Penerimaan Barang",
+          "permission": "Purchases"
+        },
+        {
+          "html": "vendors.html",
+          "view": "purchasing.vendors",
+          "uri": "/vendors",
+          "route": "purchasing.vendors",
+          "layout": "app",
+          "title": "Vendor",
+          "permission": "Purchases"
+        },
+        {
+          "html": "purchase-report.html",
+          "view": "purchasing.report",
+          "uri": "/purchase-report",
+          "route": "purchasing.report",
+          "layout": "app",
+          "title": "Laporan Pembelian",
+          "permission": "Purchases"
+        },
+        {
+          "html": "payables.html",
+          "view": "purchasing.payables",
+          "uri": "/payables",
+          "route": "purchasing.payables",
+          "layout": "app",
+          "title": "Laporan Hutang Dagang",
           "permission": "Purchases"
         }
       ]

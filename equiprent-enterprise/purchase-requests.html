@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Purchase Request - EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header">
+          <div class="page-header-left">
+            <h2 class="page-header-title">Purchase Request</h2>
+            <p class="page-header-subtitle">Permintaan pembelian: vendor, barang & satuan, harga. Setelah di-ACC dibuat
+              menjadi Purchase Order.</p>
+          </div>
+          <div class="page-header-actions" id="headerActions"></div>
+        </div>
+        <div class="flow-steps mb-3">
+          <span class="step"><b>1.</b> Purchase Request</span><i class="bi bi-chevron-right arrow"></i>
+          <span class="step"><b>2.</b> ACC</span><i class="bi bi-chevron-right arrow"></i>
+          <a class="step" href="purchases.html"><b>3.</b> Purchase Order</a><i class="bi bi-chevron-right arrow"></i>
+          <a class="step" href="goods-receipts.html"><b>4.</b> Penerimaan Barang</a><i
+            class="bi bi-chevron-right arrow"></i>
+          <a class="step" href="payables.html"><b>5.</b> Pembayaran (DP / Pelunasan / Tempo)</a>
+        </div>
+        <div class="row g-3 mb-4" id="kpis"></div>
+        <div class="er-card">
+          <div class="er-card-body">
+            <div class="table-toolbar">
+              <div class="table-toolbar-left flex-wrap">
+                <div class="table-search"><i class="bi bi-search"></i><input type="text"
+                    placeholder="Cari no. PR, vendor, barang..." id="searchInput" oninput="render()"></div>
+                <select class="filter-select" id="statusFilter" onchange="render()">
+                  <option value="">Semua Status</option>
+                  <option>Draft</option>
+                  <option>Diajukan</option>
+                  <option>Disetujui</option>
+                  <option>Dibuat PO</option>
+                  <option>Ditolak</option>
+                </select>
+              </div>
+            </div>
+            <div class="er-table-wrapper">
+              <table class="er-table">
+                <thead>
+                  <tr>
+                    <th>No. PR</th>
+                    <th>Tanggal</th>
+                    <th>Vendor</th>
+                    <th>Barang</th>
+                    <th class="num">Estimasi Nilai</th>
+                    <th>Diminta</th>
+                    <th>Status</th>
+                    <th>PO</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal fade" id="prModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="prTitle">Purchase Request Baru</h5><button class="btn-close"
+            data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3 mb-3">
+            <div class="col-md-3"><label class="form-label form-label-er">Tanggal *</label><input type="date"
+                class="form-control" id="fDate"></div>
+            <div class="col-md-5"><label class="form-label form-label-er">Vendor * <a href="vendors.html"
+                  class="fw-normal ms-1 fs-12">kelola vendor</a></label><select class="form-select" id="fVendor"
+                onchange="showVendor()"></select></div>
+            <div class="col-md-4"><label class="form-label form-label-er">Untuk Gudang</label><select
+                class="form-select" id="fBranch"></select></div>
+            <div class="col-12">
+              <div class="border rounded p-2 bg-light fs-13" id="vendorInfo"><span class="text-muted">Pilih vendor untuk
+                  melihat alamat, telepon & contact person</span></div>
+            </div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-600 mb-0">Barang</h6><button class="btn btn-sm btn-outline-primary" onclick="addRow()"><i
+                class="bi bi-plus-lg me-1"></i>Tambah Barang</button>
+          </div>
+          <div class="er-table-wrapper">
+            <table class="er-table">
+              <thead>
+                <tr>
+                  <th style="min-width:260px">Nama Barang</th>
+                  <th style="width:120px">Satuan</th>
+                  <th style="width:100px">Qty</th>
+                  <th style="width:180px">Harga Satuan</th>
+                  <th class="num" style="width:170px">Jumlah</th>
+                  <th style="width:40px"></th>
+                </tr>
+              </thead>
+              <tbody id="itemBody"></tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="4" class="text-end">Estimasi total (sebelum pajak)</td>
+                  <td class="num fw-700" id="fTotal"></td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <datalist id="eqList"></datalist>
+          <div class="mt-3"><label class="form-label form-label-er">Catatan / alasan pembelian</label><textarea
+              class="form-control" rows="2" id="fNotes"></textarea></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+          <button class="btn btn-outline-primary" onclick="savePR(false)"><i class="bi bi-save me-1"></i>Simpan
+            Draft</button>
+          <button class="btn btn-primary" onclick="savePR(true)"><i class="bi bi-send me-1"></i>Ajukan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="viewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="viewTitle"></h5><button class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="viewBody"></div>
+        <div class="modal-footer" id="viewFoot"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    initApp('purchase-requests.html', [{ label: 'Pembelian', href: '#' }, { label: 'Purchase Request' }], 'Purchase Request');
+    const PR = BizLogic.PurchaseRequest, V = BizLogic.Vendor;
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const canApprove = canDo('Purchases', 'Approve'), canCreate = canDo('Purchases', 'Create');
+    let rows = [], editId = null;
+    if (canCreate) document.getElementById('headerActions').innerHTML = '<button class="btn btn-primary btn-sm" onclick="openPR()"><i class="bi bi-plus-lg me-1"></i>Purchase Request Baru</button>';
+    document.getElementById('fBranch').innerHTML = MockData.branches.map(b => `<option value="${b.id}">${esc(b.name)}</option>`).join('');
+    document.getElementById('eqList').innerHTML = BizLogic.StockLedger.equipmentNames().map(n => `<option value="${esc(n)}">`).join('');
+    if (getUrlParam('status')) document.getElementById('statusFilter').value = getUrlParam('status');
+
+    function render() {
+      const list = PR.list(), q = document.getElementById('searchInput').value.toLowerCase(), st = document.getElementById('statusFilter').value;
+      const card = (c, i, l, v, f) => `<div class="col-6 col-lg-3"><div class="kpi-card" role="button" onclick="document.getElementById('statusFilter').value='${f}';render()"><div class="kpi-icon ${c}"><i class="bi ${i}"></i></div><div class="kpi-content"><div class="kpi-value">${v}</div><div class="kpi-label">${l}</div></div></div></div>`;
+      document.getElementById('kpis').innerHTML = card('orange', 'bi-hourglass-split', 'Menunggu ACC', list.filter(r => r.status === 'Diajukan').length, 'Diajukan') +
+        card('blue', 'bi-check2-circle', 'Disetujui, belum jadi PO', list.filter(r => r.status === 'Disetujui').length, 'Disetujui') +
+        card('green', 'bi-cart-check', 'Sudah jadi PO', list.filter(r => r.status === 'Dibuat PO').length, 'Dibuat PO') +
+        card('purple', 'bi-file-earmark', 'Draft', list.filter(r => r.status === 'Draft').length, 'Draft');
+      const data = list.filter(r => (!st || r.status === st) && (!q || `${r.id} ${r.vendorName} ${r.items.map(i => i.name).join(' ')}`.toLowerCase().includes(q)))
+        .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+      document.getElementById('tableBody').innerHTML = data.map(r => `<tr>
+        <td><a href="#" onclick="viewPR('${r.id}');return false" class="cell-link text-mono">${r.id}</a></td>
+        <td>${formatDate(r.date)}</td>
+        <td>${esc(r.vendorName)}<div class="fs-12 text-muted">${esc(r.vendorContact)} · ${esc(r.vendorPhone)}</div></td>
+        <td class="fs-12">${r.items.map(i => `${esc(i.name)} <span class="text-muted">${i.qty} ${esc(i.unit)}</span>`).join('<br>')}</td>
+        <td class="num fw-600">${formatRupiah(PR.total(r))}</td>
+        <td class="fs-12">${esc(r.requestedBy)}</td>
+        <td>${statusBadge(r.status)}</td>
+        <td>${r.poId ? `<a href="purchase-detail.html?id=${r.poId}" class="cell-link text-mono">${r.poId}</a>` : '-'}</td>
+        <td><button class="btn-action" onclick="viewPR('${r.id}')"><i class="bi bi-eye"></i></button></td></tr>`).join('') || '<tr><td colspan="9" class="text-center text-muted py-4">Belum ada purchase request</td></tr>';
+    }
+
+    // ---------- Form ----------
+    function showVendor() {
+      const v = V.find(document.getElementById('fVendor').value);
+      document.getElementById('vendorInfo').innerHTML = v
+        ? `<div class="row g-2"><div class="col-md-5"><span class="text-muted">Alamat:</span> ${esc(v.address)}</div><div class="col-md-3"><span class="text-muted">Telp:</span> ${esc(v.phone)}</div><div class="col-md-4"><span class="text-muted">Contact person:</span> ${esc(v.contactPerson)}</div></div>`
+        : '<span class="text-muted">Pilih vendor untuk melihat alamat, telepon & contact person</span>';
+    }
+    function drawRows() {
+      document.getElementById('itemBody').innerHTML = rows.map((r, i) => `<tr>
+        <td><input class="form-control form-control-sm" list="eqList" value="${esc(r.name)}" oninput="setRow(${i}, 'name', this.value)"></td>
+        <td><input class="form-control form-control-sm" list="unitList" value="${esc(r.unit)}" oninput="setRow(${i}, 'unit', this.value)"></td>
+        <td><input type="number" min="1" class="form-control form-control-sm" value="${r.qty}" oninput="setRow(${i}, 'qty', this.value)"></td>
+        <td><input type="number" min="0" class="form-control form-control-sm text-end" value="${r.price || ''}" oninput="setRow(${i}, 'price', this.value)"></td>
+        <td class="num fw-600" id="amt${i}">${formatRupiah(r.qty * r.price)}</td>
+        <td>${rows.length > 1 ? `<button class="btn-action" onclick="rows.splice(${i}, 1); drawRows()"><i class="bi bi-x-lg"></i></button>` : ''}</td></tr>`).join('') +
+        '<datalist id="unitList"><option>Unit</option><option>Set</option><option>Pcs</option><option>Roll</option><option>Batang</option><option>Meter</option><option>Lembar</option></datalist>';
+      calc();
+    }
+    function setRow(i, k, v) { rows[i][k] = (k === 'qty' || k === 'price') ? Number(v) || 0 : v; const a = document.getElementById('amt' + i); if (a) a.textContent = formatRupiah(rows[i].qty * rows[i].price); calc(); }
+    function calc() { document.getElementById('fTotal').textContent = formatRupiah(rows.reduce((s, r) => s + r.qty * r.price, 0)); }
+    function addRow() { rows.push({ name: '', unit: 'Unit', qty: 1, price: 0 }); drawRows(); }
+    function openPR(id) {
+      editId = id || null;
+      const r = id ? PR.find(id) : null;
+      document.getElementById('prTitle').textContent = r ? 'Ubah ' + r.id : 'Purchase Request Baru';
+      document.getElementById('fDate').value = r ? r.date : new Date().toISOString().split('T')[0];
+      document.getElementById('fVendor').innerHTML = V.options(r ? r.vendorId : '');
+      document.getElementById('fBranch').value = r ? r.branchId : 'BR-001';
+      document.getElementById('fNotes').value = r ? r.notes : '';
+      rows = r ? r.items.map(i => Object.assign({}, i)) : [{ name: '', unit: 'Unit', qty: 1, price: 0 }];
+      showVendor(); drawRows();
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('prModal')).show();
+    }
+    function savePR(submit) {
+      const r = PR.save({ vendorId: document.getElementById('fVendor').value, date: document.getElementById('fDate').value, branchId: document.getElementById('fBranch').value, items: rows, notes: document.getElementById('fNotes').value }, editId, submit);
+      if (!r.success) { showToast(r.error, 'error'); return; }
+      bootstrap.Modal.getInstance(document.getElementById('prModal')).hide();
+      showToast(r.request.id + (submit ? ' diajukan untuk ACC' : ' disimpan'), 'success');
+      render();
+    }
+
+    // ---------- Detail ----------
+    function viewPR(id) {
+      const r = PR.find(id), br = MockData.branches.find(b => b.id === r.branchId);
+      document.getElementById('viewTitle').innerHTML = `${r.id} ${statusBadge(r.status)}`;
+      document.getElementById('viewBody').innerHTML = `
+        <div class="info-grid mb-3">
+          <div class="info-item"><span class="info-label">Tanggal</span><span class="info-value">${formatDate(r.date)}</span></div>
+          <div class="info-item"><span class="info-label">Untuk Gudang</span><span class="info-value">${esc(br ? br.name : '-')}</span></div>
+          <div class="info-item"><span class="info-label">Nama Vendor</span><span class="info-value fw-600">${esc(r.vendorName)}</span></div>
+          <div class="info-item"><span class="info-label">Alamat</span><span class="info-value">${esc(r.vendorAddress)}</span></div>
+          <div class="info-item"><span class="info-label">No. Telepon</span><span class="info-value">${esc(r.vendorPhone)}</span></div>
+          <div class="info-item"><span class="info-label">Contact Person</span><span class="info-value">${esc(r.vendorContact)}</span></div>
+          <div class="info-item"><span class="info-label">Diminta</span><span class="info-value">${esc(r.requestedBy)} ${r.requestedAt ? '· ' + esc(r.requestedAt) : ''}</span></div>
+          <div class="info-item"><span class="info-label">${r.rejectedBy ? 'Ditolak' : 'ACC'}</span><span class="info-value">${r.approvedBy ? esc(r.approvedBy) + ' · ' + esc(r.approvedAt) : r.rejectedBy ? esc(r.rejectedBy) + ' · ' + esc(r.rejectedAt) : '-'}${r.reviewNote ? `<div class="fs-12">${esc(r.reviewNote)}</div>` : ''}</span></div>
+        </div>
+        <div class="er-table-wrapper"><table class="er-table"><thead><tr><th style="min-width:260px">Nama Barang</th><th>Satuan</th><th class="num">Qty</th><th class="num">Harga</th><th class="num">Jumlah</th></tr></thead><tbody>
+          ${r.items.map(i => `<tr><td>${esc(i.name)}</td><td>${esc(i.unit)}</td><td class="num">${i.qty}</td><td class="num">${formatRupiah(i.price)}</td><td class="num fw-600">${formatRupiah(i.qty * i.price)}</td></tr>`).join('')}
+        </tbody><tfoot><tr><td colspan="4">Estimasi total</td><td class="num">${formatRupiah(PR.total(r))}</td></tr></tfoot></table></div>
+        ${r.notes ? `<div class="fs-13 mt-2"><span class="text-muted">Catatan:</span> ${esc(r.notes)}</div>` : ''}`;
+      let f = '';
+      if (['Draft', 'Ditolak'].includes(r.status) && canCreate) f += `<button class="btn btn-outline-secondary" onclick="bootstrap.Modal.getInstance(document.getElementById('viewModal')).hide(); openPR('${r.id}')"><i class="bi bi-pencil me-1"></i>Ubah</button><button class="btn btn-primary" onclick="act('submit', '${r.id}')"><i class="bi bi-send me-1"></i>Ajukan</button>`;
+      if (r.status === 'Diajukan' && canApprove) f += `<button class="btn btn-outline-danger" onclick="act('reject', '${r.id}')"><i class="bi bi-x-lg me-1"></i>Tolak</button><button class="btn btn-success" onclick="act('approve', '${r.id}')"><i class="bi bi-check-lg me-1"></i>ACC</button>`;
+      if (r.status === 'Diajukan' && !canApprove) f += '<span class="badge bg-warning-subtle text-warning">Menunggu ACC Finance / Admin</span>';
+      if (r.status === 'Disetujui' && canCreate) f += `<a href="purchase-create.html?pr=${r.id}" class="btn btn-primary"><i class="bi bi-cart-plus me-1"></i>Buat Purchase Order</a>`;
+      if (r.poId) f += `<a href="purchase-detail.html?id=${r.poId}" class="btn btn-outline-primary">Buka ${r.poId}</a>`;
+      document.getElementById('viewFoot').innerHTML = f + '<button class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>';
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('viewModal')).show();
+    }
+    function act(kind, id) {
+      let r;
+      if (kind === 'submit') r = PR.submit(id);
+      if (kind === 'approve') r = PR.review(id, true, '');
+      if (kind === 'reject') { const note = prompt('Alasan penolakan:'); if (note === null) return; r = PR.review(id, false, note); }
+      if (!r.success) { showToast(r.error, 'error'); return; }
+      showToast(id + ' ' + r.request.status.toLowerCase(), 'success');
+      render(); viewPR(id);
+    }
+    render();
+    if (getUrlParam('id')) viewPR(getUrlParam('id'));
+  </script>
+</body>
+
+</html>

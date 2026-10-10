@@ -42,6 +42,29 @@
       </div>
     </div>
   </div>
+  <!-- Pembayaran ke supplier -->
+  <div class="modal fade" id="payModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-cash me-2"></i>Bayar Supplier</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="alert alert-light border py-2 fs-13" id="payInfo"></div>
+        <div class="row g-3">
+          <div class="col-6"><label class="form-label form-label-er">Jenis Pembayaran *</label><select class="form-select" id="payKind" onchange="suggestPay()"><option value="DP">Uang Muka (DP)</option><option value="Pelunasan">Pelunasan</option><option value="Cicilan">Cicilan</option></select></div>
+          <div class="col-6"><label class="form-label form-label-er">Tanggal *</label><input type="date" class="form-control" id="payDate"></div>
+          <div class="col-6"><label class="form-label form-label-er">Jumlah *</label><div class="input-group"><span class="input-group-text">Rp</span><input type="number" class="form-control text-end" id="payAmount"></div></div>
+          <div class="col-6"><label class="form-label form-label-er">Dari Akun *</label><select class="form-select" id="payAccount"></select></div>
+          <div class="col-6"><label class="form-label form-label-er">No. Referensi</label><input class="form-control" id="payRef" placeholder="No. invoice vendor / transfer"></div>
+          <div class="col-6"><label class="form-label form-label-er">Catatan</label><input class="form-control" id="payNotes"></div>
+        </div>
+        <div class="fs-12 text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Otomatis tercatat sebagai Bon Merah di Buku Kas & Bank.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+        <button class="btn btn-danger" onclick="submitPay()"><i class="bi bi-cash me-1"></i>Simpan Pembayaran</button>
+      </div>
+    </div></div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
@@ -50,18 +73,20 @@
   <script>
     const pid = getUrlParam('id') || 'PO-001';
     const po = MockData.purchases.find(p => p.id === pid) || MockData.purchases[0];
-    initApp('purchases.html',[{label:'Inventaris',href:'#'},{label:'Pembelian',href:'purchases.html'},{label:po.id}],po.id);
+    initApp('purchases.html',[{label:'Pembelian',href:'#'},{label:'Purchase Order',href:'purchases.html'},{label:po.id}],po.id);
     const vendor = po.vendor || po.supplier || '-';
     const poDate = po.poDate || po.purchaseDate;
 
     // Pembayaran ke supplier = Bon Merah kategori pembayaran supplier dengan referensi no. PO
-    const CB = BizLogic.CashBank;
-    const poRe = new RegExp('\\b' + po.id + '\\b');
-    const supplierPays = CB.entries().filter(e => e.type === 'OUT' && /_supplier$/.test(CB.categoryOf(e)) && poRe.test(e.reference || ''));
-    const paidSupplier = supplierPays.reduce((t, e) => t + e.amount, 0);
+    const CB = BizLogic.CashBank, P = BizLogic.Purchase;
+    const supplierPays = P.payments(po);
+    const paidSupplier = P.paid(po);
     const debt = Math.max(0, po.totalAmount - paidSupplier);
-    const payAcc = CB.account(po.accountId) || MockData.accounts.find(a => CB.kindOf(a) === 'Bank');
-    const payUrl = 'finance-ledger.html?' + new URLSearchParams({ new: 'out', acc: payAcc.id, cat: CB.kindOf(payAcc) === 'Kas' ? 'kas_out_supplier' : 'bank_out_supplier', amount: debt, ref: po.id, party: vendor, desc: 'Pembayaran ' + po.id });
+    const billed = P.billed(po), owed = P.outstanding(po), due = P.dueDate(po), dpAmt = P.dpAmount(po);
+    const today0 = new Date().toISOString().split('T')[0];
+    const vend = BizLogic.Vendor.find(po.vendorId) || {};
+    const canPay = (canDo('Payments', 'Create') || isAdmin()) && !['Draft', 'Requested', 'Cancelled'].includes(po.status) && debt > 0;
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
     const receipts = (MockData.goodsReceipts || []).filter(g => g.purchaseId === po.id);
 
     document.getElementById('detailHeader').innerHTML = `
@@ -72,48 +97,73 @@
           <div class="detail-meta">
             <span class="detail-meta-item"><i class="bi bi-shop"></i>${vendor}</span>
             <span class="detail-meta-item"><i class="bi bi-calendar"></i>${formatDate(poDate)}</span>
+            <span class="detail-meta-item"><i class="bi bi-credit-card"></i>${P.termText(po)}</span>
+            ${po.prId ? `<span class="detail-meta-item"><i class="bi bi-file-earmark-text"></i><a href="purchase-requests.html?id=${po.prId}">${po.prId}</a></span>` : ''}
           </div>
         </div>
       </div>
       <div class="detail-header-actions">
         ${['Draft', 'Requested'].includes(po.status) && canDo('Purchases', 'Approve') ? `<button class="btn btn-success btn-sm" onclick="setStatus('Approved')"><i class="bi bi-check-lg me-1"></i>Setujui PO</button>` : ''}
-        ${['Draft', 'Requested'].includes(po.status) && !canDo('Purchases', 'Approve') ? `<span class="badge bg-warning-subtle text-warning align-self-center">Menunggu persetujuan Manager</span>` : ''}
+        ${['Draft', 'Requested'].includes(po.status) && !canDo('Purchases', 'Approve') ? `<span class="badge bg-warning-subtle text-warning align-self-center">Menunggu ACC Finance / Admin</span>` : ''}
         ${po.status === 'Approved' ? `<button class="btn btn-primary btn-sm" onclick="setStatus('Ordered')"><i class="bi bi-send me-1"></i>Pesan ke Supplier</button>` : ''}
         ${po.status === 'Ordered' ? `<button class="btn btn-outline-primary btn-sm" onclick="setStatus('In Transit')"><i class="bi bi-truck me-1"></i>Dalam Pengiriman</button>` : ''}
         ${['Ordered', 'In Transit'].includes(po.status) ? `<button class="btn btn-outline-primary btn-sm" onclick="setStatus('Arrived')"><i class="bi bi-geo-alt me-1"></i>Barang Tiba</button>` : ''}
         ${BizLogic.Purchase.RECEIVABLE.includes(po.status) ? '<button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#receiveModal"><i class="bi bi-box-seam me-1"></i>Receive Items</button>' : ''}
         ${po.status === 'Received' ? `<button class="btn btn-outline-success btn-sm" onclick="setStatus('Completed')"><i class="bi bi-check2-all me-1"></i>Selesaikan PO</button>` : ''}
         ${['Draft', 'Requested', 'Approved', 'Ordered'].includes(po.status) ? `<button class="btn btn-outline-danger btn-sm" onclick="cancelPO()"><i class="bi bi-x-circle me-1"></i>Batalkan</button>` : ''}
-        ${debt > 0 ? `<a href="${payUrl}" class="btn btn-danger btn-sm"><i class="bi bi-cash me-1"></i>Bayar Supplier</a>` : ''}
-        <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-printer me-1"></i>Print PO</button>
+        ${canPay ? `<button class="btn btn-danger btn-sm" onclick="openPay()"><i class="bi bi-cash me-1"></i>Bayar Supplier</button>` : ''}
+        <button class="btn btn-outline-secondary btn-sm" onclick="printPO()"><i class="bi bi-printer me-1"></i>Cetak PO</button>
       </div>`;
 
     document.getElementById('detailBody').innerHTML = `
       <div class="row g-4 mb-4">
         <div class="col-md-6">
-          <h6 class="fw-600 mb-3">Purchase Order Details</h6>
+          <h6 class="fw-600 mb-3">Purchase Order</h6>
           <div class="info-grid">
-            <div class="info-item"><span class="info-label">PO Number</span><span class="info-value text-mono">${po.id}</span></div>
-            <div class="info-item"><span class="info-label">Vendor</span><span class="info-value">${vendor}</span></div>
-            <div class="info-item"><span class="info-label">PO Date</span><span class="info-value">${formatDate(poDate)}</span></div>
-            <div class="info-item"><span class="info-label">Expected Date</span><span class="info-value">${formatDate(po.expectedDate)}</span></div>
+            <div class="info-item"><span class="info-label">No. PO</span><span class="info-value text-mono">${po.id}</span></div>
+            <div class="info-item"><span class="info-label">Tanggal PO</span><span class="info-value">${formatDate(poDate)}</span></div>
+            <div class="info-item"><span class="info-label">Estimasi Tiba</span><span class="info-value">${formatDate(po.expectedDate)}</span></div>
+            <div class="info-item"><span class="info-label">Gudang Tujuan</span><span class="info-value">${po.branch || '-'}</span></div>
             <div class="info-item"><span class="info-label">Status</span><span class="info-value">${statusBadge(po.status)}</span></div>
-            <div class="info-item"><span class="info-label">Created By</span><span class="info-value">${po.createdBy || '-'}</span></div>
-            <div class="info-item"><span class="info-label">Total Amount</span><span class="info-value fw-600">${formatRupiah(po.totalAmount)}</span></div>
+            <div class="info-item"><span class="info-label">Dibuat</span><span class="info-value">${po.createdBy || '-'}</span></div>
+          </div>
+          <h6 class="fw-600 mb-3 mt-4">Vendor</h6>
+          <div class="info-grid">
+            <div class="info-item"><span class="info-label">Nama Vendor</span><span class="info-value fw-600">${esc(vendor)}</span></div>
+            <div class="info-item"><span class="info-label">Contact Person</span><span class="info-value">${esc(vend.contactPerson || '-')}</span></div>
+            <div class="info-item" style="grid-column:1/-1"><span class="info-label">Alamat</span><span class="info-value">${esc(po.vendorAddress || vend.address || '-')}</span></div>
+            <div class="info-item"><span class="info-label">No. Telepon</span><span class="info-value">${esc(po.supplierContact || vend.phone || '-')}</span></div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <h6 class="fw-600 mb-3">Pembayaran & Hutang</h6>
+          <div class="info-grid">
+            <div class="info-item"><span class="info-label">Term of Payment</span><span class="info-value fw-600">${P.termText(po)}</span></div>
+            <div class="info-item"><span class="info-label">Pajak</span><span class="info-value">${po.taxRate ? 'PPN ' + Math.round(po.taxRate * 100) + '%' : 'Tanpa PPN'}</span></div>
+            <div class="info-item"><span class="info-label">Total PO</span><span class="info-value fw-600">${formatRupiah(po.totalAmount)}</span></div>
+            ${dpAmt ? `<div class="info-item"><span class="info-label">Uang Muka (${P.termOf(po).dpPercent}%)</span><span class="info-value">${formatRupiah(dpAmt)}</span></div>` : ''}
             <div class="info-item"><span class="info-label">Sudah Dibayar</span><span class="info-value qty-plus">${formatRupiah(paidSupplier)}</span></div>
-            <div class="info-item"><span class="info-label">Sisa Hutang Supplier</span><span class="info-value fw-600 ${debt ? 'qty-minus' : ''}">${formatRupiah(debt)}</span></div>
+            <div class="info-item"><span class="info-label">Tagihan (barang diterima)</span><span class="info-value">${formatRupiah(billed)}</span></div>
+            <div class="info-item"><span class="info-label">${owed < 0 ? 'Uang Muka Belum Terpakai' : 'Sisa Hutang'}</span><span class="info-value fw-600 ${owed > 0 ? 'qty-minus' : ''}">${formatRupiah(Math.abs(owed))}</span></div>
+            <div class="info-item"><span class="info-label">Jatuh Tempo</span><span class="info-value ${due && due < today0 && owed > 0 ? 'text-danger fw-600' : ''}">${due ? formatDate(due) + (due < today0 && owed > 0 ? ' (lewat)' : '') : '<span class="text-muted">setelah barang diterima</span>'}</span></div>
+            <div class="info-item"><span class="info-label">Status Bayar</span><span class="info-value">${statusBadge(P.payStatus(po))}</span></div>
           </div>
         </div>
       </div>
       <h6 class="fw-600 mb-3">Order Items</h6>
-      <div class="er-table-wrapper mb-4"><table class="er-table"><thead><tr><th>Equipment</th><th>Qty Ordered</th><th>Qty Received</th><th>Unit Price</th><th>Subtotal</th></tr></thead><tbody>
-      ${po.items.map(i=>`<tr><td>${i.name}</td><td>${i.qty}</td><td>${i.received || 0}</td><td>${formatRupiah(i.price)}</td><td class="fw-600">${formatRupiah(i.qty*i.price)}</td></tr>`).join('')}
-      </tbody></table></div>
+      <div class="er-table-wrapper mb-4"><table class="er-table"><thead><tr><th>Nama Barang</th><th>Satuan</th><th class="num">Qty Pesan</th><th class="num">Diterima</th><th class="num">Harga Satuan</th><th class="num">Jumlah</th></tr></thead><tbody>
+      ${po.items.map(i=>`<tr><td>${esc(i.name)}</td><td>${esc(i.unit || 'Unit')}</td><td class="num">${i.qty}</td><td class="num">${i.received || 0}</td><td class="num">${formatRupiah(i.price)}</td><td class="num fw-600">${formatRupiah(i.qty*i.price)}</td></tr>`).join('')}
+      </tbody><tfoot>
+        <tr><td colspan="5">Subtotal</td><td class="num">${formatRupiah(po.subtotal != null ? po.subtotal : po.items.reduce((s, i) => s + i.qty * i.price, 0))}</td></tr>
+        ${po.discount ? `<tr><td colspan="5">Diskon</td><td class="num">(${formatRupiah(po.discount)})</td></tr>` : ''}
+        <tr><td colspan="5">${po.taxRate ? 'PPN ' + Math.round(po.taxRate * 100) + '%' : 'Pajak'}</td><td class="num">${formatRupiah(po.tax || 0)}</td></tr>
+        ${po.shipping ? `<tr><td colspan="5">Ongkos kirim</td><td class="num">${formatRupiah(po.shipping)}</td></tr>` : ''}
+        <tr><td colspan="5" class="fw-700">Total PO</td><td class="num fw-700">${formatRupiah(po.totalAmount)}</td></tr>
+      </tfoot></table></div>
       <h6 class="fw-600 mb-3"><i class="bi bi-cash me-2"></i>Pembayaran ke Supplier</h6>
-      <div class="er-table-wrapper mb-4"><table class="er-table"><thead><tr><th>Tanggal</th><th>No. Bon</th><th>Dari Akun</th><th>Keterangan</th><th class="num">Jumlah</th></tr></thead><tbody>
-      ${supplierPays.map(e=>`<tr><td>${formatDate(e.date)}</td><td class="text-mono"><a href="finance-ledger.html?account=${e.bankAccountId}">${e.voucherNo}</a></td><td>${(CB.account(e.bankAccountId)||{}).name||e.bankAccountId}</td><td>${e.description}</td><td class="num fw-600">${formatRupiah(e.amount)}</td></tr>`).join('') || '<tr><td colspan="5" class="text-center text-muted py-3">Belum ada pembayaran — klik <strong>Bayar Supplier</strong></td></tr>'}
-      </tbody></table></div>
-      <h6 class="fw-600 mb-3"><i class="bi bi-clock-history me-2"></i>Activity Timeline</h6>
+      <div class="er-table-wrapper mb-4"><table class="er-table"><thead><tr><th>Tanggal</th><th>No. Bon</th><th>Jenis</th><th>Dari Akun</th><th>Keterangan</th><th class="num">Jumlah</th></tr></thead><tbody>
+      ${supplierPays.map(e=>`<tr><td>${formatDate(e.date)}</td><td class="text-mono"><a href="finance-ledger.html?account=${e.bankAccountId}">${e.voucherNo}</a></td><td><span class="badge ${e.payKind === 'DP' ? 'bg-info-subtle text-info' : 'bg-success-subtle text-success'} fw-normal">${P.PAY_KINDS[e.payKind] || e.payKind}</span></td><td>${(CB.account(e.bankAccountId)||{}).name||e.bankAccountId}</td><td>${esc(e.description)}</td><td class="num fw-600">${formatRupiah(e.amount)}</td></tr>`).join('') || '<tr><td colspan="6" class="text-center text-muted py-3">Belum ada pembayaran</td></tr>'}
+      </tbody>${supplierPays.length ? `<tfoot><tr><td colspan="5">Total dibayar · sisa nilai PO ${formatRupiah(debt)}</td><td class="num">${formatRupiah(paidSupplier)}</td></tr></tfoot>` : ''}</table></div>
       ${receipts.length ? `<h6 class="fw-600 mb-3"><i class="bi bi-box-seam me-2"></i>Penerimaan Barang</h6>
       <div class="er-table-wrapper mb-4"><table class="er-table"><thead><tr><th>No. GR</th><th>Tanggal</th><th>Gudang</th><th>Barang</th><th>Diterima Oleh</th></tr></thead><tbody>
       ${receipts.map(g => `<tr><td><a href="goods-receipt-detail.html?id=${g.id}" class="cell-link text-mono">${g.id}</a></td><td>${formatDate(g.receiptDate)}</td><td>${g.branch}</td><td class="fs-12">${g.items.map(i => i.name + ' ×' + i.qty).join(', ')}</td><td>${g.receivedBy}</td></tr>`).join('')}
@@ -148,6 +198,44 @@
           setTimeout(() => location.reload(), 600);
         },
         [{ id: 'reason', label: 'Alasan', type: 'textarea', required: true }]);
+    }
+
+    // ---------- Bayar supplier (DP / pelunasan / cicilan) ----------
+    function suggestPay() {
+      const k = document.getElementById('payKind').value;
+      document.getElementById('payAmount').value = k === 'DP' ? Math.min(Math.max(dpAmt - paidSupplier, 0) || debt, debt) : k === 'Pelunasan' ? debt : '';
+    }
+    function openPay() {
+      document.getElementById('payInfo').innerHTML = `${P.termText(po)} · Total PO <strong>${formatRupiah(po.totalAmount)}</strong> · sudah dibayar ${formatRupiah(paidSupplier)} · sisa <strong>${formatRupiah(debt)}</strong>${due ? ' · jatuh tempo ' + formatDate(due) : ''}`;
+      document.getElementById('payKind').value = P.termOf(po).type === 'DP' && paidSupplier < dpAmt && billed === 0 ? 'DP' : 'Pelunasan';
+      document.getElementById('payDate').value = today0;
+      document.getElementById('payAccount').innerHTML = MockData.accounts.filter(a => a.status !== 'Inactive').map(a => `<option value="${a.id}" ${a.id === po.accountId ? 'selected' : ''}>${esc(a.name)} — saldo ${formatRupiah(CB.balance(a.id))}</option>`).join('');
+      ['payRef', 'payNotes'].forEach(id => document.getElementById(id).value = '');
+      suggestPay();
+      new bootstrap.Modal(document.getElementById('payModal')).show();
+    }
+    function submitPay() {
+      const r = P.pay(po.id, { kind: document.getElementById('payKind').value, amount: document.getElementById('payAmount').value, accountId: document.getElementById('payAccount').value,
+        date: document.getElementById('payDate').value, reference: document.getElementById('payRef').value, notes: document.getElementById('payNotes').value });
+      if (!r.success) { showToast(r.error, 'error'); return; }
+      showToast('Pembayaran ' + r.entry.voucherNo + ' tercatat', 'success');
+      setTimeout(() => location.reload(), 600);
+    }
+
+    // ---------- Cetak PO ----------
+    function printPO() {
+      const c = MockData.company;
+      const rows = po.items.map((i, n) => `<tr><td>${n + 1}</td><td>${esc(i.name)}</td><td>${esc(i.unit || 'Unit')}</td><td style="text-align:right">${i.qty}</td><td style="text-align:right">${formatRupiah(i.price)}</td><td style="text-align:right">${formatRupiah(i.qty * i.price)}</td></tr>`).join('');
+      const tot = (l, v) => `<tr><td colspan="5" style="text-align:right">${l}</td><td style="text-align:right">${v}</td></tr>`;
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>${po.id}</title><style>body{font-family:Arial,sans-serif;font-size:13px;margin:32px;color:#111}h2{margin:0}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #999;padding:6px 8px;text-align:left}.meta td{border:none;padding:2px 0}.sign{display:flex;justify-content:space-between;margin-top:48px;text-align:center}.sign div{width:30%}.sign .line{margin-top:60px;border-top:1px solid #111}</style></head><body>
+        <div style="display:flex;justify-content:space-between"><div><h2>${esc(c.name)}</h2><div>${esc(c.address)}</div><div>${esc(c.phone)}</div></div><div style="text-align:right"><h2>PURCHASE ORDER</h2><div>No. ${po.id}</div><div>${formatDate(poDate)}</div></div></div>
+        <table class="meta"><tr><td style="width:120px">Kepada</td><td>: ${esc(vendor)}</td><td style="width:140px">Term of Payment</td><td>: ${P.termText(po)}</td></tr>
+        <tr><td>Alamat</td><td>: ${esc(po.vendorAddress || vend.address || '-')}</td><td>Pajak</td><td>: ${po.taxRate ? 'PPN ' + Math.round(po.taxRate * 100) + '%' : 'Tanpa PPN'}</td></tr>
+        <tr><td>Telp / CP</td><td>: ${esc(po.supplierContact || vend.phone || '-')} / ${esc(vend.contactPerson || '-')}</td><td>Kirim ke</td><td>: Gudang ${esc(po.branch || '')}</td></tr></table>
+        <table><thead><tr><th style="width:36px">No</th><th>Nama Barang</th><th style="width:80px">Satuan</th><th style="width:60px">Qty</th><th style="width:130px">Harga</th><th style="width:140px">Jumlah</th></tr></thead><tbody>${rows}
+        ${tot('Subtotal', formatRupiah(po.subtotal || 0))}${po.discount ? tot('Diskon', '(' + formatRupiah(po.discount) + ')') : ''}${tot(po.taxRate ? 'PPN ' + Math.round(po.taxRate * 100) + '%' : 'Pajak', formatRupiah(po.tax || 0))}${po.shipping ? tot('Ongkos kirim', formatRupiah(po.shipping)) : ''}${tot('<b>Total</b>', '<b>' + formatRupiah(po.totalAmount) + '</b>')}</tbody></table>
+        <div class="sign"><div>Dibuat oleh<div class="line"></div></div><div>Disetujui<div class="line"></div></div><div>Vendor<div class="line"></div></div></div></body></html>`;
+      const w = window.open('', '_blank'); w.document.write(html); w.document.close(); setTimeout(() => w.print(), 400);
     }
 
     function receiveItems() {
