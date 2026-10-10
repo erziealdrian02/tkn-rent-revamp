@@ -6,6 +6,27 @@
 const BizLogic = {};
 
 // ============================================================
+// PPN: sesuai Rekap Tagihan user — DPP Nilai Lain = 11/12 × subtotal, PPN = 12% × DPP (efektif 11%)
+// ============================================================
+BizLogic.Tax = {
+  // rate = tarif efektif di settings (0.11). 0 = tanpa PPN.
+  ppn: function(subtotal, rate) {
+    subtotal = Math.round(Number(subtotal) || 0); rate = Number(rate) || 0;
+    if (!rate) return { subtotal: subtotal, dpp: 0, vatRate: 0, tax: 0 };
+    if (Math.abs(rate - 0.11) < 1e-9) { var dpp = Math.round(subtotal * 11 / 12); return { subtotal: subtotal, dpp: dpp, vatRate: 0.12, tax: Math.round(dpp * 0.12) }; }
+    return { subtotal: subtotal, dpp: subtotal, vatRate: rate, tax: Math.round(subtotal * rate) };
+  },
+  // Untuk invoice lama yang belum menyimpan DPP
+  ofInvoice: function(inv) {
+    if (!inv || !inv.tax) return { dpp: 0, vatRate: 0, tax: 0 };
+    if (inv.dppOther) return { dpp: inv.dppOther, vatRate: inv.vatRate || 0.12, tax: inv.tax };
+    if (Math.abs((inv.taxRate || 0) - 0.11) < 1e-9) return { dpp: Math.round((inv.subtotal || 0) * 11 / 12), vatRate: 0.12, tax: inv.tax };
+    return { dpp: inv.subtotal || 0, vatRate: inv.taxRate || 0, tax: inv.tax };
+  },
+  label: function(t) { return t.vatRate === 0.12 && t.dpp ? 'PPN 12% × DPP 11/12' : 'PPN ' + Math.round((t.vatRate || 0) * 100) + '%'; }
+};
+
+// ============================================================
 // STATUS STATE MACHINES
 // ============================================================
 
@@ -379,9 +400,21 @@ BizLogic.StockLedger = {
     }).sort(function(a, b) { return a.date.localeCompare(b.date) || a.no.localeCompare(b.no); });
   },
 
+  ROMAN: ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'],
+  // Surat jalan pakai format user: NNN/BULAN ROMAWI/YY/KODE-SW (kirim sewa) | -KBL (pemulangan) | -JL (jual)
+  SJ_SUFFIX: { DELIVERY: 'SW', RETURN: 'KBL', SALE: 'JL' },
   nextNo: function(type, date) {
     var t = this.TYPES[type];
     var d = (date || new Date().toISOString().split('T')[0]);
+    if (this.SJ_SUFFIX[type]) {
+      var code = (MockData.company && MockData.company.sjCode) || 'JKT';
+      var tail = '/' + this.ROMAN[Number(d.substring(5, 7)) - 1] + '/' + d.substring(2, 4) + '/' + code + '-' + this.SJ_SUFFIX[type];
+      var taken = {};
+      (MockData.stockMutations || []).concat(MockData.deliveries || [], MockData.returns || []).forEach(function(m) { var n = m.no || m.sjNo; if (n) taken[n] = true; });
+      var n = 1;
+      while (taken[String(n).padStart(3, '0') + tail]) n++;
+      return String(n).padStart(3, '0') + tail;
+    }
     var base = t.prefix + '-' + d.substring(2, 4) + d.substring(5, 7) + '-';
     var used = {};
     (MockData.stockMutations || []).forEach(function(m) { used[m.no] = true; });
@@ -721,7 +754,7 @@ BizLogic.Rental = {
     return { success: true, extension: ext };
   },
 
-  // Estimasi dari Ekspedisi saat penyewaan dibuat: rencana kirim & rencana jemput (pemulangan).
+  // Estimasi dari Logistik saat penyewaan dibuat: rencana kirim & rencana jemput (pemulangan).
   // Pemulangan yang melewati estimasi kembali dikenai biaya keterlambatan di Rekap Tagihan.
   setEstimate: function(rentalId, data) {
     data = data || {};
@@ -731,13 +764,13 @@ BizLogic.Rental = {
     if (data.returnDate < data.deliveryDate) return { success: false, error: 'Estimasi kembali sebelum estimasi kirim' };
     var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
     rental.logisticsEstimate = { deliveryDate: data.deliveryDate, returnDate: data.returnDate, notes: String(data.notes || '').trim(),
-      by: user.name || 'Ekspedisi', at: new Date().toISOString().replace('T', ' ').substring(0, 16) };
+      by: user.name || 'Logistik', at: new Date().toISOString().replace('T', ' ').substring(0, 16) };
     MockData.save('rentals');
-    BizLogic.Activity.log('Estimasi ekspedisi ' + rentalId + ': kirim ' + data.deliveryDate + ', kembali ' + data.returnDate, 'info');
+    BizLogic.Activity.log('Estimasi logistik ' + rentalId + ': kirim ' + data.deliveryDate + ', kembali ' + data.returnDate, 'info');
     return { success: true };
   },
 
-  // Tanggal acuan biaya keterlambatan: estimasi kembali dari ekspedisi, kalau belum ada pakai rencana kembali
+  // Tanggal acuan biaya keterlambatan: estimasi kembali dari logistik, kalau belum ada pakai rencana kembali
   estimatedReturn: function(rental) {
     return (rental && ((rental.logisticsEstimate && rental.logisticsEstimate.returnDate) || rental.returnDate)) || null;
   },
@@ -842,7 +875,7 @@ BizLogic.Delivery = {
     }
     var k = this.KINDS[this.kindOf(delivery)];
     BizLogic.Activity.log('Surat jalan ' + k.label.toLowerCase() + ' ' + delivery.sjNo + ' (' + delivery.id + ') dibuat', 'info');
-    BizLogic.Notification.add('Surat jalan ' + k.label.toLowerCase() + ' <strong>' + delivery.id + '</strong> dibuat, ekspedisi isi estimasi', 'info', k.icon, 'delivery-detail.html?id=' + delivery.id);
+    BizLogic.Notification.add('Surat jalan ' + k.label.toLowerCase() + ' <strong>' + delivery.id + '</strong> dibuat, logistik isi estimasi', 'info', k.icon, 'delivery-detail.html?id=' + delivery.id);
     return delivery;
   },
 
@@ -899,7 +932,7 @@ BizLogic.Delivery = {
     return { success: true, delivery: d };
   },
 
-  // Estimasi ekspedisi (wajib sebelum surat jalan dibawa berangkat). data: { departAt, arriveAt, notes }
+  // Estimasi logistik (wajib sebelum surat jalan dibawa berangkat). data: { departAt, arriveAt, notes }
   setEstimate: function(deliveryId, data) {
     data = data || {};
     var d = MockData.deliveries.find(function(x) { return x.id === deliveryId; });
@@ -909,15 +942,15 @@ BizLogic.Delivery = {
     if (data.departAt && data.arriveAt < data.departAt) return { success: false, error: 'Estimasi tiba sebelum estimasi berangkat' };
     var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
     var old = d.estimate;
-    d.estimate = { departAt: data.departAt || '', arriveAt: data.arriveAt, notes: String(data.notes || '').trim(), by: user.name || 'Ekspedisi', at: this.now() };
+    d.estimate = { departAt: data.departAt || '', arriveAt: data.arriveAt, notes: String(data.notes || '').trim(), by: user.name || 'Logistik', at: this.now() };
     d.tracking = d.tracking || [];
-    d.tracking.push({ at: this.now(), location: '', note: (old ? 'Estimasi diubah: tiba ' + old.arriveAt + ' → ' : 'Estimasi tiba ') + data.arriveAt + (data.notes ? ' (' + data.notes + ')' : ''), by: user.name || 'Ekspedisi' });
+    d.tracking.push({ at: this.now(), location: '', note: (old ? 'Estimasi diubah: tiba ' + old.arriveAt + ' → ' : 'Estimasi tiba ') + data.arriveAt + (data.notes ? ' (' + data.notes + ')' : ''), by: user.name || 'Logistik' });
     MockData.save('deliveries');
     BizLogic.Activity.log('Estimasi ' + d.id + ': tiba ' + data.arriveAt, 'info');
     return { success: true };
   },
 
-  // Update posisi manual oleh ekspedisi (info driver via WA). data: { location, note, at }
+  // Update posisi manual oleh logistik (info driver via WA). data: { location, note, at }
   addTracking: function(deliveryId, data) {
     data = data || {};
     var d = MockData.deliveries.find(function(x) { return x.id === deliveryId; });
@@ -925,7 +958,7 @@ BizLogic.Delivery = {
     if (!String(data.location || '').trim() && !String(data.note || '').trim()) return { success: false, error: 'Isi posisi atau keterangan' };
     var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
     d.tracking = d.tracking || [];
-    d.tracking.push({ at: data.at ? String(data.at).replace('T', ' ') : this.now(), location: String(data.location || '').trim(), note: String(data.note || '').trim(), by: user.name || 'Ekspedisi' });
+    d.tracking.push({ at: data.at ? String(data.at).replace('T', ' ') : this.now(), location: String(data.location || '').trim(), note: String(data.note || '').trim(), by: user.name || 'Logistik' });
     MockData.save('deliveries');
     return { success: true };
   },
@@ -936,6 +969,28 @@ BizLogic.Delivery = {
     if (m >= 1440) return Math.floor(m / 1440) + ' hari' + (Math.floor(m % 1440 / 60) ? ' ' + Math.floor(m % 1440 / 60) + ' jam' : '');
     if (m >= 60) return Math.floor(m / 60) + ' jam' + (m % 60 ? ' ' + m % 60 + ' mnt' : '');
     return m + ' mnt';
+  },
+
+  // Keterlambatan dibebankan ke Logistik (PT pengiriman): SJ tiba lewat estimasi (lewat toleransi) →
+  // denda = Σ qty × harga satuan sewa ÷ bulan sewa × hari telat × tarif denda. Sewa ke customer tetap dihitung dari SJ.
+  latePenalty: function(d) {
+    var m = this.lateMinutes(d);
+    var st = MockData.settings || {}, grace = st.logisticsLateGraceMinutes != null ? Number(st.logisticsLateGraceMinutes) : 120;
+    var rate = st.logisticsLateRate != null ? Number(st.logisticsLateRate) : 1;
+    if (m == null || m <= grace) return null;
+    var days = Math.ceil((m - grace) / 1440), md = BizLogic.Billing.monthDays(), done = !!(d.arrivedAt || d.completedAt);
+    var sale = d.saleId && (MockData.sales || []).find(function(x) { return x.id === d.saleId; });
+    var amount = d.items.reduce(function(sum, i) {
+      var price = BizLogic.Billing.unitPrice(d.projectId, i.name);
+      return sum + i.qty * price / md * days * rate;
+    }, 0);
+    return { minutes: m, days: days, amount: Math.round(amount), final: done, sale: !!sale,
+      basis: (done ? 'Tiba ' : 'Belum tiba, sudah lewat ') + this.durationText(m) + ' dari estimasi ' + d.estimate.arriveAt };
+  },
+  lateList: function(from, to) {
+    var self = this;
+    return MockData.deliveries.filter(function(d) { return d.status !== 'Failed'; }).map(function(d) { return { d: d, p: self.latePenalty(d) }; })
+      .filter(function(x) { return x.p && (!from || x.d.deliveryDate >= from) && (!to || x.d.deliveryDate <= to); });
   },
 
   // Selisih tiba aktual vs estimasi (menit, + = telat)
@@ -1005,9 +1060,9 @@ BizLogic.Delivery = {
       return { success: false, error: 'Cannot transition from ' + delivery.status + ' to ' + newStatus };
     }
 
-    // Surat jalan baru boleh dibawa berangkat setelah ekspedisi mengisi estimasi
+    // Surat jalan baru boleh dibawa berangkat setelah logistik mengisi estimasi
     if (newStatus === 'Departed' && !(delivery.estimate && delivery.estimate.arriveAt)) {
-      return { success: false, error: 'Ekspedisi belum mengisi estimasi. Isi estimasi dulu sebelum surat jalan dibawa berangkat.' };
+      return { success: false, error: 'Logistik belum mengisi estimasi. Isi estimasi dulu sebelum surat jalan dibawa berangkat.' };
     }
     var kind = this.kindOf(delivery);
     if (newStatus === 'Completed' && kind !== 'SEWA') return this._complete(delivery, extraData);
@@ -2158,37 +2213,22 @@ BizLogic.Billing = {
         adjustable: adjustable, adjusted: adjustable && !!overrides[s.key]
       });
     });
-    lines.sort(function(a, b) { return a.equipment.localeCompare(b.equipment) || a.start.localeCompare(b.start); });
-    if (opts.lateFee !== false) lines = lines.concat(this.lateLines(lines));
+    // No. PO customer dari order sewa (SJ kirim → order sewa) — rekap dikelompokkan per PO seperti format Excel
+    lines.forEach(function(l) { var o = self.orderOf(l.sjDelivery); l.rentalId = o ? o.id : null; l.po = o && o.poNumber ? o.poNumber : null; });
+    lines.sort(function(a, b) { return String(a.po || '~').localeCompare(String(b.po || '~')) || a.equipment.localeCompare(b.equipment) || a.start.localeCompare(b.start); });
     return lines;
   },
 
-  // Biaya keterlambatan (dibebankan ke customer): hari sewa yang melewati estimasi kembali dari ekspedisi.
-  // Fee = qty × hari telat × harga satuan ÷ bulan sewa × lateFeeRate
-  lateRate: function() { var r = MockData.settings && MockData.settings.lateFeeRate; return r != null ? Number(r) : 1; },
-  estimateFor: function(sjNo) {
+  // Order sewa asal satu SJ kirim (dari surat jalan / dokumen stok)
+  orderOf: function(sjNo) {
     var d = MockData.deliveries.find(function(x) { return x.sjNo === sjNo; });
-    var rental = d && d.rentalId ? MockData.rentals.find(function(r) { return r.id === d.rentalId; }) : null;
-    return rental ? { date: BizLogic.Rental.estimatedReturn(rental), rentalId: rental.id } : null;
-  },
-  lateLines: function(rentLines) {
-    var self = this, rate = this.lateRate(), out = [];
-    if (!rate) return out;
-    rentLines.forEach(function(l) {
-      var est = self.estimateFor(l.sjDelivery);
-      if (!est || !est.date) return;
-      var from = self.addDays(est.date, 1);
-      var start = from > l.start ? from : l.start;
-      if (start > l.end) return;
-      var days = self.days(start, l.end);
-      out.push({
-        key: l.key + '|late', type: 'late', equipment: l.equipment, desc: 'Biaya keterlambatan: ' + l.equipment,
-        qty: l.qty, unitPrice: l.unitPrice, start: start, end: l.end, days: days, monthDays: l.monthDays,
-        amount: Math.round(l.qty * days * l.unitPrice / l.monthDays * rate), sjDelivery: l.sjDelivery, sjReturn: null,
-        estimate: est.date, rentalId: est.rentalId, adjustable: false, adjusted: false
-      });
-    });
-    return out;
+    var rid = d && d.rentalId;
+    if (!rid) {
+      var m = (MockData.stockMutations || []).find(function(x) { return x.no === sjNo; });
+      var r = m && String(m.reference || '').match(/RNT-\d+/);
+      rid = r && r[0];
+    }
+    return rid ? MockData.rentals.find(function(r) { return r.id === rid; }) : null;
   },
 
   // Baris rekap manual. Ada tanggal → rumus sewa (qty × hari × harga ÷ bulan sewa); tanpa tanggal → qty × harga.
@@ -2290,8 +2330,8 @@ BizLogic.Invoice = {
   },
 
   _totals: function(subtotal, taxRate) {
-    var tax = Math.round(subtotal * (taxRate || 0));
-    return { subtotal: subtotal, taxRate: taxRate || 0, tax: tax, amount: subtotal + tax };
+    var t = BizLogic.Tax.ppn(subtotal, taxRate);
+    return { subtotal: subtotal, taxRate: taxRate || 0, dppOther: t.dpp, vatRate: t.vatRate, tax: t.tax, amount: subtotal + t.tax };
   },
 
   _account: function(accountId) {
@@ -2719,10 +2759,11 @@ BizLogic.CashBank = {
     return bal;
   },
 
-  // Kode transaksi dari rekeningnya: KODE REKENING-BB/BM-yymm-urut (BB = Bon Biru / debet, BM = Bon Merah / kredit)
+  // Kode transaksi dari rekeningnya (format LAPKEU "BMBCA01"): BB/BM + KODE REKENING-yymm-urut, mis. BMBCA-2610-001
+  // BB = Bon Biru (debet / masuk), BM = Bon Merah (kredit / keluar)
   nextVoucher: function(type, date, accountId) {
     var acc = accountId ? this.account(accountId) : null;
-    var prefix = (acc && acc.code ? acc.code + '-' : '') + (type === 'IN' ? 'BB' : 'BM') + '-' + (date || new Date().toISOString().split('T')[0]).substr(2, 5).replace('-', '') + '-';
+    var prefix = (type === 'IN' ? 'BB' : 'BM') + (acc && acc.code ? acc.code : '') + '-' + (date || new Date().toISOString().split('T')[0]).substr(2, 5).replace('-', '') + '-';
     var max = 0;
     (MockData.ledger || []).forEach(function(e) {
       if (e.voucherNo && e.voucherNo.indexOf(prefix) === 0) max = Math.max(max, parseInt(e.voucherNo.substr(prefix.length), 10) || 0);

@@ -42,8 +42,8 @@
           </div>
           <div class="mb-3"><label class="form-label form-label-er">Tujuan</label><input type="text" class="form-control" id="dlvDest"></div>
           <div class="row g-3 mb-3">
-            <div class="col-md-6"><label class="form-label form-label-er">Estimasi Berangkat <span class="text-muted fw-normal">(ekspedisi)</span></label><input type="datetime-local" class="form-control" id="dlvEstDepart"></div>
-            <div class="col-md-6"><label class="form-label form-label-er">Estimasi Tiba <span class="text-muted fw-normal">(boleh diisi nanti oleh ekspedisi)</span></label><input type="datetime-local" class="form-control" id="dlvEstArrive"></div>
+            <div class="col-md-6"><label class="form-label form-label-er">Estimasi Berangkat <span class="text-muted fw-normal">(logistik)</span></label><input type="datetime-local" class="form-control" id="dlvEstDepart"></div>
+            <div class="col-md-6"><label class="form-label form-label-er">Estimasi Tiba <span class="text-muted fw-normal">(boleh diisi nanti oleh logistik)</span></label><input type="datetime-local" class="form-control" id="dlvEstArrive"></div>
           </div>
           <h6 class="fw-600 mb-2">Equipment to Deliver</h6>
           <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Equipment</th><th>Rental Qty</th><th>Already Delivered</th><th>Remaining</th><th>Deliver Qty</th></tr></thead>
@@ -63,7 +63,7 @@
     <div class="modal-dialog modal-lg"><div class="modal-content">
       <div class="modal-header"><h5 class="modal-title"><i class="bi bi-box-arrow-in-left me-2"></i>Surat Jalan Pemulangan</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
       <div class="modal-body">
-        <div class="alert alert-light border py-2 fs-13">Jemput alat dari proyek. Ekspedisi isi estimasi & update posisi; setelah tiba di gudang alat diinspeksi (baik / rusak). Sewa berhenti dihitung saat pemulangan (SJR).
+        <div class="alert alert-light border py-2 fs-13">Jemput alat dari proyek. Logistik isi estimasi & update posisi; setelah tiba di gudang alat diinspeksi (baik / rusak). Sewa berhenti dihitung saat pemulangan (SJR).
           Alat yang hilang tidak dijemput: jual ke pelanggan lewat tombol <strong>Jual Alat di Proyek</strong> (otomatis dibuat surat jalan pemulangan dulu).</div>
         <div class="row g-3 mb-3">
           <div class="col-md-4"><label class="form-label form-label-er">Tanggal Jemput</label><input type="date" class="form-control" id="pkDate"></div>
@@ -132,7 +132,7 @@
         actionBtns += '<span class="badge bg-warning-subtle text-warning align-self-center"><i class="bi bi-hourglass-split me-1"></i>Menunggu ACC Staff Piutang</span>';
       }
       if (canDo('Rentals', 'Update') && !['Completed', 'Cancelled', 'Rejected'].includes(s)) {
-        actionBtns += `<button class="btn ${rental.logisticsEstimate ? 'btn-outline-secondary' : 'btn-warning'} btn-sm" onclick="openRentalEstimate()"><i class="bi bi-clock-history me-1"></i>${rental.logisticsEstimate ? 'Ubah' : 'Isi'} Estimasi Ekspedisi</button>`;
+        actionBtns += `<button class="btn ${rental.logisticsEstimate ? 'btn-outline-secondary' : 'btn-warning'} btn-sm" onclick="openRentalEstimate()"><i class="bi bi-clock-history me-1"></i>${rental.logisticsEstimate ? 'Ubah' : 'Isi'} Estimasi Logistik</button>`;
       }
       if (['Approved', 'Preparing', 'Partially Delivered', 'On Rental', 'Partially Returned', 'Overdue'].includes(s)) {
         actionBtns += '<button class="btn btn-outline-secondary btn-sm" onclick="openExtend()"><i class="bi bi-calendar-plus me-1"></i>Perpanjang Sewa</button>';
@@ -215,9 +215,9 @@
       const today0 = new Date().toISOString().split('T')[0];
       const onSiteNow = BizLogic.Delivery.pickupRemaining(rental).reduce((a, x) => a + x.onSite, 0);
       const lateDays = estReturn && onSiteNow > 0 && today0 > estReturn ? BizLogic.Billing.days(estReturn, today0) - 1 : 0;
-      const estimateBox = `<div class="alert ${est ? 'alert-light border' : 'alert-warning'} py-2 fs-13 mb-3"><i class="bi bi-clock-history me-1"></i><strong>Estimasi Ekspedisi:</strong>
-        ${est ? `kirim ${formatDate(est.deliveryDate)}, jemput / kembali <strong>${formatDate(est.returnDate)}</strong>${est.notes ? ' · ' + est.notes : ''} <span class="text-muted">(${est.by}, ${est.at})</span>` : 'belum diisi Ekspedisi.'}
-        ${lateDays > 0 ? `<div class="text-danger mt-1"><i class="bi bi-alarm me-1"></i>${onSiteNow} unit masih di proyek, lewat ${lateDays} hari dari estimasi kembali (${formatDate(estReturn)}) — biaya keterlambatan dihitung di Rekap Tagihan.</div>` : ''}</div>`;
+      const estimateBox = `<div class="alert ${est ? 'alert-light border' : 'alert-warning'} py-2 fs-13 mb-3"><i class="bi bi-clock-history me-1"></i><strong>Estimasi Logistik:</strong>
+        ${est ? `kirim ${formatDate(est.deliveryDate)}, jemput / kembali <strong>${formatDate(est.returnDate)}</strong>${est.notes ? ' · ' + est.notes : ''} <span class="text-muted">(${est.by}, ${est.at})</span>` : 'belum diisi Logistik.'}
+        ${lateDays > 0 ? `<div class="text-danger mt-1"><i class="bi bi-alarm me-1"></i>${onSiteNow} unit masih di proyek, lewat ${lateDays} hari dari estimasi kembali (${formatDate(estReturn)}) (sewa tetap dihitung s/d SJ pulang).</div>` : ''}</div>`;
       let creditBox = '';
       if (s === 'Pending Approval' || s === 'Waiting Approval') {
         const cs = BizLogic.Customer.summary(rental.customerId);
@@ -242,6 +242,7 @@
           <div class="info-item"><span class="info-label">No. Rekap</span><span class="info-value text-mono">${rental.id}</span></div>
           <div class="info-item"><span class="info-label">Pelanggan</span><span class="info-value"><a href="customer-detail.html?id=${rental.customerId}">${rental.customerName}</a></span></div>
           <div class="info-item"><span class="info-label">Proyek</span><span class="info-value"><a href="project-detail.html?id=${rental.projectId}">${rental.projectName}</a></span></div>
+          <div class="info-item"><span class="info-label">No. PO Customer</span><span class="info-value text-mono">${rental.poNumber || '-'}</span></div>
           <div class="info-item"><span class="info-label">Periode Awal Sewa</span><span class="info-value">${formatDate(rental.rentalDate)}</span></div>
           <div class="info-item"><span class="info-label">Akhir Sewa</span><span class="info-value">${formatDate(rental.returnDate)}${isOverdue ? ' <span class="badge bg-danger ms-1">lewat ' + overdueDays + ' hari</span>' : ''}</span></div>
           <div class="info-item"><span class="info-label">Gudang</span><span class="info-value">${rental.branch}</span></div>
@@ -542,7 +543,7 @@
     // ──── ESTIMASI EKSPEDISI (saat penyewaan dibuat) ────
     function openRentalEstimate() {
       const e = rental.logisticsEstimate || {};
-      BizLogic.showConfirmModal('Estimasi Ekspedisi', 'Rencana kirim & jemput untuk <strong>' + rental.id + '</strong>. Pemulangan yang lewat dari estimasi kembali dikenai biaya keterlambatan ke customer.',
+      BizLogic.showConfirmModal('Estimasi Logistik', 'Rencana kirim & jemput untuk <strong>' + rental.id + '</strong>. Estimasi ini tanggung jawab Logistik: surat jalan yang tiba lewat estimasi dikenai denda ke Logistik, bukan ke customer.',
         '<i class="bi bi-check-lg me-1"></i>Simpan', 'btn-primary',
         function(f) {
           const r = BizLogic.Rental.setEstimate(rental.id, f);

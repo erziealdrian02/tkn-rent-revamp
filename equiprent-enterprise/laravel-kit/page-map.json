@@ -683,35 +683,7 @@
     {
       "key": "driver",
       "label": "PORTAL DRIVER (login Driver)",
-      "pages": [
-        {
-          "html": "driver-dashboard.html",
-          "view": "driver.dashboard",
-          "uri": "/driver-dashboard",
-          "route": "driver.dashboard",
-          "layout": "app",
-          "title": "Dasbor Pengemudi",
-          "permission": "Deliveries"
-        },
-        {
-          "html": "driver-deliveries.html",
-          "view": "driver.deliveries.index",
-          "uri": "/driver-deliveries",
-          "route": "driver.deliveries.index",
-          "layout": "app",
-          "title": "My Deliveries",
-          "permission": "Deliveries"
-        },
-        {
-          "html": "driver-delivery-detail.html",
-          "view": "driver.deliveries.show",
-          "uri": "/driver-delivery-detail",
-          "route": "driver.deliveries.show",
-          "layout": "app",
-          "title": "Delivery Detail - Driver Portal",
-          "permission": "Deliveries"
-        }
-      ]
+      "pages": []
     }
   ]
 }

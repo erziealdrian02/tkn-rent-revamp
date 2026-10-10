@@ -39,7 +39,7 @@
             <input type="date" class="filter-select" id="toFilter" onchange="render()" title="Sampai tanggal">
           </div></div>
           <div class="er-table-wrapper"><table class="er-table">
-            <thead><tr><th>Tanggal</th><th>Kode Transaksi · Rekening</th><th>Kategori</th><th style="min-width:200px">Notes</th><th class="num">Debet</th><th class="num">Kredit</th><th class="num">Saldo</th><th>Jurnal</th><th title="Sudah direkonsiliasi dengan rekening koran">Rek.</th><th></th></tr></thead>
+            <thead><tr><th>Kode Transaksi</th><th>Tanggal</th><th>Source</th><th style="min-width:200px">Nama Transaksi</th><th>Jurnal</th><th class="num">Debet</th><th class="num">Kredit</th><th class="num">Saldo</th><th>Jurnal</th><th title="Sudah direkonsiliasi dengan rekening koran">Rek.</th><th></th></tr></thead>
             <tbody id="tableBody"></tbody>
             <tfoot id="tableFoot"></tfoot>
           </table></div>
@@ -205,21 +205,21 @@
         const proj = e.projectId ? MockData.projects.find(p => p.id === e.projectId) : null;
         const corr = e.reversal ? '<span class="badge bg-danger-subtle text-danger fw-normal">pembalik</span> ' : e.correctionOf ? '<span class="badge bg-info-subtle text-info fw-normal">pengganti</span> ' : e.reversedBy ? '<span class="badge bg-secondary-subtle text-secondary fw-normal">dikoreksi</span> ' : '';
         return `<tr class="${e.reversedBy ? 'text-muted' : ''}">
+        <td class="text-nowrap"><span class="badge text-mono ${e.type === 'IN' ? 'bg-primary-subtle text-primary' : 'bg-danger-subtle text-danger'}">${e.voucherNo || e.id}</span></td>
         <td class="text-nowrap">${formatDate(e.date)}</td>
-        <td class="text-nowrap"><span class="badge text-mono ${e.type === 'IN' ? 'bg-primary-subtle text-primary' : 'bg-danger-subtle text-danger'}">${e.voucherNo || e.id}</span>
-          <div class="fs-11 text-muted mt-1"><i class="bi ${kindIcon(kind)} me-1"></i>${esc(accName(e.bankAccountId))} · ${esc(e.method || (kind === 'Kas' ? 'Cash' : 'Transfer'))}</div></td>
-        <td class="fs-12">${esc(catName(e))}${e.source === 'transfer' ? ' <i class="bi bi-arrow-left-right text-muted" title="Pindah dana"></i>' : ''}${proj ? `<div><a href="project-detail.html?id=${proj.id}" class="text-muted">${esc(proj.id)}</a></div>` : ''}</td>
-        <td><div>${corr}${esc(e.description)}</div><div class="fs-12 text-muted">${e.party ? esc(e.party) : ''}${e.party && e.reference ? ' · ' : ''}${e.reference ? refLink(e.reference) : ''}</div></td>
+        <td class="text-nowrap fs-12"><i class="bi ${kindIcon(kind)} text-muted me-1"></i>${esc(accName(e.bankAccountId))}<div class="text-muted">${esc(e.method || (kind === 'Kas' ? 'Cash' : 'Transfer'))}</div></td>
+        <td><div>${corr}${esc(e.description)}</div><div class="fs-12 text-muted">${e.party ? esc(e.party) : ''}${e.party && e.reference ? ' · ' : ''}${e.reference ? refLink(e.reference) : ''}${proj ? ` · <a href="project-detail.html?id=${proj.id}" class="text-muted">${esc(proj.id)}</a>` : ''}</div></td>
+        <td class="fs-12">${esc(catName(e))}${e.source === 'transfer' ? ' <i class="bi bi-arrow-left-right text-muted" title="Pindah dana"></i>' : ''}${(() => { const a = !e.transferId && AC.account(AC.classify(e)); return a ? `<div class="text-muted">${a.code} · ${esc(a.name)}</div>` : ''; })()}</td>
         <td class="num ${e.type === 'IN' ? 'qty-plus fw-600' : 'zero'}">${e.type === 'IN' ? formatRupiah(e.amount) : '-'}</td>
         <td class="num ${e.type === 'OUT' ? 'qty-minus fw-600' : 'zero'}">${e.type === 'OUT' ? formatRupiah(e.amount) : '-'}</td>
         <td class="num text-nowrap">${formatRupiah(bal)}</td>
         <td>${postBadge(e)}</td>
         <td>${kind === 'Bank' ? (e.reconciled ? '<i class="bi bi-check-circle-fill text-success" title="Sudah direkonsiliasi"></i>' : '<i class="bi bi-circle text-muted" title="Belum direkonsiliasi"></i>') : ''}</td>
         <td class="text-nowrap">${actions(e)}</td>
-      </tr>`; }).join('') || '<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada transaksi</td></tr>';
+      </tr>`; }).join('') || '<tr><td colspan="11" class="text-center text-muted py-4">Tidak ada transaksi</td></tr>';
       const tin = data.filter(r => r.e.type === 'IN').reduce((s, r) => s + r.e.amount, 0);
       const tout = data.filter(r => r.e.type === 'OUT').reduce((s, r) => s + r.e.amount, 0);
-      document.getElementById('tableFoot').innerHTML = data.length ? `<tr><td colspan="4" class="text-end">Total (${data.length} transaksi)</td><td class="num">${formatRupiah(tin)}</td><td class="num">${formatRupiah(tout)}</td><td class="num" title="Debet − Kredit">${formatRupiah(tin - tout)}</td><td colspan="3"></td></tr>` : '';
+      document.getElementById('tableFoot').innerHTML = data.length ? `<tr><td colspan="5" class="text-end">Total (${data.length} transaksi)</td><td class="num">${formatRupiah(tin)}</td><td class="num">${formatRupiah(tout)}</td><td class="num" title="Debet − Kredit">${formatRupiah(tin - tout)}</td><td colspan="3"></td></tr>` : '';
     }
 
     function removeEntry(id) {
@@ -232,9 +232,11 @@
     }
 
     function exportCSV() {
-      const out = [['Tanggal', 'Kode Transaksi', 'Rekening', 'Jenis Rekening', 'Proyek', 'Kategori', 'Baris Laporan Kas', 'Metode', 'Notes', 'Pihak', 'Referensi', 'Debet', 'Kredit', 'Saldo', 'Status Jurnal', 'Rekonsiliasi']];
-      rows().reverse().forEach(({ e, bal, cat, kind }) => out.push([e.date, e.voucherNo, accName(e.bankAccountId), kind, e.projectId || '', catName(e), CB.categoryLabel(cat), e.method || '', e.description, e.party, e.reference,
-        e.type === 'IN' ? e.amount : 0, e.type === 'OUT' ? e.amount : 0, bal, e.posted === false ? 'Menunggu generate' : 'Masuk jurnal', e.reconciled ? 'Ya' : '']));
+      // Kolom awal mengikuti "Contoh Format Rekap Transaksi" di sheet LAPKEU
+      const out = [['Kode Transaksi', 'Tanggal Transaksi', 'Source', 'Nama Transaksi', 'Jurnal', 'Debet', 'Kredit', 'Akun COA', 'Proyek', 'Metode', 'Pihak', 'Referensi', 'Baris Laporan Kas', 'Saldo', 'Status Jurnal', 'Rekonsiliasi']];
+      rows().reverse().forEach(({ e, bal, cat }) => { const a = !e.transferId && AC.account(AC.classify(e));
+        out.push([e.voucherNo, e.date, accName(e.bankAccountId), e.description, catName(e), e.type === 'IN' ? e.amount : '', e.type === 'OUT' ? e.amount : '', a ? a.code + ' ' + a.name : '',
+          e.projectId || '', e.method || '', e.party, e.reference, CB.categoryLabel(cat), bal, e.posted === false ? 'Menunggu generate' : 'Masuk jurnal', e.reconciled ? 'Ya' : '']); });
       downloadCSV('buku-kas-bank-' + today + '.csv', out);
     }
 

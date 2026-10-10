@@ -179,9 +179,7 @@
             <option value="accounting">Accounting &amp; Tax</option>
             <option value="purchase">Purchase</option>
             <option value="logistik">Logistik</option>
-            <option value="administrasi">Administrasi</option>
-            <option value="ekspedisi">Ekspedisi</option>
-            <option value="driver">Driver</option>
+            <option value="kasir">Kasir</option>
           </select>
         </div>
 
@@ -219,7 +217,7 @@
     const existingUser = sessionStorage.getItem('er_user');
     if (existingUser) {
       const u = JSON.parse(existingUser);
-      window.location.href = u.role === 'Driver' ? 'driver-dashboard.html' : 'dashboard.html';
+      window.location.href = 'dashboard.html';
     }
 
     function togglePassword() {
@@ -260,7 +258,7 @@
       btn.disabled = true;
 
       setTimeout(() => {
-        window.location.href = user.role === 'Driver' ? 'driver-dashboard.html' : 'dashboard.html';
+        window.location.href = 'dashboard.html';
       }, 600);
     }
   </script>

@@ -8,7 +8,7 @@
     const user = sessionStorage.getItem('er_user');
     if (user) {
       const u = JSON.parse(user);
-      window.location.href = u.role === 'Driver' ? 'driver-dashboard.html' : 'dashboard.html';
+      window.location.href = 'dashboard.html';
     } else {
       window.location.href = 'login.html';
     }

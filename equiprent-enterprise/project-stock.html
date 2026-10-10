@@ -105,6 +105,46 @@
 
     function num(v, cls) { return `<td class="num ${v === 0 ? 'zero' : ''} ${cls || ''}">${formatNumber(v)}</td>`; }
 
+    // Format sheet REKAP STOCK: baris = surat jalan, kolom = alat
+    function matrixHtml(p, summary, deliveries, returns) {
+      const eqs = summary.map(r => r.equipment);
+      if (!eqs.length) return '<div class="empty-state py-4"><p class="mb-0">Belum ada data</p></div>';
+      const qtyOf = (d, eq) => d.items.filter(i => i.equipment === eq).reduce((s, i) => s + i.qty, 0);
+      const cell = v => `<td class="num ${v ? '' : 'zero'}">${v ? formatNumber(v) : ''}</td>`;
+      const docRows = docs => docs.map(d => `<tr><td class="text-nowrap">${formatDate(d.date)}</td><td class="text-mono fs-12 text-nowrap">${d.no}</td>${eqs.map(eq => cell(qtyOf(d, eq))).join('')}</tr>`).join('');
+      const sum = (docs, eq) => docs.reduce((s, d) => s + qtyOf(d, eq), 0);
+      const totalRow = (label, fn, cls) => `<tr class="${cls || 'fw-700'}"><td colspan="2">${label}</td>${eqs.map(eq => `<td class="num">${formatNumber(fn(eq))}</td>`).join('')}</tr>`;
+      return `<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+          <div><div class="fw-700">REKAP STOCK PROJECT: ${p.name.toUpperCase()}</div><div class="fs-13 text-muted">${p.customerName}</div></div>
+          <button class="btn btn-outline-secondary btn-sm" onclick="exportMatrix()"><i class="bi bi-download me-1"></i>Export CSV</button>
+        </div>
+        <div class="er-table-wrapper"><table class="er-table fs-13">
+          <thead><tr><th>Tanggal</th><th>Surat Jalan</th>${eqs.map(eq => `<th class="num">${eq.toUpperCase()}</th>`).join('')}</tr></thead>
+          <tbody>
+            <tr class="table-light"><td colspan="${eqs.length + 2}" class="fw-600">PENGIRIMAN</td></tr>
+            ${docRows(deliveries) || `<tr><td colspan="${eqs.length + 2}" class="text-muted">Belum ada pengiriman</td></tr>`}
+            ${totalRow('TOTAL PENGIRIMAN', eq => sum(deliveries, eq))}
+            ${totalRow('SISA PO / KEBUTUHAN', eq => Math.max(0, (summary.find(r => r.equipment === eq) || {}).required - sum(deliveries, eq)), 'fw-600 text-warning')}
+            <tr class="table-light"><td colspan="${eqs.length + 2}" class="fw-600">PEMULANGAN</td></tr>
+            ${docRows(returns) || `<tr><td colspan="${eqs.length + 2}" class="text-muted">Belum ada pemulangan</td></tr>`}
+            ${totalRow('TOTAL PEMULANGAN', eq => sum(returns, eq))}
+            ${totalRow('SISA ALAT DI PROYEK', eq => sum(deliveries, eq) - sum(returns, eq), 'fw-700 table-primary')}
+          </tbody></table></div>`;
+    }
+    function exportMatrix() {
+      const p = MockData.projects.find(x => x.id === selectedId), summary = L.projectSummary(p.id).sort((a, b) => (b.required - a.required) || a.equipment.localeCompare(b.equipment));
+      const eqs = summary.map(r => r.equipment), dl = L.projectDocs(p.id, 'DELIVERY'), rt = L.projectDocs(p.id, 'RETURN');
+      const q = (d, eq) => d.items.filter(i => i.equipment === eq).reduce((s, i) => s + i.qty, 0), sum = (docs, eq) => docs.reduce((s, d) => s + q(d, eq), 0);
+      const out = [['REKAP STOCK PROJECT: ' + p.name], [p.customerName], [], ['Tanggal', 'Surat Jalan', ...eqs]];
+      dl.forEach(d => out.push([d.date, d.no, ...eqs.map(eq => q(d, eq) || '')]));
+      out.push(['TOTAL PENGIRIMAN', '', ...eqs.map(eq => sum(dl, eq))]);
+      out.push(['SISA PO / KEBUTUHAN', '', ...eqs.map(eq => Math.max(0, summary.find(r => r.equipment === eq).required - sum(dl, eq)))], []);
+      rt.forEach(d => out.push([d.date, d.no, ...eqs.map(eq => q(d, eq) || '')]));
+      out.push(['TOTAL PEMULANGAN', '', ...eqs.map(eq => sum(rt, eq))]);
+      out.push(['SISA ALAT DI PROYEK', '', ...eqs.map(eq => sum(dl, eq) - sum(rt, eq))]);
+      downloadCSV('rekap-stock-' + p.id + '.csv', out);
+    }
+
     function sjCards(docs, emptyText) {
       if (!docs.length) return `<div class="empty-state py-4"><i class="bi bi-inbox"></i><p class="mb-0">${emptyText}</p></div>`;
       return docs.map(d => {
@@ -197,11 +237,13 @@
 
         <div class="er-card">
           <div class="er-tabs">
-            <button class="er-tab active" data-tab="sjk" onclick="switchTab('sjk')">B. Pengiriman per SJ<span class="er-tab-count">${deliveries.length}</span></button>
+            <button class="er-tab active" data-tab="matrix" onclick="switchTab('matrix')"><i class="bi bi-grid-3x3 me-1"></i>Format Rekap Stock</button>
+            <button class="er-tab" data-tab="sjk" onclick="switchTab('sjk')">B. Pengiriman per SJ<span class="er-tab-count">${deliveries.length}</span></button>
             <button class="er-tab" data-tab="sjr" onclick="switchTab('sjr')">D. Pemulangan per SJ<span class="er-tab-count">${returns.length}</span></button>
             
           </div>
-          <div class="er-tab-content active" id="tab-sjk"><div class="er-card-body">${sjCards(deliveries, 'Belum ada pengiriman ke proyek ini')}</div></div>
+          <div class="er-tab-content active" id="tab-matrix"><div class="er-card-body">${matrixHtml(p, summary, deliveries, returns)}</div></div>
+          <div class="er-tab-content" id="tab-sjk"><div class="er-card-body">${sjCards(deliveries, 'Belum ada pengiriman ke proyek ini')}</div></div>
           <div class="er-tab-content" id="tab-sjr"><div class="er-card-body">${sjCards(returns, 'Belum ada pemulangan dari proyek ini')}</div></div>
           
         </div>`;

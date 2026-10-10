@@ -63,7 +63,12 @@
               <label class="form-label form-label-er">Durasi (bulan)</label>
               <input type="number" class="form-control" value="3" id="durationInput">
             </div>
-            <div class="col-12">
+            <div class="col-md-4">
+              <label class="form-label form-label-er">No. PO Customer</label>
+              <input type="text" class="form-control" id="poNumber" placeholder="mis. PO/APG/0426/001">
+              <div class="fs-11 text-muted mt-1">Rekap tagihan dikelompokkan per PO</div>
+            </div>
+            <div class="col-md-8">
               <label class="form-label form-label-er">Catatan</label>
               <textarea class="form-control" rows="2" placeholder="Additional notes..." id="notesArea"></textarea>
             </div>
@@ -324,6 +329,7 @@
         customerId: cusId,
         customerName: MockData.customers.find(c=>c.id===cusId)?.name,
         projectId: prjId,
+        poNumber: document.getElementById('poNumber').value.trim(),
         projectName: MockData.projects.find(p=>p.id===prjId)?.name,
         rentalDate: document.getElementById('startDate').value,
         returnDate: document.getElementById('endDate').value,

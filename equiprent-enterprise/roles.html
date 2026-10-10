@@ -34,13 +34,13 @@
     const modules = MockData.permissions.modules;
     document.getElementById('tableBody').innerHTML = MockData.roles.map(r => {
       const users = MockData.demoUsers.filter(u => u.role === r.name).length;
-      const access = r.name === 'Driver' ? ['Portal Driver'] : modules.filter(m => roleActions(r.name, m).length);
+      const access = modules.filter(m => roleActions(r.name, m).length);
       const canApprove = modules.some(m => roleActions(r.name, m).indexOf('Approve') >= 0);
       return `<tr>
         <td class="fw-600">${r.name}${canApprove ? ' <span class="badge bg-success-subtle text-success fs-11">bisa menyetujui</span>' : ''}</td>
         <td>${r.description || '-'}</td><td>${users}</td>
         <td class="fs-12">${access.length === modules.length ? 'Semua modul' : access.join(', ') || '<span class="text-muted">Tidak ada</span>'}</td>
-        <td>${r.name === 'Admin' || r.name === 'Driver' ? '' : `<a class="btn-action" title="Ubah hak akses" href="role-create.html?role=${encodeURIComponent(r.name)}"><i class="bi bi-shield-lock"></i></a>`}</td>
+        <td>${r.name === 'Admin' ? '' : `<a class="btn-action" title="Ubah hak akses" href="role-create.html?role=${encodeURIComponent(r.name)}"><i class="bi bi-shield-lock"></i></a>`}</td>
       </tr>`;
     }).join('');
   </script>

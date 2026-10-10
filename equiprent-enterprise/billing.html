@@ -62,7 +62,7 @@
                 <button class="btn btn-outline-primary" id="modeStock" onclick="setMode('stok')"><i class="bi bi-boxes me-1"></i>Dari Stok (Surat Jalan)</button>
                 <button class="btn btn-outline-primary" id="modeManual" onclick="setMode('manual')"><i class="bi bi-pencil-square me-1"></i>Manual</button>
               </div>
-              <label class="d-flex align-items-center gap-2 fs-13" id="lateWrap"><input type="checkbox" class="form-check-input m-0" id="fLate" checked onchange="render()"> Hitung biaya keterlambatan <span class="text-muted">(lewat estimasi kembali ekspedisi, ×<span id="lateRate"></span> tarif harian)</span></label>
+              <span class="fs-12 text-muted"><i class="bi bi-info-circle me-1"></i>Keterlambatan kirim / jemput dari estimasi <strong>tidak ditagihkan ke customer</strong>, dibebankan ke Logistik (lihat Surat Jalan → Denda Logistik).</span>
             </div>
 
             <div id="overlapAlert"></div>
@@ -81,19 +81,22 @@
               <div class="fs-12 text-muted mt-1"><i class="bi bi-info-circle me-1"></i>Isi tanggal → dihitung Qty × Hari × Harga ÷ Bulan Sewa. Tanpa tanggal → Qty × Harga (mis. ongkos kirim, biaya lain).</div>
             </div>
 
-            <div id="stockBox"><div class="er-table-wrapper"><table class="er-table">
+            <div id="stockBox">
+              <div class="border rounded p-3 mb-2 fs-13" id="recapHead"></div>
+              <div class="er-table-wrapper"><table class="er-table">
               <thead><tr>
-                <th>No</th><th>A. Nama Barang</th><th>SJ Kirim</th><th>SJ Pulang</th>
-                <th class="num">Qty</th><th class="num">Harga Satuan</th>
-                <th>B. Awal</th><th>B. Akhir</th><th class="num">C. Hari</th><th class="num">E. Total</th>
-              </tr></thead>
+                <th rowspan="2">No</th><th rowspan="2">Nama Barang</th><th rowspan="2">SJ Kirim / Pulang</th>
+                <th colspan="2" class="text-center">Periode Sewa</th>
+                <th rowspan="2" class="num">Hari (D)</th><th rowspan="2" class="num">Bulan (M)</th><th rowspan="2" class="num">Qty (Q)</th><th rowspan="2" class="num">Harga (P)</th><th rowspan="2" class="num text-nowrap">Jumlah<div class="fw-normal">(D×Q×P)/M</div></th>
+              </tr><tr><th>Awal</th><th>Akhir</th></tr></thead>
               <tbody id="recapBody"></tbody>
               <tfoot id="recapFoot"></tfoot>
             </table></div></div>
 
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mt-3">
               <div class="fs-12 text-muted" style="max-width:640px">
-                <div><strong>C. Hari</strong> = Tanggal Akhir − Tanggal Awal + 1 &nbsp;·&nbsp; <strong>D. Bulan Sewa</strong> = <span id="mdText">30</span> hari &nbsp;·&nbsp; <strong>E. Total</strong> = Qty × Hari × Harga Satuan ÷ Bulan Sewa</div>
+                <div><strong>Hari (D)</strong> = Tanggal Akhir − Tanggal Awal + 1 &nbsp;·&nbsp; <strong>Bulan (M)</strong> = <span id="mdText">30</span> hari &nbsp;·&nbsp; <strong>Jumlah</strong> = Hari × Qty × Harga ÷ Bulan &nbsp;·&nbsp; <strong>PPN</strong> = 12% × DPP (11/12 × total)</div>
+                <div class="mt-1">Awal = tanggal SJ kirim, Akhir = tanggal SJ pulang. Baris dikelompokkan per <strong>No. PO customer</strong> (diisi di order sewa).</div>
                 <div class="mt-1"><i class="bi bi-info-circle me-1"></i>Alat yang <strong>belum dipulangkan</strong> memakai tanggal akhir periode; tanggalnya bisa di-adjust di kolom Akhir.</div>
               </div>
               <div class="d-flex flex-wrap gap-2 align-items-end">
@@ -140,12 +143,11 @@
     const billable = MockData.projects.filter(p => Bill.segments(p.id).length);
     // Mode manual bisa untuk proyek mana saja; mode stok hanya proyek yang punya SJ
     document.getElementById('fProject').innerHTML = MockData.projects.map(p => `<option value="${p.id}">${p.name} - ${p.customerName}${Bill.segments(p.id).length ? '' : ' (belum ada SJ)'}</option>`).join('');
-    document.getElementById('lateRate').textContent = Bill.lateRate();
     document.getElementById('fAccount').innerHTML = MockData.accounts.filter(a => a.kind !== 'Kas').map(a => `<option value="${a.id}">${a.name}</option>`).join('');
     document.getElementById('fMonthDays').value = Bill.monthDays();
     document.getElementById('fInvDate').value = today;
     document.getElementById('fDue').value = settings.paymentTermDays;
-    document.getElementById('taxPct').textContent = Math.round(settings.taxRate * 100) + '%';
+    document.getElementById('taxPct').textContent = '(DPP 11/12 × 12%)';
 
     // ---------- Belum ditagih ----------
     function renderUnbilled() {
@@ -187,7 +189,7 @@
     }
 
     function opts() {
-      return { monthDays: Number(document.getElementById('fMonthDays').value) || Bill.monthDays(), endOverrides: overrides, lateFee: document.getElementById('fLate').checked };
+      return { monthDays: Number(document.getElementById('fMonthDays').value) || Bill.monthDays(), endOverrides: overrides };
     }
 
     // ---------- Mode manual ----------
@@ -199,7 +201,7 @@
     function pullFromStock(silent) {
       const pid = document.getElementById('fProject').value, ps = document.getElementById('fStart').value, pe = document.getElementById('fEnd').value;
       const lines = pe >= ps ? Bill.recap(pid, ps, pe, opts()) : [];
-      manual = lines.map(l => ({ desc: l.desc || l.equipment, equipment: l.equipment, qty: l.qty, unitPrice: l.unitPrice, start: l.start, end: l.end, type: l.type === 'late' ? 'late' : 'manual', sjDelivery: l.sjDelivery, sjReturn: l.sjReturn }));
+      manual = lines.map(l => ({ desc: (l.po ? '[' + l.po + '] ' : '') + (l.desc || l.equipment), equipment: l.equipment, qty: l.qty, unitPrice: l.unitPrice, start: l.start, end: l.end, type: 'manual', sjDelivery: l.sjDelivery, sjReturn: l.sjReturn }));
       if (!silent) { showToast(manual.length ? manual.length + ' baris ditarik dari stok, silakan edit' : 'Tidak ada SJ pada periode ini', manual.length ? 'success' : 'warning'); render(); }
     }
     function pullFromProject() {
@@ -216,7 +218,7 @@
     function renderManual() {
       document.getElementById('manualBody').innerHTML = manual.map((r, i) => `<tr>
         <td class="text-muted">${i + 1}</td>
-        <td><input class="form-control form-control-sm ${r.type === 'late' ? 'border-danger' : ''}" value="${esc(r.desc)}" oninput="setManual(${i}, 'desc', this.value)"></td>
+        <td><input class="form-control form-control-sm" value="${esc(r.desc)}" oninput="setManual(${i}, 'desc', this.value)"></td>
         <td><input type="number" min="0" class="form-control form-control-sm text-end" value="${r.qty}" oninput="setManual(${i}, 'qty', this.value)"></td>
         <td><input type="number" min="0" class="form-control form-control-sm text-end" value="${r.unitPrice}" oninput="setManual(${i}, 'unitPrice', this.value)"></td>
         <td><input type="date" class="form-control form-control-sm" value="${r.start || ''}" onchange="setManual(${i}, 'start', this.value)"></td>
@@ -241,12 +243,11 @@
 
     function renderTotals(footId, span) {
       const subtotal = currentLines.reduce((s, l) => s + l.amount, 0);
-      const taxRate = document.getElementById('fTax').checked ? settings.taxRate : 0;
-      const tax = Math.round(subtotal * taxRate);
-      document.getElementById(footId).innerHTML = `
-        <tr><td colspan="${span - 1}" class="text-end">Subtotal</td><td class="num">${formatRupiah(subtotal)}</td>${footId === 'manualFoot' ? '<td></td>' : ''}</tr>
-        ${taxRate ? `<tr><td colspan="${span - 1}" class="text-end">PPN ${Math.round(taxRate * 100)}%</td><td class="num">${formatRupiah(tax)}</td>${footId === 'manualFoot' ? '<td></td>' : ''}</tr>` : ''}
-        <tr><td colspan="${span - 1}" class="text-end">TOTAL TAGIHAN</td><td class="num">${formatRupiah(subtotal + tax)}</td>${footId === 'manualFoot' ? '<td></td>' : ''}</tr>`;
+      const t = BizLogic.Tax.ppn(subtotal, document.getElementById('fTax').checked ? settings.taxRate : 0);
+      const tail = footId === 'manualFoot' ? '<td></td>' : '';
+      const row = (label, v, strong) => `<tr${strong ? ' class="fw-700"' : ''}><td colspan="${span - 1}" class="text-end">${label}</td><td class="num">${formatRupiah(v)}</td>${tail}</tr>`;
+      document.getElementById(footId).innerHTML = row('TOTAL', subtotal) +
+        (t.tax ? row('DPP 11/12', t.dpp) + row('PPN 12%', t.tax) : '') + row('TOTAL TAGIHAN', subtotal + t.tax, true);
       const ps = document.getElementById('fStart').value, pe = document.getElementById('fEnd').value;
       const clash = Bill.overlaps(document.getElementById('fProject').value, ps, pe);
       document.getElementById('btnCreate').disabled = !currentLines.length || clash.length > 0 || pe < ps;
@@ -270,7 +271,6 @@
       document.getElementById('modeManual').classList.toggle('active', mode === 'manual');
       document.getElementById('stockBox').classList.toggle('d-none', mode !== 'stok');
       document.getElementById('manualBox').classList.toggle('d-none', mode !== 'manual');
-      document.getElementById('lateWrap').classList.toggle('d-none', mode !== 'stok');
       if (mode === 'manual') {
         renderManual();
         document.getElementById('btnCreate').innerHTML = '<i class="bi bi-receipt me-1"></i>' + (shadow && shadow.projectId === pid ? 'Terbitkan ' + shadow.id : 'Buat Invoice (Manual)');
@@ -278,28 +278,29 @@
       }
 
       currentLines = pe >= ps ? Bill.recap(pid, ps, pe, opts()) : [];
-      document.getElementById('recapBody').innerHTML = currentLines.map((l, i) => l.type === 'late' ? `<tr class="table-danger">
-        <td class="text-muted">${i + 1}</td>
-        <td class="fw-600" colspan="3"><i class="bi bi-alarm me-1 text-danger"></i>${l.desc} <span class="fs-11 text-muted fw-normal">· estimasi kembali ${formatDate(l.estimate)} (${l.rentalId}) · SJ ${l.sjDelivery}</span></td>
-        <td class="num">${formatNumber(l.qty)}</td>
-        <td class="num">${formatRupiah(l.unitPrice)}</td>
-        <td class="text-nowrap">${formatDate(l.start)}</td><td class="text-nowrap">${formatDate(l.end)}</td>
-        <td class="num">${l.days}</td>
-        <td class="num fw-600">${formatRupiah(l.amount)}</td>
-      </tr>` : `<tr>
-        <td class="text-muted">${i + 1}</td>
+      const proj = MockData.projects.find(p => p.id === pid);
+      const pos = [...new Set(currentLines.map(l => l.po).filter(Boolean))];
+      document.getElementById('recapHead').innerHTML = `<div class="fw-700 text-center mb-2">REKAPITULASI TAGIHAN</div>
+        <div>Kepada Yth, <strong>${esc(proj.customerName)}</strong></div><div>Proyek : ${esc(proj.name)}${proj.location ? ', ' + esc(proj.location) : ''}</div>
+        <div>Periode Sewa : ${formatDate(ps)} s/d ${formatDate(pe)}${pos.length ? ` &nbsp;·&nbsp; PO: ${pos.map(esc).join(', ')}` : ''}</div>`;
+      let lastPo = null, n = 0;
+      document.getElementById('recapBody').innerHTML = currentLines.map(l => {
+        const head = l.po !== lastPo ? `<tr class="table-light"><td colspan="10" class="fw-700">${l.po ? 'PO ' + esc(l.po) : 'Tanpa No. PO'}${l.rentalId ? ` <a href="rental-detail.html?id=${l.rentalId}" class="fw-normal fs-12 ms-1">${l.rentalId}</a>` : ''}</td></tr>` : '';
+        lastPo = l.po; n++;
+        return head + `<tr>
+        <td class="text-muted">${n}</td>
         <td class="fw-600 text-nowrap">${l.equipment}</td>
-        <td class="text-mono fs-12">${l.sjDelivery}</td>
-        <td class="text-mono fs-12">${l.sjReturn ? `${l.sjReturn}` : '<span class="badge-status waiting">belum pulang</span>'}</td>
-        <td class="num">${formatNumber(l.qty)}</td>
-        <td class="num">${formatRupiah(l.unitPrice)}</td>
+        <td class="text-mono fs-11 text-nowrap">${l.sjDelivery}<div>${l.sjReturn ? `${l.sjReturn}` : '<span class="badge-status waiting">belum pulang</span>'}</div></td>
         <td class="text-nowrap">${formatDate(l.start)}</td>
         <td class="text-nowrap">${l.adjustable
-          ? `<input type="date" class="form-control form-control-sm ${l.adjusted ? 'border-warning' : ''}" style="width:150px" value="${l.end}" min="${l.start}" max="${pe}" onchange="setOverride('${l.key.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', this.value)">`
+          ? `<input type="date" class="form-control form-control-sm ${l.adjusted ? 'border-warning' : ''}" style="width:135px" value="${l.end}" min="${l.start}" max="${pe}" onchange="setOverride('${l.key.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', this.value)">`
           : formatDate(l.end)}</td>
         <td class="num">${l.days}</td>
+        <td class="num">${l.monthDays}</td>
+        <td class="num">${formatNumber(l.qty)}</td>
+        <td class="num">${formatRupiah(l.unitPrice)}</td>
         <td class="num fw-600">${formatRupiah(l.amount)}</td>
-      </tr>`).join('') || '<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada alat yang disewa pada periode ini</td></tr>';
+      </tr>`; }).join('') || '<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada alat yang disewa pada periode ini</td></tr>';
 
       renderTotals('recapFoot', 10);
       document.getElementById('btnCreate').innerHTML = '<i class="bi bi-receipt me-1"></i>' + (shadow && shadow.projectId === pid ? 'Terbitkan ' + shadow.id : 'Buat Invoice');
@@ -322,8 +323,14 @@
 
     function exportCSV() {
       const p = MockData.projects.find(x => x.id === document.getElementById('fProject').value);
-      const rows = [['Nama Barang', 'SJ Kirim', 'SJ Pulang', 'Qty', 'Harga Satuan', 'Awal', 'Akhir', 'Hari', 'Bulan Sewa', 'Total']];
-      currentLines.forEach(l => rows.push([l.desc || l.equipment, l.sjDelivery || '', l.sjReturn || (l.manual ? '' : 'belum pulang'), l.qty, l.unitPrice, l.start || '', l.end || '', l.days, l.monthDays, l.amount]));
+      const ps = document.getElementById('fStart').value, pe = document.getElementById('fEnd').value;
+      const sub = currentLines.reduce((s, l) => s + l.amount, 0), t = BizLogic.Tax.ppn(sub, document.getElementById('fTax').checked ? settings.taxRate : 0);
+      const rows = [['REKAPITULASI TAGIHAN'], ['Kepada Yth', p.customerName], ['Proyek', p.name], ['Periode Sewa', ps + ' s/d ' + pe], [],
+        ['PO', 'Nama Barang', 'SJ Kirim', 'SJ Pulang', 'Awal', 'Akhir', 'Hari (D)', 'Bulan (M)', 'Qty (Q)', 'Harga (P)', 'Jumlah (DxQxP)/M']];
+      currentLines.forEach(l => rows.push([l.po || '', l.desc || l.equipment, l.sjDelivery || '', l.sjReturn || (l.manual ? '' : 'belum pulang'), l.start || '', l.end || '', l.days, l.monthDays, l.qty, l.unitPrice, l.amount]));
+      rows.push([], ['', '', '', '', '', '', '', '', '', 'TOTAL', sub]);
+      if (t.tax) rows.push(['', '', '', '', '', '', '', '', '', 'DPP 11/12', t.dpp], ['', '', '', '', '', '', '', '', '', 'PPN 12%', t.tax]);
+      rows.push(['', '', '', '', '', '', '', '', '', 'TOTAL TAGIHAN', sub + t.tax]);
       downloadCSV(`rekap-tagihan-${p.id}-${document.getElementById('fStart').value}.csv`, rows);
     }
 

@@ -47,8 +47,6 @@ const PAGE_MODULE = {
   'users.html': 'Users', 'roles.html': 'Roles', 'role-create.html': 'Roles'
   // edit-requests.html sengaja tidak didaftarkan: semua role bisa melihat & mengajukan perubahan
 };
-// Portal Driver: role Driver hanya bisa membuka halaman ini (Ekspedisi/Admin yang punya akses Pengiriman juga bisa)
-const DRIVER_PAGES = ['driver-dashboard.html', 'driver-deliveries.html', 'driver-delivery-detail.html'];
 
 function roleRule(role) {
   const m = (typeof MockData !== 'undefined' && MockData.permissions && MockData.permissions.matrix) || {};
@@ -72,31 +70,11 @@ function canDo(module, action, user) {
 function canAccessPage(page, user) {
   user = user || JSON.parse(sessionStorage.getItem('er_user') || 'null');
   if (!user) return false;
-  if (user.role === 'Driver') return DRIVER_PAGES.indexOf(page) >= 0;
-  if (DRIVER_PAGES.indexOf(page) >= 0) return canDo('Deliveries', 'View', user);
   const mod = PAGE_MODULE[page];
   return !mod || canDo(mod, 'View', user);
 }
 
-// Data pengemudi milik user login (role Driver) — dicocokkan lewat driverId atau nama
-function currentDriver(user) {
-  user = user || JSON.parse(sessionStorage.getItem('er_user') || 'null');
-  if (!user || typeof MockData === 'undefined') return null;
-  return MockData.drivers.find(d => d.id === user.driverId) || MockData.drivers.find(d => d.name === user.name) || null;
-}
-
-// Pengiriman untuk portal driver: driver hanya lihat tugasnya; role lain yang membuka portal lihat semua yang sudah ada driver
-function myDeliveries(user) {
-  user = user || JSON.parse(sessionStorage.getItem('er_user') || 'null');
-  if (user && user.role === 'Driver') {
-    const drv = currentDriver(user);
-    return drv ? MockData.deliveries.filter(d => d.driverId === drv.id) : [];
-  }
-  return MockData.deliveries.filter(d => d.driverId);
-}
-
 function homePageFor(user) {
-  if (user.role === 'Driver') return 'driver-dashboard.html';
   const first = Object.keys(PAGE_MODULE).find(p => canAccessPage(p, user));
   return first || 'login.html';
 }
@@ -313,12 +291,6 @@ function renderSidebarI18n(user, activePage) {
     </div>`;
   html += '<nav class="sidebar-nav">';
   const L = (href, icon, key, badge) => sidebarLinkI18n(href, icon, t(key), activePage, href, badge);
-  if (user.role === 'Driver') {
-    html += L('driver-dashboard.html', 'bi-speedometer2', 'dashboard');
-    html += L('driver-deliveries.html', 'bi-truck', 'my_deliveries');
-    html += '</nav>';
-    return html + sidebarFooter(user);
-  }
   const pendingOrders = (MockData.rentals || []).filter(r => r.status === 'Pending Approval' || r.status === 'Waiting Approval').length +
     (MockData.sales || []).filter(s => s.status === 'Pending Approval').length;
   html += L('dashboard.html', 'bi-speedometer2', 'dashboard');
@@ -341,6 +313,8 @@ function renderSidebarI18n(user, activePage) {
   html += L('stock-mutations.html', 'bi-arrow-left-right', 'stock_mutations');
   html += L('project-stock.html', 'bi-folder-check', 'project_stock');
   html += L('stock-report.html', 'bi-clipboard-data', 'stock_report');
+  html += L('vehicles.html', 'bi-truck-front', 'vehicles');
+  html += L('drivers.html', 'bi-person-badge', 'drivers');
   html += sidebarSectionI18n(t('inventory'));
   html += L('equipment.html', 'bi-tools', 'equipment');
   html += L('branches.html', 'bi-building', 'branches');
@@ -353,8 +327,6 @@ function renderSidebarI18n(user, activePage) {
   html += L('purchase-report.html', 'bi-clipboard-data', 'purchase_report');
   html += L('payables.html', 'bi-journal-minus', 'payables_report');
   html += sidebarSectionI18n(t('master_data'));
-  html += L('drivers.html', 'bi-person-badge', 'drivers');
-  html += L('vehicles.html', 'bi-truck-front', 'vehicles');
   html += L('accounts.html', 'bi-bank', 'company_accounts');
   html += sidebarSectionI18n(t('finance_billing'));
   html += L('finance-ledger.html', 'bi-wallet2', 'bank_ledger');

@@ -8,6 +8,10 @@ Semua isi diambil dari kode prototype saat ini (`*.html` + `assets/js/business-l
 > menu **Penyewaan** sekarang bernama **Rekap Project**; PIC pelanggan jadi **PM**; fitur **Hilang** dihapus
 > (alat hilang dipulangkan administratif lalu dijual); Buku Kas jadi form **kasir** → **Generate** (Accounting) → Jurnal → **COA per bulan** dengan pie chart.
 > Diagram lama di bagian 2–4 & 9 masih memakai istilah lama; aturan di bagian 13 yang berlaku.
+>
+> **Update DATA TKN.xlsx (Okt 2026, batch 4)** — lihat [bagian 14](#14-data-tknxlsx-logistik-rekap-tagihan-rekap-stock--lapkeu):
+> role **Ekspedisi & Driver dihapus**, digabung ke **Logistik** (termasuk kendaraan & pengemudi). Keterlambatan dari estimasi
+> **dibebankan ke Logistik**, bukan customer. Semua penyebutan "Ekspedisi" / portal driver di diagram lama = Logistik.
 
 ## Cara melihat diagram
 
@@ -43,6 +47,7 @@ Cara baca diagram:
 | 11 | [Role, ACC Piutang, Penjualan, Ekspedisi & Permintaan Perubahan](#11-role-acc-piutang-penjualan-ekspedisi--permintaan-perubahan) | Alur terbaru dari catatan user Okt 2026 |
 | 12 | [Purchasing](#12-purchasing-purchase-request-purchase-order-pembayaran-laporan) | Purchase Request, Purchase Order (term & tax), uang muka / pelunasan / tempo, laporan pembelian & hutang dagang |
 | 13 | [Rekap Project, Jual Alat di Proyek & Kasir → Jurnal → COA](#13-rekap-project-jual-alat-di-proyek--kasir--jurnal--coa) | Catatan user batch 3: rekap per proyek + persentase, hapus Hilang, kasir, generate, kategori jurnal, COA bulanan |
+| 14 | [DATA TKN.xlsx: Logistik, Rekap Tagihan, Rekap Stock & LAPKEU](#14-data-tknxlsx-logistik-rekap-tagihan-rekap-stock--lapkeu) | Gabung role ke Logistik, denda telat ke Logistik, format rekap tagihan (PO, DPP 11/12, PPN 12%), matriks rekap stock, nomor SJ, kode transaksi |
 
 ---
 
@@ -964,19 +969,19 @@ Kepulangan menghitung alat yang sudah tiba di gudang (termasuk yang masih menung
 
 | Catatan user | Di prototype |
 |---|---|
-| Muaranya dari kasir, form: tanggal, proyek, kode transaksi dari rekening, notes, cash / debit, nominal debet / kredit | **Buku Kas & Bank → Input Transaksi Kas**. Kode transaksi otomatis `KODE REKENING-BB/BM-YYMM-NNN` (mis. `KAS-BM-2610-001`). Kode rekening diisi di Rekening Perusahaan |
+| Muaranya dari kasir, form: tanggal, proyek, kode transaksi dari rekening, notes, cash / debit, nominal debet / kredit | **Buku Kas & Bank → Input Transaksi Kas**. Kode transaksi otomatis `BB/BM + KODE REKENING-YYMM-NNN` (mis. `BMKAS-2610-001`, lihat bagian 14). Kode rekening diisi di Rekening Perusahaan |
 | Jurnal ada kategori (pakan hewan, ATK, dll.) | Master **Kategori Jurnal** (COA → tab Kategori Jurnal). Kategori menentukan **akun COA** di jurnal dan **baris Laporan Kas** |
 | Kas bisa koreksi atau tambah sendiri | Belum di-generate → **Ubah / Hapus** langsung. Sudah masuk jurnal → **Koreksi** (bon pembalik + transaksi pengganti, jejak tetap ada) |
 | Laporan kas masuk accounting setelah di-generate, lalu ke COA | **Laporan Kas → Generate ke Jurnal** (Accounting). Sebelum generate, transaksi kasir belum masuk Jurnal / Buku Besar / COA |
 | Finance langsung masuk jurnal | Input oleh role **Finance** / **Accounting & Tax** langsung berstatus *Masuk jurnal* |
 | COA periode per bulan, total semua, pie chart | **COA**: pilih bulan & tahun → saldo awal bulan, debet, kredit, saldo akhir per akun & kelompok, tabel total per jenis akun, pie **biaya per kelompok akun** & **biaya per kategori jurnal** |
 
-Kasir = role **Administrasi** (hak akses Rekening/Kas: lihat & input).
+Kasir = role **Kasir** (dulu Administrasi; hak akses Rekening/Kas: lihat & input).
 
 ```
 title 13 - Kasir → Generate → Jurnal → COA
 
-actor "Kasir (Administrasi)" as Kasir
+actor Kasir
 actor Finance
 actor Accounting
 participant "Buku Kas & Bank" as Kas
@@ -1006,6 +1011,40 @@ end
 
 ---
 
+## 14. DATA TKN.xlsx: Logistik, Rekap Tagihan, Rekap Stock & LAPKEU
+
+Dari file `excel/DATA TKN.xlsx` + catatan user (Okt 2026, batch 4).
+
+### A. Logistik (Ekspedisi & Driver digabung)
+
+- Perusahaan keluarga: **PT penyedia alat** (`company.name`) + **PT pengirim alat** (`company.logistics.name`). Tetap **satu aplikasi / satu proyek**; PT pengirim = role **Logistik**.
+- Role **Ekspedisi** dan **Driver** (beserta portal driver) dihapus. **Logistik** sekarang: gudang & stok, **kendaraan & pengemudi** (menu pindah ke LOGISTIK & STOK), surat jalan, **estimasi** kirim / jemput, **update posisi**, inspeksi.
+- Pengemudi tetap jadi data master (nama di surat jalan), tapi tidak login.
+- **Keterlambatan dari estimasi dibebankan ke Logistik**, bukan customer. Biaya keterlambatan di Rekap Tagihan dihapus; customer bayar sewa sesuai tanggal SJ.
+- **Surat Jalan → tab Denda Logistik**: SJ yang tiba lewat estimasi (toleransi `logisticsLateGraceMinutes`, default 2 jam). Denda = qty × harga sewa ÷ 30 × hari telat × `logisticsLateRate` (default 1). Cetak surat jalan mencantumkan PT pengangkut.
+
+### B. Rekap Tagihan (sheet REKAP TAGIHAN)
+
+- Header: **Kepada Yth** (pelanggan), **Proyek**, **Periode Sewa**.
+- Baris dikelompokkan per **No. PO customer** (field baru di Order Sewa), lalu per alat & per SJ.
+- Kolom: Nama Barang · Periode Sewa Awal / Akhir · **Hari (D)** · **Bulan (M)** · **Qty (Q)** · **Harga (P)** · **Jumlah (D×Q×P)/M**.
+- Footer: **TOTAL → DPP 11/12 → PPN 12% → TOTAL TAGIHAN** (efektif 11%). Invoice menyimpan DPP nilai lain; XML Coretax sudah memakai DPP 11/12 & tarif 12%.
+- Hari = Akhir − Awal **+ 1** (aturan sheet DATA). Catatan: rumus di sheet REKAP TAGIHAN `=D−C` tanpa +1; perlu dikonfirmasi ke user.
+
+### C. Rekap Stock (sheet REKAP STOCK)
+
+- **Stok Proyek → tab Format Rekap Stock**: baris = surat jalan (tanggal + nomor), kolom = alat. TOTAL PENGIRIMAN, SISA PO / KEBUTUHAN, baris pemulangan, TOTAL PEMULANGAN, **SISA ALAT DI PROYEK**. Bisa export CSV.
+- Nomor surat jalan baru mengikuti format user: `NNN/BULAN ROMAWI/YY/JKT-SW` (kirim), `…/JKT-KBL` (pemulangan), `…/JKT-JL` (jual). Kode `JKT` di `company.sjCode`. Data lama tetap `SJK-/SJR-/PJ-`.
+
+### D. LAPKEU
+
+- Kode transaksi kas mengikuti contoh `BMBCA01`: **BB/BM + kode rekening + periode + urut**, mis. `BMBCA-2610-001`, `BBKAS-2610-002`.
+- Buku Kas & Export CSV memakai urutan kolom **Kode Transaksi · Tanggal · Source · Nama Transaksi · Jurnal · Debet · Kredit**.
+- Akun baru dari format Laba Rugi: 6-3007 Biaya Ekspedisi, 6-3008 Biaya Komisi, 6-2011 Biaya Administrasi, 7-1005 Pendapatan Sewa (TVW). Kategori jurnal baru: *Biaya Ekspedisi (PT Logistik)*.
+- Kertas kerja (Neraca 2025 · Mutasi · Adjustment · Neraca · Laba Rugi), laba rugi per proyek & keseluruhan, neraca per rekening, PPN & PPh 23 → XML Coretax: sudah ada sebelumnya.
+
+---
+
 ## Lampiran A - Peta Menu Sidebar
 
 | Grup | Menu | File |
@@ -1027,6 +1066,7 @@ end
 | | Perpindahan Stok | `stock-mutations.html` |
 | | Stok Proyek | `project-stock.html` |
 | | Laporan Stok | `stock-report.html` |
+| | Kendaraan / Pengemudi (dikelola Logistik) | `vehicles.html`, `vehicle-detail.html`, `drivers.html`, `driver-detail.html` |
 | INVENTARIS | Alat Berat | `equipment.html`, `equipment-detail.html` |
 | | Gudang | `branches.html`, `branch-detail.html` |
 | | Log Pergerakan Aset | `movements.html`, `movement-detail.html` |
@@ -1036,9 +1076,7 @@ end
 | | Vendor / Supplier | `vendors.html` |
 | | Laporan Pembelian | `purchase-report.html` |
 | | Laporan Hutang Dagang | `payables.html` |
-| DATA MASTER | Pengemudi | `drivers.html`, `driver-detail.html` |
-| | Kendaraan | `vehicles.html`, `vehicle-detail.html` |
-| | Rekening Perusahaan | `accounts.html` |
+| DATA MASTER | Rekening Perusahaan | `accounts.html` |
 | KEUANGAN | Buku Kas & Bank | `finance-ledger.html` |
 | | Laporan Kas | `cash-report.html` |
 | | Rekonsiliasi Bank | `bank-reconciliation.html` |
@@ -1053,7 +1091,7 @@ end
 | | PPh 23 | `tax-pph23.html` |
 | ADMINISTRASI | Permintaan Perubahan | `edit-requests.html` |
 | | Pengguna / Peran | `users.html`, `roles.html`, `role-create.html` |
-| Portal Driver (login Driver) | Dasbor / Pengiriman Saya | `driver-dashboard.html`, `driver-deliveries.html`, `driver-delivery-detail.html` |
+| ~~Portal Driver~~ | **Dihapus** (batch 4): role Driver digabung ke Logistik | - |
 
 ## Lampiran B - Daftar Status
 
@@ -1095,7 +1133,7 @@ end
 | REK | Rekonsiliasi Bank | "Simpan Rekonsiliasi" |
 | JP | Jurnal Penyesuaian | "Tambah Jurnal Penyesuaian" (`JP-YYMM-NNN`); `JP-STOK` = penyesuaian persediaan otomatis |
 
-Format kode transaksi baru: `KODE REKENING-BB-YYMM-NNN` / `KODE REKENING-BM-YYMM-NNN` (mis. `KAS-BM-2610-001`), urut per rekening per bulan. Data lama tetap `BB-YYMM-NNN` / `BM-YYMM-NNN`.
+Format kode transaksi baru (LAPKEU): `BB` / `BM` + kode rekening + `-YYMM-NNN` (mis. `BMKAS-2610-001`, `BBBCA-2610-003`), urut per rekening per bulan. Data lama tetap `BB-YYMM-NNN` / `BM-YYMM-NNN`.
 
 | GEN | Batch generate Laporan Kas ke jurnal | "Generate" di Laporan Kas (Accounting) |
 

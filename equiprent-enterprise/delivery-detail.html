@@ -57,10 +57,10 @@
     </div></div>
   </div>
 
-  <!-- Estimasi ekspedisi -->
+  <!-- Estimasi logistik -->
   <div class="modal fade" id="estModal" tabindex="-1">
     <div class="modal-dialog"><div class="modal-content">
-      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-clock-history me-2"></i>Estimasi Ekspedisi</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-clock-history me-2"></i>Estimasi Logistik</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
       <div class="modal-body">
         <div class="alert alert-light border py-2 fs-13">Wajib diisi sebelum surat jalan dibawa berangkat. Bisa diubah lagi kalau ada info baru dari driver.</div>
         <div class="row g-3">
@@ -81,7 +81,7 @@
     <div class="modal-dialog"><div class="modal-content">
       <div class="modal-header"><h5 class="modal-title"><i class="bi bi-geo-alt me-2"></i>Update Posisi Driver</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
       <div class="modal-body">
-        <div class="alert alert-light border py-2 fs-13">Diisi manual oleh Ekspedisi dari info driver (WA).</div>
+        <div class="alert alert-light border py-2 fs-13">Diisi manual oleh Logistik dari info driver (WA).</div>
         <div class="row g-3">
           <div class="col-md-5"><label class="form-label form-label-er">Waktu</label><input type="datetime-local" class="form-control" id="trkAt"></div>
           <div class="col-md-7"><label class="form-label form-label-er">Posisi / Lokasi</label><input type="text" class="form-control" id="trkLoc" placeholder="mis. Tol Cikampek KM 30"></div>
@@ -122,7 +122,9 @@
       const m = D.lateMinutes(dlv);
       if (m == null) return '';
       if (m <= 0) return '<span class="badge bg-success-subtle text-success fw-normal ms-1">Tepat waktu</span>';
-      return `<span class="badge bg-danger-subtle text-danger fw-normal ms-1">Telat ${D.durationText(m)} dari estimasi</span>`;
+      const p = D.latePenalty(dlv);
+      return `<span class="badge bg-danger-subtle text-danger fw-normal ms-1">Telat ${D.durationText(m)} dari estimasi</span>` +
+        (p ? ` <a href="deliveries.html?tab=late" class="badge bg-danger text-white fw-normal ms-1 text-decoration-none" title="${p.days} hari denda">Denda ke Logistik ${formatRupiah(p.amount)}${p.final ? '' : ' (berjalan)'}</a>` : ' <span class="badge bg-light text-muted border fw-normal ms-1">masih dalam toleransi</span>');
     }
 
     function render() {
@@ -157,7 +159,7 @@
 
       const trk = (dlv.tracking || []).slice().reverse();
       document.getElementById('detailBody').innerHTML = `
-        ${open && !est ? `<div class="alert alert-warning py-2 fs-13"><i class="bi bi-hourglass-split me-1"></i>Ekspedisi belum mengisi estimasi. Surat jalan belum bisa dicetak / dibawa berangkat.</div>` : ''}
+        ${open && !est ? `<div class="alert alert-warning py-2 fs-13"><i class="bi bi-hourglass-split me-1"></i>Logistik belum mengisi estimasi. Surat jalan belum bisa dicetak / dibawa berangkat.</div>` : ''}
         <div class="row g-4">
           <div class="col-lg-6">
             <h6 class="fw-600 mb-3">Informasi Surat Jalan</h6>
@@ -174,7 +176,7 @@
             </div>
           </div>
           <div class="col-lg-6">
-            <h6 class="fw-600 mb-3"><i class="bi bi-clock-history me-1"></i>Estimasi Ekspedisi ${lateText()}</h6>
+            <h6 class="fw-600 mb-3"><i class="bi bi-clock-history me-1"></i>Estimasi Logistik ${lateText()}</h6>
             ${est ? `<div class="info-grid">
               <div class="info-item"><span class="info-label">Estimasi Berangkat</span><span class="info-value">${esc(est.departAt || '-')}</span></div>
               <div class="info-item"><span class="info-label">Estimasi Tiba</span><span class="info-value fw-600">${esc(est.arriveAt)}</span></div>
@@ -294,7 +296,7 @@
         <table class="meta"><tr><td style="width:120px">Tanggal</td><td>: ${formatDate(dlv.deliveryDate)}</td><td style="width:120px">Driver</td><td>: ${esc(dlv.driverName || '-')}</td></tr>
         <tr><td>Customer</td><td>: ${esc(dlv.customerName)}</td><td>Kendaraan</td><td>: ${dlv.vehiclePlate || '-'}</td></tr>
         <tr><td>Proyek</td><td>: ${esc(dlv.projectName || '-')}</td><td>${kind === 'PEMULANGAN' ? 'Dari' : 'Tujuan'}</td><td>: ${esc((kind === 'PEMULANGAN' ? L.from : L.to) || '-')}</td></tr>
-        <tr><td>Estimasi tiba</td><td>: ${esc(e.arriveAt || '-')}</td><td></td><td></td></tr></table>
+        <tr><td>Estimasi tiba</td><td>: ${esc(e.arriveAt || '-')}</td><td>Pengangkut</td><td>: ${esc((c.logistics && c.logistics.name) || '-')}</td></tr></table>
         <table><thead><tr><th style="width:40px">No</th><th>Nama Alat</th><th style="width:80px">Qty</th><th>Keterangan</th></tr></thead><tbody>${rows}</tbody></table>
         <div class="sign">${signs}</div></body></html>`;
       const w = window.open('', '_blank');

@@ -162,7 +162,7 @@
       <div class="invoice-summary mt-4">
         <table>
           <tr><td class="text-muted">Subtotal</td><td class="text-end">${formatRupiah(inv.subtotal)}</td></tr>
-          ${inv.tax ? `<tr><td class="text-muted">PPN ${Math.round(inv.taxRate * 100)}%</td><td class="text-end">${formatRupiah(inv.tax)}</td></tr>` : ''}
+          ${inv.tax ? (() => { const t = BizLogic.Tax.ofInvoice(inv); return (t.vatRate === 0.12 ? `<tr><td class="text-muted">DPP 11/12</td><td class="text-end">${formatRupiah(t.dpp)}</td></tr><tr><td class="text-muted">PPN 12%</td><td class="text-end">${formatRupiah(inv.tax)}</td></tr>` : `<tr><td class="text-muted">PPN ${Math.round(inv.taxRate * 100)}%</td><td class="text-end">${formatRupiah(inv.tax)}</td></tr>`); })() : ''}
           ${isShadow ? `<tr class="total-row"><td class="pt-2">Total Sementara</td><td class="text-end pt-2">${formatRupiah(inv.amount)}</td></tr>` : `
           <tr><td class="fw-600">Total Tagihan</td><td class="text-end fw-600">${formatRupiah(inv.amount)}</td></tr>
           <tr><td class="text-muted border-bottom pb-2">Sudah Dibayar</td><td class="text-end text-success border-bottom pb-2">− ${formatRupiah(paid)}</td></tr>
