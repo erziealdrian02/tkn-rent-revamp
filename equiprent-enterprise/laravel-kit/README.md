@@ -1,6 +1,6 @@
 # laravel-kit — Prototype HTML → Laravel Blade
 
-Kit ini memindahkan 66 halaman prototype (yang sekarang semua ada di root) ke struktur Laravel yang rapi per modul, cukup dengan **satu perintah**. Prototype aslinya tidak diubah.
+Kit ini memindahkan 67 halaman prototype (yang sekarang semua ada di root) ke struktur Laravel yang rapi per modul, cukup dengan **satu perintah**. Prototype aslinya tidak diubah.
 
 Ini adalah **Tahap 2 (slicing UI)** di `md_ai/laravel_phase_2_ui_integration.md`. Hasilnya tampil 100% sama dengan prototype karena JS prototype masih dipakai apa adanya. Data dinamis dari database dikerjakan di tahap berikutnya.
 
@@ -45,18 +45,18 @@ resources/views/
 ├── layouts/app.blade.php
 ├── components/{sidebar,header}.blade.php
 ├── home.blade.php                  auth/login.blade.php        dashboard/index.blade.php
-├── rentals/{index,create,show}     projects/{index,create,show}    claims/{index,show}
+├── customers/{index,show}          projects/{index,create,show}
+├── rentals/{index,create,show}     sales/{index,create,show}   claims/{index,show}
+├── receivables/{approvals,billing,payments,report}             receivables/invoices/{index,show,shadow}
 ├── deliveries/{index,show}         returns/{index,show}
 ├── stock/{index,mutations,transfer,project,report}
 ├── equipment/{index,show}          branches/{index,show}       movements/{index,show}
 ├── purchases/{index,create,show}   goods-receipts/{index,show}
-├── repairs/{index,show}            maintenance/{index,show}
-├── master/{customers,drivers,vehicles}/{index,show}            master/accounts/index
-├── finance/{billing,payments,receivables,cash-bank-ledger,cash-report,bank-reconciliation}
-├── finance/invoices/{index,show,shadow}
+├── master/{drivers,vehicles}/{index,show}                      master/accounts/index
+├── finance/{cash-bank-ledger,cash-report,bank-reconciliation}
 ├── accounting/{coa,journal,general-ledger,worksheet,adjustments,profit-loss,balance-sheet}
 ├── tax/{ppn,pph23}
-├── admin/users/index               admin/roles/{index,create}
+├── admin/edit-requests             admin/users/index           admin/roles/{index,create}
 └── driver/dashboard                driver/deliveries/{index,show}
 ```
 
@@ -81,7 +81,7 @@ Peta lengkap per halaman: `php laravel-kit/convert.php --list`.
 
 ## Sudah diuji
 
-Di project Laravel 13 baru: 66 halaman terkonversi, `php artisan view:cache` sukses, dan semua halaman dibuka di browser sebagai Super Admin, Finance & Driver tanpa error JS. Tampilannya identik dengan prototype, dan hak akses per role tetap berjalan.
+Di project Laravel 13 baru: halaman terkonversi, `php artisan view:cache` sukses, dan semua halaman dibuka di browser sebagai Super Admin, Finance & Driver tanpa error JS. Tampilannya identik dengan prototype, dan hak akses per role tetap berjalan.
 
 ## Tahap berikutnya (di luar kit ini)
 

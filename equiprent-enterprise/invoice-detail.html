@@ -102,7 +102,8 @@
     document.getElementById('actions').innerHTML = `
       ${isRent && inv.projectId ? `<a href="billing.html?project=${inv.projectId}${isShadow ? '&shadow=' + inv.id : ''}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calculator me-1"></i>${isShadow ? 'Terbitkan dari Rekap' : 'Rekap Tagihan'}</a>` : ''}
       <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak</button>
-      ${paid === 0 && status !== 'Cancelled' ? '<button class="btn btn-outline-danger btn-sm" onclick="cancelInvoice()"><i class="bi bi-x-circle me-1"></i>Batalkan</button>' : ''}
+      ${paid === 0 && status !== 'Cancelled' ? editButton({ docType: 'Invoice', docId: inv.id, docLabel: inv.customerName, link: 'invoice-detail.html?id=' + inv.id }, '<button class="btn btn-outline-danger btn-sm" onclick="cancelInvoice()"><i class="bi bi-x-circle me-1"></i>Batalkan</button>', { action: 'Batalkan', label: 'Ajukan Pembatalan' }) : ''}
+      ${inv.saleId ? `<a href="sale-detail.html?id=${inv.saleId}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-bag-check me-1"></i>${inv.saleId}</a>` : ''}
       ${isShadow ? `<a href="invoice-shadow.html?id=${inv.id}" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil-square me-1"></i>Ubah Barang</a>
       <button class="btn btn-primary btn-sm" onclick="openIssue()"><i class="bi bi-send-check me-1"></i>Terbitkan</button>` : ''}
       ${remaining > 0 ? '<button class="btn btn-success btn-sm" onclick="openPay()"><i class="bi bi-cash me-1"></i>Catat Pembayaran</button>' : ''}`;

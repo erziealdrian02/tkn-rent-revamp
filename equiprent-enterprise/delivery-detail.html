@@ -1,8 +1,8 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Detail Pengiriman - EquipRent Enterprise</title>
+  <title>Detail Surat Jalan - EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -23,221 +23,248 @@
     </main>
   </div>
 
-  <!-- Proof of Delivery Modal -->
+  <!-- Serah terima / terima di gudang -->
   <div class="modal fade" id="podModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title"><i class="bi bi-person-check me-2"></i>Proof of Delivery</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body">
-          <div class="mb-3"><label class="form-label form-label-er">Receiver Name</label><input type="text" class="form-control" id="podName" required></div>
-          <div class="mb-3"><label class="form-label form-label-er">Receiver Phone</label><input type="text" class="form-control" id="podPhone" required></div>
-          <div class="mb-3">
-            <label class="form-label form-label-er">Signature / Photo Proof</label>
-            <div class="d-flex align-items-center justify-content-center bg-light border rounded" style="height:120px; color:var(--text-secondary); border-style:dashed!important;">
-              <i class="bi bi-camera me-2"></i> Click to capture photo (Mock)
-            </div>
-            <small class="text-muted d-block mt-1">In this prototype, this acts as the signature/photo capture.</small>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-          <button class="btn btn-success" onclick="completeDelivery()"><i class="bi bi-check-lg me-1"></i>Confirm Delivery</button>
-        </div>
+    <div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" id="podTitle"></h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="alert alert-light border py-2 fs-13" id="podHint"></div>
+        <div class="mb-3"><label class="form-label form-label-er" id="podNameLabel">Nama Penerima *</label><input type="text" class="form-control" id="podName"></div>
+        <div class="mb-3"><label class="form-label form-label-er">No. Telepon</label><input type="text" class="form-control" id="podPhone"></div>
       </div>
-    </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+        <button class="btn btn-success" onclick="completeDelivery()"><i class="bi bi-check-lg me-1"></i>Konfirmasi</button>
+      </div>
+    </div></div>
   </div>
 
-  <!-- Failed Delivery Modal -->
+  <!-- Gagal kirim -->
   <div class="modal fade" id="failModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header"><h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i>Report Failure</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label form-label-er">Failure Reason</label>
-            <select class="form-select mb-2" id="failReasonType">
-              <option>Customer not on site</option>
-              <option>Site inaccessible</option>
-              <option>Equipment rejected by customer</option>
-              <option>Vehicle breakdown</option>
-              <option>Other</option>
-            </select>
-            <textarea class="form-control" id="failReasonText" rows="3" placeholder="Additional details..."></textarea>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-          <button class="btn btn-danger" onclick="failDelivery()"><i class="bi bi-x-circle me-1"></i>Report Failure</button>
+    <div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2"></i>Laporkan Kendala</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <label class="form-label form-label-er">Alasan</label>
+        <select class="form-select mb-2" id="failReasonType">
+          <option>Customer tidak ada di lokasi</option><option>Akses lokasi tertutup</option><option>Alat ditolak customer</option><option>Kendaraan mogok</option><option>Lainnya</option>
+        </select>
+        <textarea class="form-control" id="failReasonText" rows="3" placeholder="Keterangan tambahan..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+        <button class="btn btn-danger" onclick="failDelivery()"><i class="bi bi-x-circle me-1"></i>Tandai Gagal</button>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- Estimasi ekspedisi -->
+  <div class="modal fade" id="estModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-clock-history me-2"></i>Estimasi Ekspedisi</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="alert alert-light border py-2 fs-13">Wajib diisi sebelum surat jalan dibawa berangkat. Bisa diubah lagi kalau ada info baru dari driver.</div>
+        <div class="row g-3">
+          <div class="col-6"><label class="form-label form-label-er">Estimasi Berangkat</label><input type="datetime-local" class="form-control" id="estDepart"></div>
+          <div class="col-6"><label class="form-label form-label-er">Estimasi Tiba *</label><input type="datetime-local" class="form-control" id="estArrive"></div>
+          <div class="col-12"><label class="form-label form-label-er">Catatan</label><input type="text" class="form-control" id="estNotes" placeholder="Rute, kondisi jalan, jam bongkar, dll."></div>
         </div>
       </div>
-    </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+        <button class="btn btn-primary" onclick="saveEstimate()"><i class="bi bi-check-lg me-1"></i>Simpan Estimasi</button>
+      </div>
+    </div></div>
   </div>
+
+  <!-- Update posisi -->
+  <div class="modal fade" id="trkModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-geo-alt me-2"></i>Update Posisi Driver</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="alert alert-light border py-2 fs-13">Diisi manual oleh Ekspedisi dari info driver (WA).</div>
+        <div class="row g-3">
+          <div class="col-md-5"><label class="form-label form-label-er">Waktu</label><input type="datetime-local" class="form-control" id="trkAt"></div>
+          <div class="col-md-7"><label class="form-label form-label-er">Posisi / Lokasi</label><input type="text" class="form-control" id="trkLoc" placeholder="mis. Tol Cikampek KM 30"></div>
+          <div class="col-12"><label class="form-label form-label-er">Keterangan</label><textarea class="form-control" id="trkNote" rows="2" placeholder="mis. macet, perkiraan tiba mundur 1 jam"></textarea></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+        <button class="btn btn-primary" onclick="saveTracking()"><i class="bi bi-check-lg me-1"></i>Simpan</button>
+      </div>
+    </div></div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
   <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
+    const D = BizLogic.Delivery;
     const did = getUrlParam('id') || 'DLV-001';
     const dlv = MockData.deliveries.find(d => d.id === did) || MockData.deliveries[0];
-    initApp('deliveries.html',[{label:'Rekap Stok',href:'#'},{label:'Pengiriman',href:'deliveries.html'},{label:dlv.id}],dlv.id);
+    const kind = D.kindOf(dlv), K = D.KINDS[kind];
+    initApp('deliveries.html', [{label:'Logistik & Stok',href:'#'},{label:'Surat Jalan & Pengiriman',href:'deliveries.html'},{label:dlv.sjNo || dlv.id}], dlv.sjNo || dlv.id);
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const canUpd = canDo('Deliveries', 'Update');
+    const toLocal = s => s ? s.replace(' ', 'T').substring(0, 16) : '';
+    const nowLocal = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().substring(0, 16);
+    const rentalOf = dlv.rentalId ? MockData.rentals.find(r => r.id === dlv.rentalId) : null;
+    const branchName = dlv.branch || (rentalOf && rentalOf.branch ? rentalOf.branch.replace(' Warehouse', '') : '');
+    const orderLink = dlv.saleId ? `<a href="sale-detail.html?id=${dlv.saleId}">${dlv.saleId}</a>` : dlv.rentalId ? `<a href="rental-detail.html?id=${dlv.rentalId}">${dlv.rentalId}</a>` : '-';
+    // Label per jenis: pemulangan = jemput dari proyek, "sampai" = tiba di gudang
+    const L = kind === 'PEMULANGAN'
+      ? { arrive: 'Tiba di Gudang', complete: 'Terima di Gudang & Inspeksi', from: dlv.projectName, to: dlv.destination, receiver: 'Diterima oleh (gudang)', hint: 'Alat diterima di gudang. Sistem membuat Pengembalian untuk diinspeksi (baik / rusak / hilang); stok pindah saat inspeksi selesai.' }
+      : { arrive: 'Sampai di Lokasi', complete: 'Serah Terima (PoD)', from: 'Gudang ' + branchName, to: dlv.destination, receiver: 'Nama Penerima *', hint: kind === 'JUAL' ? 'Barang diserahkan ke customer. Stok gudang berkurang (PJ).' : 'Alat diserahkan di proyek. Stok pindah gudang → proyek (SJK) dan sewa mulai dihitung.' };
 
-    document.getElementById('detailHeader').innerHTML = `
-      <div class="detail-header-left">
-        <div class="detail-header-icon"><i class="bi bi-truck"></i></div>
-        <div class="detail-header-info">
-          <h2>${dlv.id} ${statusBadge(dlv.status)}</h2>
-          <div class="detail-meta">
-            <span class="detail-meta-item"><i class="bi bi-file-earmark-text"></i><a href="rental-detail.html?id=${dlv.rentalId}">${dlv.rentalId}</a></span>
-            <span class="detail-meta-item"><i class="bi bi-people"></i>${dlv.customerName}</span>
-            <span class="detail-meta-item"><i class="bi bi-folder"></i><a href="project-detail.html?id=${dlv.projectId}">${dlv.projectName}</a></span>
-            <span class="detail-meta-item"><i class="bi bi-calendar"></i>${formatDate(dlv.deliveryDate)}</span>
-          </div>
-        </div>
-      </div>
-      <div class="detail-header-actions">
-        ${dlv.status === 'Assigned' ? `<button class="btn btn-warning btn-sm" onclick="departDelivery()"><i class="bi bi-truck me-1"></i>Depart</button>` : ''}
-        ${dlv.status === 'Departed' ? `<button class="btn btn-info btn-sm" onclick="arriveDelivery()"><i class="bi bi-geo-alt me-1"></i>Arrive at Site</button>
-                                       <button class="btn btn-outline-danger btn-sm" onclick="openFailModal()"><i class="bi bi-exclamation-triangle me-1"></i>Report Issue</button>` : ''}
-        ${dlv.status === 'Arrived' ? `<button class="btn btn-success btn-sm" onclick="openPodModal()"><i class="bi bi-check-circle me-1"></i>Complete Handover (PoD)</button>
-                                      <button class="btn btn-outline-danger btn-sm" onclick="openFailModal()"><i class="bi bi-exclamation-triangle me-1"></i>Report Issue</button>` : ''}
-        ${dlv.status === 'Failed' ? `<button class="btn btn-primary btn-sm" onclick="rescheduleDelivery()"><i class="bi bi-arrow-repeat me-1"></i>Reschedule</button>` : ''}
-        ${dlv.status === 'Preparing' || dlv.status === 'Rescheduled' ? `<button class="btn btn-primary btn-sm" onclick="openAssign()"><i class="bi bi-person-plus me-1"></i>Tugaskan Driver</button>` : ''}
-        <button class="btn btn-outline-secondary btn-sm" onclick="printSJ()"><i class="bi bi-printer me-1"></i>Cetak Surat Jalan</button>
-      </div>`;
-
-    document.getElementById('detailBody').innerHTML = `
-      <div class="row g-4">
-        <div class="col-md-6">
-          <h6 class="fw-600 mb-3">Delivery Information</h6>
-          <div class="info-grid">
-            <div class="info-item"><span class="info-label">Delivery Number</span><span class="info-value text-mono">${dlv.id}</span></div>
-            <div class="info-item"><span class="info-label">Rental Number</span><span class="info-value"><a href="rental-detail.html?id=${dlv.rentalId}">${dlv.rentalId}</a></span></div>
-            <div class="info-item"><span class="info-label">Customer</span><span class="info-value">${dlv.customerName}</span></div>
-            <div class="info-item"><span class="info-label">Project</span><span class="info-value">${dlv.projectName}</span></div>
-            <div class="info-item"><span class="info-label">Delivery Date</span><span class="info-value">${formatDate(dlv.deliveryDate)}</span></div>
-            <div class="info-item"><span class="info-label">Destination</span><span class="info-value">${dlv.destination}</span></div>
-            <div class="info-item"><span class="info-label">Status</span><span class="info-value">${statusBadge(dlv.status)}</span></div>
-            <div class="info-item"><span class="info-label">Notes</span><span class="info-value">${dlv.notes||'-'}</span></div>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <h6 class="fw-600 mb-3">Driver & Vehicle</h6>
-          <div class="info-grid">
-            <div class="info-item"><span class="info-label">Driver</span><span class="info-value">${dlv.driverName?`<a href="driver-detail.html?id=${dlv.driverId}">${dlv.driverName}</a>`:'<span class="text-muted">Tidak Ditugaskan</span>'}</span></div>
-            <div class="info-item"><span class="info-label">Vehicle</span><span class="info-value">${dlv.vehiclePlate?`<a href="vehicle-detail.html?id=${dlv.vehicleId}">${dlv.vehiclePlate}</a>`:'-'}</span></div>
-          </div>
-        </div>
-      </div>
-
-      ${dlv.proofOfDelivery ? `
-      <div class="alert alert-success mt-4 mb-0">
-        <h6 class="alert-heading fw-600 mb-2"><i class="bi bi-person-check me-2"></i>Proof of Delivery (PoD)</h6>
-        <div class="row">
-          <div class="col-md-4"><strong>Receiver:</strong> ${dlv.proofOfDelivery.receiverName}</div>
-          <div class="col-md-4"><strong>Phone:</strong> ${dlv.proofOfDelivery.receiverPhone}</div>
-          <div class="col-md-4"><strong>Received At:</strong> ${dlv.completedAt}</div>
-        </div>
-      </div>` : ''}
-
-      ${dlv.arrivalPhoto || dlv.arrivalNotes ? `
-      <div class="alert alert-info mt-4 mb-0">
-        <h6 class="alert-heading fw-600 mb-2"><i class="bi bi-camera me-2"></i>Laporan Kedatangan Driver</h6>
-        ${dlv.arrivalNotes ? `<p class="mb-2">${dlv.arrivalNotes}</p>` : ''}
-        ${dlv.arrivalPhoto ? `<img src="${dlv.arrivalPhoto}" alt="Foto kedatangan" class="rounded border" style="max-width:280px;max-height:200px">` : ''}
-      </div>` : ''}
-
-      ${dlv.failureInfo ? `
-      <div class="alert alert-danger mt-4 mb-0">
-        <h6 class="alert-heading fw-600 mb-2"><i class="bi bi-exclamation-triangle me-2"></i>Delivery Failed</h6>
-        <p class="mb-0"><strong>Reason:</strong> ${dlv.failureInfo.reason}</p>
-        <p class="mb-0"><strong>Details:</strong> ${dlv.failureInfo.notes || 'None'}</p>
-      </div>` : ''}
-
-      <h6 class="fw-600 mt-4 mb-3">Equipment Being Delivered</h6>
-      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Equipment</th><th>Quantity</th></tr></thead><tbody>
-      ${dlv.items.map(i=>`<tr><td>${i.name}</td><td>${i.qty}</td></tr>`).join('')}
-      </tbody></table></div>
-
-      <h6 class="fw-600 mt-4 mb-3">Delivery Timeline</h6>
-      ${renderActivityTimeline([
-        {time:(dlv.createdAt || '09:00'),date:dlv.deliveryDate,action:'Delivery created',user:'Admin',type:'info'},
-        ...(dlv.driverName?[{time:(dlv.assignedAt||'').split(' ')[1] || '09:30',date:(dlv.assignedAt||'').split(' ')[0] || dlv.deliveryDate,action:`Driver ${dlv.driverName} assigned`,user:'Admin',type:'info'}]:[]),
-        ...(dlv.departedAt?[{time:dlv.departedAt.split(' ')[1],date:dlv.departedAt.split(' ')[0],action:'Delivery departed',user:dlv.driverName,type:'warning'}]:[]),
-        ...(dlv.arrivedAt?[{time:dlv.arrivedAt.split(' ')[1],date:dlv.arrivedAt.split(' ')[0],action:'Delivery arrived at destination',user:dlv.driverName,type:'info'}]:[]),
-        ...(dlv.completedAt?[{time:dlv.completedAt.split(' ')[1],date:dlv.completedAt.split(' ')[0],action:'Delivery completed - items handed over',user:dlv.driverName,type:'success'}]:[]),
-        ...(dlv.failedAt?[{time:dlv.failedAt.split(' ')[1],date:dlv.failedAt.split(' ')[0],action:'Delivery failed',user:dlv.driverName,type:'danger'}]:[]),
-        ...(dlv.rescheduledAt?[{time:dlv.rescheduledAt.split(' ')[1],date:dlv.rescheduledAt.split(' ')[0],action:'Delivery rescheduled',user:'Admin',type:'primary'}]:[]),
-      ])}`;
-
-    function departDelivery() {
-      const res = BizLogic.Delivery.updateStatus(dlv.id, 'Departed');
-      if (res.success) { showToast('Delivery departed', 'success'); setTimeout(() => location.reload(), 600); }
-      else { showToast(res.error, 'error'); }
+    function lateText() {
+      const m = D.lateMinutes(dlv);
+      if (m == null) return '';
+      if (m <= 0) return '<span class="badge bg-success-subtle text-success fw-normal ms-1">Tepat waktu</span>';
+      return `<span class="badge bg-danger-subtle text-danger fw-normal ms-1">Telat ${D.durationText(m)} dari estimasi</span>`;
     }
 
-    function arriveDelivery() {
-      const res = BizLogic.Delivery.updateStatus(dlv.id, 'Arrived');
-      if (res.success) { showToast('Arrived at site', 'success'); setTimeout(() => location.reload(), 600); }
-      else { showToast(res.error, 'error'); }
+    function render() {
+      const s = dlv.status, open = ['Completed', 'Failed'].indexOf(s) < 0, est = dlv.estimate;
+      let a = '';
+      if (open && canUpd) a += `<button class="btn ${est ? 'btn-outline-secondary' : 'btn-warning'} btn-sm" onclick="openEstimate()"><i class="bi bi-clock-history me-1"></i>${est ? 'Ubah Estimasi' : 'Isi Estimasi'}</button>`;
+      if (['Assigned', 'Departed', 'Arrived'].includes(s) && canUpd) a += `<button class="btn btn-outline-primary btn-sm" onclick="openTracking()"><i class="bi bi-geo-alt me-1"></i>Update Posisi</button>`;
+      if (s === 'Assigned' && canUpd) a += `<button class="btn btn-primary btn-sm" onclick="setStatus('Departed', 'Berangkat')" ${est ? '' : 'disabled title="Isi estimasi dulu"'}><i class="bi bi-truck me-1"></i>Berangkat</button>`;
+      if (s === 'Departed' && canUpd) a += `<button class="btn btn-info btn-sm" onclick="setStatus('Arrived', '${L.arrive}')"><i class="bi bi-geo-alt-fill me-1"></i>${L.arrive}</button>`;
+      if (s === 'Arrived' && canUpd) a += `<button class="btn btn-success btn-sm" onclick="openPod()"><i class="bi bi-check-circle me-1"></i>${L.complete}</button>`;
+      if (['Departed', 'Arrived'].includes(s) && canUpd) a += `<button class="btn btn-outline-danger btn-sm" onclick="new bootstrap.Modal(document.getElementById('failModal')).show()"><i class="bi bi-exclamation-triangle me-1"></i>Kendala</button>`;
+      if (s === 'Failed' && canUpd) a += `<button class="btn btn-primary btn-sm" onclick="rescheduleDelivery()"><i class="bi bi-arrow-repeat me-1"></i>Jadwalkan Ulang</button>`;
+      if ((s === 'Preparing' || s === 'Rescheduled') && canUpd) a += `<button class="btn btn-primary btn-sm" onclick="openAssign()"><i class="bi bi-person-plus me-1"></i>Tugaskan Driver</button>`;
+      if (dlv.returnId) a += `<a href="return-detail.html?id=${dlv.returnId}" class="btn btn-outline-primary btn-sm"><i class="bi bi-clipboard-check me-1"></i>Inspeksi ${dlv.returnId}</a>`;
+      a += `<button class="btn btn-outline-secondary btn-sm" onclick="printSJ()" ${est || !open ? '' : 'disabled title="Surat jalan baru bisa dicetak setelah ada estimasi ekspedisi"'}><i class="bi bi-printer me-1"></i>Cetak Surat Jalan</button>`;
+
+      document.getElementById('detailHeader').innerHTML = `
+        <div class="detail-header-left">
+          <div class="detail-header-icon"><i class="bi ${K.icon}"></i></div>
+          <div class="detail-header-info">
+            <h2>${dlv.sjNo || dlv.id} ${statusBadge(s)} <span class="badge bg-${K.color}-subtle text-${K.color} fw-normal fs-12">Surat Jalan ${K.label}</span></h2>
+            <div class="detail-meta">
+              <span class="detail-meta-item"><i class="bi bi-hash"></i>${dlv.id}</span>
+              <span class="detail-meta-item"><i class="bi bi-file-earmark-text"></i>${orderLink}</span>
+              <span class="detail-meta-item"><i class="bi bi-people"></i><a href="customer-detail.html?id=${dlv.customerId}">${esc(dlv.customerName)}</a></span>
+              ${dlv.projectId ? `<span class="detail-meta-item"><i class="bi bi-folder"></i><a href="project-detail.html?id=${dlv.projectId}">${esc(dlv.projectName)}</a></span>` : ''}
+              <span class="detail-meta-item"><i class="bi bi-calendar"></i>${formatDate(dlv.deliveryDate)}</span>
+            </div>
+          </div>
+        </div>
+        <div class="detail-header-actions">${a}</div>`;
+
+      const trk = (dlv.tracking || []).slice().reverse();
+      document.getElementById('detailBody').innerHTML = `
+        ${open && !est ? `<div class="alert alert-warning py-2 fs-13"><i class="bi bi-hourglass-split me-1"></i>Ekspedisi belum mengisi estimasi. Surat jalan belum bisa dicetak / dibawa berangkat.</div>` : ''}
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <h6 class="fw-600 mb-3">Informasi Surat Jalan</h6>
+            <div class="info-grid">
+              <div class="info-item"><span class="info-label">No. Surat Jalan</span><span class="info-value text-mono">${dlv.sjNo || '-'}</span></div>
+              <div class="info-item"><span class="info-label">Jenis</span><span class="info-value">${K.label}</span></div>
+              <div class="info-item"><span class="info-label">Order</span><span class="info-value">${orderLink}</span></div>
+              <div class="info-item"><span class="info-label">Pelanggan</span><span class="info-value">${esc(dlv.customerName)}</span></div>
+              <div class="info-item"><span class="info-label">Dari</span><span class="info-value">${esc(L.from || '-')}</span></div>
+              <div class="info-item"><span class="info-label">Tujuan</span><span class="info-value">${esc(L.to || '-')}</span></div>
+              <div class="info-item"><span class="info-label">Driver</span><span class="info-value">${dlv.driverName ? `<a href="driver-detail.html?id=${dlv.driverId}">${esc(dlv.driverName)}</a>` : '<span class="text-muted">Belum ditugaskan</span>'}</span></div>
+              <div class="info-item"><span class="info-label">Kendaraan</span><span class="info-value">${dlv.vehiclePlate ? `<a href="vehicle-detail.html?id=${dlv.vehicleId}">${dlv.vehiclePlate}</a>` : '-'}</span></div>
+              <div class="info-item"><span class="info-label">Catatan</span><span class="info-value">${esc(dlv.notes || '-')}</span></div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <h6 class="fw-600 mb-3"><i class="bi bi-clock-history me-1"></i>Estimasi Ekspedisi ${lateText()}</h6>
+            ${est ? `<div class="info-grid">
+              <div class="info-item"><span class="info-label">Estimasi Berangkat</span><span class="info-value">${esc(est.departAt || '-')}</span></div>
+              <div class="info-item"><span class="info-label">Estimasi Tiba</span><span class="info-value fw-600">${esc(est.arriveAt)}</span></div>
+              <div class="info-item"><span class="info-label">Aktual Berangkat</span><span class="info-value">${esc(dlv.departedAt || '-')}</span></div>
+              <div class="info-item"><span class="info-label">Aktual Tiba</span><span class="info-value">${esc(dlv.arrivedAt || dlv.completedAt || '-')}</span></div>
+              <div class="info-item"><span class="info-label">Catatan</span><span class="info-value">${esc(est.notes || '-')}</span></div>
+              <div class="info-item"><span class="info-label">Diisi oleh</span><span class="info-value">${esc(est.by)} · ${esc(est.at)}</span></div>
+            </div>` : '<div class="text-muted fs-13">Belum diisi.</div>'}
+            <h6 class="fw-600 mt-4 mb-2"><i class="bi bi-geo-alt me-1"></i>Update Posisi</h6>
+            ${trk.length ? `<div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Waktu</th><th>Posisi</th><th>Keterangan</th><th>Oleh</th></tr></thead><tbody>
+              ${trk.map(t => `<tr><td class="text-nowrap fs-12">${esc(t.at)}</td><td>${esc(t.location || '-')}</td><td class="fs-12">${esc(t.note || '')}</td><td class="fs-12 text-muted">${esc(t.by)}</td></tr>`).join('')}
+            </tbody></table></div>` : '<div class="text-muted fs-13">Belum ada update posisi.</div>'}
+          </div>
+        </div>
+
+        ${dlv.proofOfDelivery ? `<div class="alert alert-success mt-4 mb-0"><h6 class="alert-heading fw-600 mb-2"><i class="bi bi-person-check me-2"></i>${kind === 'PEMULANGAN' ? 'Diterima di Gudang' : 'Serah Terima (PoD)'}</h6>
+          <div class="row"><div class="col-md-4"><strong>Penerima:</strong> ${esc(dlv.proofOfDelivery.receiverName)}</div><div class="col-md-4"><strong>Telepon:</strong> ${esc(dlv.proofOfDelivery.receiverPhone || '-')}</div><div class="col-md-4"><strong>Waktu:</strong> ${esc(dlv.completedAt || '-')}</div></div></div>` : ''}
+        ${dlv.arrivalPhoto || dlv.arrivalNotes ? `<div class="alert alert-info mt-4 mb-0"><h6 class="alert-heading fw-600 mb-2"><i class="bi bi-camera me-2"></i>Laporan Kedatangan</h6>${dlv.arrivalNotes ? `<p class="mb-2">${esc(dlv.arrivalNotes)}</p>` : ''}${dlv.arrivalPhoto ? `<img src="${dlv.arrivalPhoto}" alt="Foto kedatangan" class="rounded border" style="max-width:280px;max-height:200px">` : ''}</div>` : ''}
+        ${dlv.failureInfo ? `<div class="alert alert-danger mt-4 mb-0"><h6 class="alert-heading fw-600 mb-2"><i class="bi bi-exclamation-triangle me-2"></i>Gagal</h6><p class="mb-0"><strong>Alasan:</strong> ${esc(dlv.failureInfo.reason)}</p><p class="mb-0"><strong>Keterangan:</strong> ${esc(dlv.failureInfo.notes || '-')}</p></div>` : ''}
+
+        <h6 class="fw-600 mt-4 mb-3">Daftar Alat</h6>
+        <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Nama Alat</th><th class="num">Qty</th></tr></thead><tbody>
+        ${dlv.items.map(i => `<tr><td>${esc(i.name)}</td><td class="num">${i.qty}</td></tr>`).join('')}
+        </tbody></table></div>`;
     }
 
-    function openPodModal() {
+    function done(msg) { showToast(msg, 'success'); setTimeout(() => location.reload(), 600); }
+    function setStatus(st, label) {
+      const res = D.updateStatus(dlv.id, st);
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      done(label);
+    }
+
+    function openEstimate() {
+      const e = dlv.estimate || {};
+      document.getElementById('estDepart').value = toLocal(e.departAt) || (dlv.deliveryDate ? dlv.deliveryDate + 'T07:00' : '');
+      document.getElementById('estArrive').value = toLocal(e.arriveAt) || '';
+      document.getElementById('estNotes').value = e.notes || '';
+      new bootstrap.Modal(document.getElementById('estModal')).show();
+    }
+    function saveEstimate() {
+      const v = id => document.getElementById(id).value.replace('T', ' ');
+      const res = D.setEstimate(dlv.id, { departAt: v('estDepart'), arriveAt: v('estArrive'), notes: document.getElementById('estNotes').value });
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      done('Estimasi disimpan');
+    }
+    function openTracking() {
+      document.getElementById('trkAt').value = nowLocal();
+      document.getElementById('trkLoc').value = ''; document.getElementById('trkNote').value = '';
+      new bootstrap.Modal(document.getElementById('trkModal')).show();
+    }
+    function saveTracking() {
+      const res = D.addTracking(dlv.id, { at: document.getElementById('trkAt').value, location: document.getElementById('trkLoc').value, note: document.getElementById('trkNote').value });
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      done('Posisi diperbarui');
+    }
+
+    function openPod() {
+      document.getElementById('podTitle').innerHTML = `<i class="bi bi-person-check me-2"></i>${L.complete}`;
+      document.getElementById('podHint').textContent = L.hint;
+      document.getElementById('podNameLabel').textContent = L.receiver;
       new bootstrap.Modal(document.getElementById('podModal')).show();
     }
-
     function completeDelivery() {
-      const name = document.getElementById('podName').value;
-      const phone = document.getElementById('podPhone').value;
-      if (!name) { showToast('Receiver name is required', 'warning'); return; }
-      
-      const podData = { receiverName: name, receiverPhone: phone, signatureMock: true };
-      // BizLogic requires 'Arrived' -> 'Completed', PoD can be attached on 'Arrived' or passed in 'Completed'
-      // Based on business logic, we just pass proofOfDelivery as extraData for Arrived, but here we can just update the object and transition to Completed
-      
-      // But wait, the engine says proofOfDelivery is saved when transitioning to Arrived, but we are already arrived. 
-      // Let's modify the local object and let Completed save it.
-      dlv.proofOfDelivery = podData; 
-      
-      const res = BizLogic.Delivery.updateStatus(dlv.id, 'Completed');
-      if (res.success) { 
-        // Force save the PoD that we injected
-        MockData.save('deliveries'); 
-        showToast('Delivery completed successfully!', 'success'); 
-        setTimeout(() => location.reload(), 600); 
-      }
-      else { showToast(res.error, 'error'); }
+      const name = document.getElementById('podName').value.trim();
+      if (!name) { showToast('Nama penerima wajib diisi', 'warning'); return; }
+      const pod = { receiverName: name, receiverPhone: document.getElementById('podPhone').value };
+      if (kind === 'SEWA') dlv.proofOfDelivery = pod;
+      const res = D.updateStatus(dlv.id, 'Completed', { proofOfDelivery: pod });
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      MockData.save('deliveries');
+      if (res.returnId) { showToast('Diterima di gudang, lanjut inspeksi ' + res.returnId, 'success'); setTimeout(() => location.href = 'return-detail.html?id=' + res.returnId, 700); return; }
+      done('Surat jalan selesai');
     }
-
-    function openFailModal() {
-      new bootstrap.Modal(document.getElementById('failModal')).show();
-    }
-
     function failDelivery() {
-      const reason = document.getElementById('failReasonType').value;
-      const notes = document.getElementById('failReasonText').value;
-      
-      const res = BizLogic.Delivery.updateStatus(dlv.id, 'Failed', { reason: reason, notes: notes });
-      if (res.success) { 
-        showToast('Delivery marked as failed', 'error'); 
-        setTimeout(() => location.reload(), 600); 
-      }
-      else { showToast(res.error, 'error'); }
+      const res = D.updateStatus(dlv.id, 'Failed', { reason: document.getElementById('failReasonType').value, notes: document.getElementById('failReasonText').value });
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      done('Ditandai gagal');
     }
-
     function rescheduleDelivery() {
-      BizLogic.showConfirmModal('Jadwalkan Ulang', 'Pilih tanggal kirim baru untuk <strong>' + dlv.id + '</strong>. Setelah itu tugaskan driver lagi.',
+      BizLogic.showConfirmModal('Jadwalkan Ulang', 'Pilih tanggal baru untuk <strong>' + dlv.id + '</strong>. Setelah itu tugaskan driver dan isi estimasi lagi.',
         '<i class="bi bi-arrow-repeat me-1"></i>Jadwalkan Ulang', 'btn-primary',
         function(f) {
-          const res = BizLogic.Delivery.updateStatus(dlv.id, 'Rescheduled', { newDate: f.newDate });
+          const res = D.updateStatus(dlv.id, 'Rescheduled', { newDate: f.newDate });
           if (!res.success) { showToast(res.error, 'error'); return; }
-          showToast('Delivery rescheduled', 'success');
-          setTimeout(() => location.reload(), 600);
+          dlv.estimate = null; MockData.save('deliveries');
+          done('Dijadwal ulang');
         },
-        [{ id: 'newDate', label: 'Tanggal Kirim Baru', type: 'date', required: true }]);
+        [{ id: 'newDate', label: 'Tanggal Baru', type: 'date', required: true }]);
     }
-
-    // Tugaskan driver & kendaraan (DLV Preparing / Rescheduled)
     function openAssign() {
       const drivers = MockData.drivers.filter(d => d.status === 'Available');
       if (!drivers.length) { showToast('Tidak ada driver yang tersedia', 'warning'); return; }
@@ -245,30 +272,29 @@
       BizLogic.showConfirmModal('Tugaskan Driver', 'Pilih driver & kendaraan untuk <strong>' + dlv.id + '</strong>.',
         '<i class="bi bi-person-check me-1"></i>Tugaskan', 'btn-primary',
         function(f) {
-          const res = BizLogic.Delivery.assign(dlv.id, { driverId: f.driverId, vehicleId: f.vehicleId, deliveryDate: f.deliveryDate });
+          const res = D.assign(dlv.id, { driverId: f.driverId, vehicleId: f.vehicleId, deliveryDate: f.deliveryDate });
           if (!res.success) { showToast(res.error, 'error'); return; }
-          showToast('Driver ditugaskan', 'success');
-          setTimeout(() => location.reload(), 600);
+          done('Driver ditugaskan');
         },
         [{ id: 'driverId', label: 'Driver', type: 'select', options: drivers.map(d => ({ value: d.id, label: d.name })) },
          { id: 'vehicleId', label: 'Kendaraan', type: 'select', options: [{ value: '', label: '- Tanpa kendaraan -' }].concat(vehicles.map(v => ({ value: v.id, label: v.plate + ' - ' + v.brand }))) },
-         { id: 'deliveryDate', label: 'Tanggal Kirim', type: 'date', value: dlv.deliveryDate }]);
+         { id: 'deliveryDate', label: 'Tanggal', type: 'date', value: dlv.deliveryDate }]);
     }
 
-    // Cetak Surat Jalan Kirim
     function printSJ() {
-      const c = MockData.company;
-      const rows = dlv.items.map((i, n) => `<tr><td>${n + 1}</td><td>${i.name}</td><td>${i.qty}</td><td></td></tr>`).join('');
-      const signs = ['Dibuat oleh', 'Gudang', 'Driver', 'Penerima'].map(t => `<div>${t}<div class="line"></div></div>`).join('');
+      const c = MockData.company, e = dlv.estimate || {};
+      const rows = dlv.items.map((i, n) => `<tr><td>${n + 1}</td><td>${esc(i.name)}</td><td>${i.qty}</td><td></td></tr>`).join('');
+      const signs = (kind === 'PEMULANGAN' ? ['Dibuat oleh', 'Customer', 'Driver', 'Gudang'] : ['Dibuat oleh', 'Gudang', 'Driver', 'Penerima']).map(t => `<div>${t}<div class="line"></div></div>`).join('');
       const html = `<!doctype html><html><head><meta charset="utf-8"><title>${dlv.sjNo || dlv.id}</title>
         <style>body{font-family:Arial,sans-serif;font-size:13px;margin:32px;color:#111}h2{margin:0}table{width:100%;border-collapse:collapse;margin-top:16px}
         th,td{border:1px solid #999;padding:6px 8px;text-align:left}.meta td{border:none;padding:2px 0}
         .sign{display:flex;justify-content:space-between;margin-top:48px;text-align:center}.sign div{width:22%}.sign .line{margin-top:60px;border-top:1px solid #111}</style></head><body>
-        <div style="display:flex;justify-content:space-between"><div><h2>${c.name}</h2><div>${c.address}</div><div>${c.phone}</div></div>
-        <div style="text-align:right"><h2>SURAT JALAN PENGIRIMAN</h2><div>No. ${dlv.sjNo || '-'}</div><div>${dlv.id} / ${dlv.rentalId}</div></div></div>
-        <table class="meta"><tr><td style="width:110px">Tanggal</td><td>: ${formatDate(dlv.deliveryDate)}</td><td style="width:110px">Driver</td><td>: ${dlv.driverName || '-'}</td></tr>
-        <tr><td>Customer</td><td>: ${dlv.customerName}</td><td>Kendaraan</td><td>: ${dlv.vehiclePlate || '-'}</td></tr>
-        <tr><td>Proyek</td><td>: ${dlv.projectName}</td><td>Tujuan</td><td>: ${dlv.destination || '-'}</td></tr></table>
+        <div style="display:flex;justify-content:space-between"><div><h2>${esc(c.name)}</h2><div>${esc(c.address)}</div><div>${esc(c.phone)}</div></div>
+        <div style="text-align:right"><h2>${K.title}</h2><div>No. ${dlv.sjNo || '-'}</div><div>${dlv.id} / ${dlv.saleId || dlv.rentalId || ''}</div></div></div>
+        <table class="meta"><tr><td style="width:120px">Tanggal</td><td>: ${formatDate(dlv.deliveryDate)}</td><td style="width:120px">Driver</td><td>: ${esc(dlv.driverName || '-')}</td></tr>
+        <tr><td>Customer</td><td>: ${esc(dlv.customerName)}</td><td>Kendaraan</td><td>: ${dlv.vehiclePlate || '-'}</td></tr>
+        <tr><td>Proyek</td><td>: ${esc(dlv.projectName || '-')}</td><td>${kind === 'PEMULANGAN' ? 'Dari' : 'Tujuan'}</td><td>: ${esc((kind === 'PEMULANGAN' ? L.from : L.to) || '-')}</td></tr>
+        <tr><td>Estimasi tiba</td><td>: ${esc(e.arriveAt || '-')}</td><td></td><td></td></tr></table>
         <table><thead><tr><th style="width:40px">No</th><th>Nama Alat</th><th style="width:80px">Qty</th><th>Keterangan</th></tr></thead><tbody>${rows}</tbody></table>
         <div class="sign">${signs}</div></body></html>`;
       const w = window.open('', '_blank');
@@ -276,12 +302,8 @@
       w.document.close();
       setTimeout(() => w.print(), 400);
     }
+
+    render();
   </script>
 </body>
 </html>
-
-
-
-
-
-

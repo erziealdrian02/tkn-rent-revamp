@@ -38,6 +38,9 @@
     const returns = MockData.returns.filter(r => r.projectId === project.id);
     const invoices = MockData.invoices.filter(i => i.projectId === project.id);
     const customer = MockData.customers.find(c => c.id === project.customerId);
+    const sales = (MockData.sales || []).filter(s => s.projectId === project.id);
+    const daysLeft = BizLogic.Project.daysLeft(project);
+    const deadlineText = daysLeft == null ? '' : daysLeft < 0 ? `<span class="badge bg-danger-subtle text-danger fw-normal ms-1">lewat ${-daysLeft} hari</span>` : `<span class="badge ${daysLeft <= 14 ? 'bg-warning-subtle text-warning' : 'bg-light text-muted border'} fw-normal ms-1">${daysLeft} hari lagi</span>`;
 
     document.getElementById('detailHeader').innerHTML = `
       <div class="detail-header-left">
@@ -46,13 +49,16 @@
           <h2>${project.name} ${statusBadge(project.status)}</h2>
           <div class="detail-meta">
             <span class="detail-meta-item"><i class="bi bi-hash"></i>${project.id}</span>
-            <span class="detail-meta-item"><i class="bi bi-people"></i>${project.customerName}</span>
-            <span class="detail-meta-item"><i class="bi bi-calendar"></i>${formatDate(project.startDate)} - ${formatDate(project.endDate)}</span>
+            <span class="detail-meta-item"><i class="bi bi-people"></i><a href="customer-detail.html?id=${project.customerId}">${project.customerName}</a></span>
+            <span class="detail-meta-item"><i class="bi bi-calendar"></i>${formatDate(project.startDate)} - tenggat ${formatDate(project.endDate)}${deadlineText}</span>
           </div>
         </div>
       </div>
       <div class="detail-header-actions">
-        <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Edit</button>
+        ${canDo('Projects', 'Update') && !['Completed', 'Cancelled'].includes(project.status) ? '<button class="btn btn-outline-primary btn-sm" onclick="adjustDeadline()"><i class="bi bi-calendar-event me-1"></i>Ubah Tenggat</button>' : ''}
+        ${canDo('Rentals', 'Create') ? `<a href="rental-create.html?project=${project.id}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-plus me-1"></i>Sewa Baru</a>` : ''}
+        ${canDo('Sales', 'Create') ? `<a href="sale-create.html?customer=${project.customerId}&project=${project.id}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-bag-plus me-1"></i>Jual Baru</a>` : ''}
+        ${editButton({ docType: 'Proyek', docId: project.id, docLabel: project.name, link: 'project-detail.html?id=' + project.id }, '<button class="btn btn-outline-secondary btn-sm" onclick="editProject()"><i class="bi bi-pencil me-1"></i>Ubah</button>', { label: 'Ajukan Perubahan' })}
       </div>`;
 
     const tabs = ['Overview','Rentals','Customers','Equipment','Deliveries','Returns','Invoices','Activity'];
@@ -70,16 +76,22 @@
 
     // Overview
     tc += `<div class="er-tab-content active" id="tab-overview">
+      ${editRequestBanner('Proyek', project.id)}
       <div class="info-grid mb-4">
         <div class="info-item"><span class="info-label">Project Number</span><span class="info-value text-mono">${project.id}</span></div>
         <div class="info-item"><span class="info-label">Project Name</span><span class="info-value">${project.name}</span></div>
         <div class="info-item"><span class="info-label">Customer</span><span class="info-value"><a href="customer-detail.html?id=${project.customerId}">${project.customerName}</a></span></div>
         <div class="info-item"><span class="info-label">Start Date</span><span class="info-value">${formatDate(project.startDate)}</span></div>
-        <div class="info-item"><span class="info-label">End Date</span><span class="info-value">${formatDate(project.endDate)}</span></div>
+        <div class="info-item"><span class="info-label">Tenggat Waktu</span><span class="info-value fw-600">${formatDate(project.endDate)}${deadlineText}</span></div>
+        <div class="info-item"><span class="info-label">Lokasi</span><span class="info-value">${project.location || '-'}</span></div>
         <div class="info-item"><span class="info-label">Status</span><span class="info-value">${statusBadge(project.status)}</span></div>
-        <div class="info-item"><span class="info-label">Total Rentals</span><span class="info-value">${project.totalRentals}</span></div>
-        <div class="info-item"><span class="info-label">Active Equipment</span><span class="info-value">${project.activeEquipment}</span></div>
+        <div class="info-item"><span class="info-label">Penyewaan</span><span class="info-value">${rentals.length}</span></div>
+        <div class="info-item"><span class="info-label">Penjualan</span><span class="info-value">${sales.length ? sales.map(s => `<a href="sale-detail.html?id=${s.id}" class="me-2">${s.id}</a>`).join('') : '-'}</span></div>
       </div>
+      ${(project.deadlineHistory || []).length ? `<h6 class="fw-600 mb-2"><i class="bi bi-calendar-event me-1"></i>Riwayat Perubahan Tenggat</h6>
+      <div class="er-table-wrapper mb-4"><table class="er-table"><thead><tr><th>Waktu</th><th>Tenggat Lama</th><th>Tenggat Baru</th><th>Alasan</th><th>Oleh</th></tr></thead><tbody>
+        ${project.deadlineHistory.slice().reverse().map(h => `<tr><td class="fs-12">${h.at}</td><td>${formatDate(h.oldDate)}</td><td class="fw-600">${formatDate(h.newDate)}</td><td>${h.reason}</td><td>${h.by}</td></tr>`).join('')}
+      </tbody></table></div>` : ''}
       <div class="row g-3">
         <div class="col-md-3"><div class="kpi-card"><div class="kpi-icon blue"><i class="bi bi-file-earmark-text"></i></div><div class="kpi-content"><div class="kpi-value">${rentals.length}</div><div class="kpi-label">Total Rentals</div></div></div></div>
         <div class="col-md-3"><div class="kpi-card"><div class="kpi-icon teal"><i class="bi bi-truck"></i></div><div class="kpi-content"><div class="kpi-value">${deliveries.length}</div><div class="kpi-label">Pengiriman</div></div></div></div>
@@ -145,6 +157,38 @@
     tc += `<div class="er-tab-content" id="tab-activity">${renderActivityTimeline(MockData.activityLog.slice(0,6))}</div>`;
 
     document.getElementById('tabContents').innerHTML = tc;
+
+    // Tenggat (end date) proyek bisa disesuaikan, alasan & riwayat disimpan
+    function adjustDeadline() {
+      BizLogic.showConfirmModal('Ubah Tenggat Proyek', 'Tenggat sekarang: <strong>' + formatDate(project.endDate) + '</strong>.', '<i class="bi bi-check-lg me-1"></i>Simpan', 'btn-primary',
+        f => {
+          const r = BizLogic.Project.adjustDeadline(project.id, f.newDate, f.reason);
+          if (!r.success) { showToast(r.error, 'error'); return false; }
+          showToast('Tenggat diubah ke ' + formatDate(f.newDate), 'success');
+          setTimeout(() => location.reload(), 600);
+        },
+        [{ id: 'newDate', label: 'Tenggat Baru', type: 'date', required: true, value: project.endDate },
+         { id: 'reason', label: 'Alasan', type: 'textarea', required: true, placeholder: 'mis. pekerjaan mundur, permintaan customer' }]);
+    }
+
+    // Ubah data proyek: hanya Admin
+    function editProject() {
+      BizLogic.showConfirmModal('Ubah Proyek', 'Ubah data <strong>' + project.id + '</strong>.', '<i class="bi bi-check-lg me-1"></i>Simpan', 'btn-primary',
+        f => {
+          if (!isAdmin()) { showToast('Hanya Admin yang boleh mengubah data', 'error'); return false; }
+          if (!String(f.name || '').trim()) { showToast('Nama proyek wajib diisi', 'error'); return false; }
+          project.name = f.name.trim(); project.location = f.location; project.status = f.status;
+          ['rentals', 'sales', 'invoices', 'deliveries', 'returns', 'claims'].forEach(k => { (MockData[k] || []).forEach(r => { if (r.projectId === project.id) r.projectName = project.name; }); MockData.save(k); });
+          MockData.save('projects');
+          BizLogic.Activity.log('Proyek ' + project.id + ' diubah', 'info');
+          showToast('Proyek diperbarui', 'success');
+          setTimeout(() => location.reload(), 600);
+        },
+        [{ id: 'name', label: 'Nama Proyek', value: project.name },
+         { id: 'location', label: 'Lokasi', value: project.location || '' },
+         { id: 'status', label: 'Status', type: 'select', options: ['Planning', 'Active', 'On Hold', 'Completed', 'Cancelled'].map(v => ({ value: v, label: v })) }]);
+      setTimeout(() => { const el = document.getElementById('confirmField_status'); if (el) el.value = project.status; }, 50);
+    }
   </script>
 </body>
 </html>

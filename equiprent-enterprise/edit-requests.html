@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Permintaan Perubahan - EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header">
+          <div class="page-header-left"><h2 class="page-header-title">Permintaan Perubahan</h2><p class="page-header-subtitle">Hanya Admin yang boleh mengubah / menghapus data. Role lain mengajukan di sini → di-ACC Accounting → dikerjakan Admin.</p></div>
+          <div class="page-header-actions"><button class="btn btn-primary btn-sm" onclick="openNew()"><i class="bi bi-plus-lg me-1"></i>Ajukan Permintaan</button></div>
+        </div>
+        <div class="flow-steps mb-3">
+          <span class="step"><b>1.</b> Staff mengajukan + catatan</span><i class="bi bi-chevron-right arrow"></i>
+          <span class="step"><b>2.</b> ACC Accounting</span><i class="bi bi-chevron-right arrow"></i>
+          <span class="step"><b>3.</b> Admin mengubah data & tandai selesai</span>
+        </div>
+        <div class="row g-3 mb-4" id="kpis"></div>
+        <div class="er-card">
+          <div class="er-tabs" id="tabs"></div>
+          <div class="er-card-body">
+            <div class="er-table-wrapper"><table class="er-table">
+              <thead><tr><th>No.</th><th>Data</th><th>Jenis</th><th>Catatan Perubahan</th><th>Diajukan</th><th>Status</th><th>ACC Accounting</th><th>Dikerjakan Admin</th><th></th></tr></thead>
+              <tbody id="tableBody"></tbody>
+            </table></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal fade" id="newModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Ajukan Permintaan Perubahan</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="alert alert-light border py-2 fs-13">Lebih cepat: buka halaman datanya lalu klik tombol <i class="bi bi-pencil-square"></i> / "Ajukan Perubahan" di sana.</div>
+        <div class="row g-3">
+          <div class="col-6"><label class="form-label form-label-er">Jenis Data *</label><select class="form-select" id="nType"></select></div>
+          <div class="col-6"><label class="form-label form-label-er">No. / ID Data *</label><input type="text" class="form-control text-mono" id="nId" placeholder="mis. RNT-003"></div>
+          <div class="col-6"><label class="form-label form-label-er">Permintaan</label><select class="form-select" id="nAction"><option>Ubah</option><option>Hapus</option><option>Batalkan</option></select></div>
+          <div class="col-12"><label class="form-label form-label-er">Catatan perubahan *</label><textarea class="form-control" id="nNotes" rows="3" placeholder="Apa yang diubah, nilai lama → nilai baru, dan alasannya"></textarea></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+        <button class="btn btn-primary" onclick="submitNew()"><i class="bi bi-send me-1"></i>Ajukan</button>
+      </div>
+    </div></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    const user = initApp('edit-requests.html', [{label:'Administrasi',href:'#'},{label:'Permintaan Perubahan'}], 'Permintaan Perubahan');
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const ER = EditRequest, reviewer = ER.canReview(user), admin = isAdmin(user);
+    const TYPES = { 'Pelanggan': 'customer-detail.html?id=', 'Proyek': 'project-detail.html?id=', 'Penyewaan': 'rental-detail.html?id=', 'Penjualan': 'sale-detail.html?id=',
+      'Invoice': 'invoice-detail.html?id=', 'Surat Jalan': 'delivery-detail.html?id=', 'Pembelian': 'purchase-detail.html?id=', 'Alat': 'equipment-detail.html?id=',
+      'Klaim': 'claim-detail.html?id=', 'Jurnal': 'adjustments.html?id=', 'Transaksi Kas/Bank': 'finance-ledger.html?id=', 'Lainnya': '' };
+    document.getElementById('nType').innerHTML = Object.keys(TYPES).map(t => `<option>${t}</option>`).join('');
+    const TABS = [['todo', 'Perlu Tindakan'], ['Menunggu ACC', 'Menunggu ACC'], ['Disetujui', 'Disetujui'], ['Selesai', 'Selesai'], ['Ditolak', 'Ditolak'], ['mine', 'Permintaan Saya'], ['', 'Semua']];
+    let tab = ER.todo(user) ? 'todo' : '';
+
+    function inTab(r) {
+      if (tab === 'todo') return (r.status === 'Menunggu ACC' && reviewer && !admin) || (r.status === 'Disetujui' && admin) || (admin && r.status === 'Menunggu ACC');
+      if (tab === 'mine') return r.requestedBy === user.name;
+      return !tab || r.status === tab;
+    }
+    function render() {
+      const list = ER.list();
+      document.getElementById('tabs').innerHTML = TABS.map(([k, l]) => `<button class="er-tab ${k === tab ? 'active' : ''}" onclick="tab='${k}';render()">${l}<span class="er-tab-count">${list.filter(r => { const t = tab; tab = k; const ok = inTab(r); tab = t; return ok; }).length}</span></button>`).join('');
+      const card = (c, i, l, v) => `<div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon ${c}"><i class="bi ${i}"></i></div><div class="kpi-content"><div class="kpi-value">${v}</div><div class="kpi-label">${l}</div></div></div></div>`;
+      document.getElementById('kpis').innerHTML = card('orange', 'bi-hourglass-split', 'Menunggu ACC Accounting', list.filter(r => r.status === 'Menunggu ACC').length) +
+        card('blue', 'bi-check2-circle', 'Disetujui, menunggu Admin', list.filter(r => r.status === 'Disetujui').length) +
+        card('green', 'bi-check-all', 'Selesai', list.filter(r => r.status === 'Selesai').length) + card('red', 'bi-x-circle', 'Ditolak', list.filter(r => r.status === 'Ditolak').length);
+      const rows = list.filter(inTab);
+      document.getElementById('tableBody').innerHTML = rows.map(r => {
+        let act = '';
+        if (r.status === 'Menunggu ACC' && reviewer) act = `<button class="btn btn-success btn-sm py-0" onclick="review('${r.id}', true)">ACC</button> <button class="btn btn-outline-danger btn-sm py-0" onclick="review('${r.id}', false)">Tolak</button>`;
+        if (r.status === 'Disetujui' && admin) act = `<button class="btn btn-primary btn-sm py-0" onclick="complete('${r.id}')"><i class="bi bi-check2-all me-1"></i>Selesai</button>`;
+        return `<tr>
+          <td class="text-mono">${r.id}</td>
+          <td>${r.link ? `<a href="${r.link}" class="cell-link">${esc(r.docType)} ${esc(r.docId)}</a>` : esc(r.docType + ' ' + r.docId)}<div class="fs-12 text-muted">${esc(r.docLabel !== r.docId ? r.docLabel : '')}</div></td>
+          <td>${esc(r.action)}</td>
+          <td class="fs-13" style="max-width:320px">${esc(r.notes)}</td>
+          <td class="fs-12">${esc(r.requestedBy)}<div class="text-muted">${esc(r.requestedRole)} · ${esc(r.requestedAt)}</div></td>
+          <td>${statusBadge(r.status)}</td>
+          <td class="fs-12">${r.reviewedBy ? `${esc(r.reviewedBy)}<div class="text-muted">${esc(r.reviewedAt)}</div>${r.reviewNote ? `<div>${esc(r.reviewNote)}</div>` : ''}` : '-'}</td>
+          <td class="fs-12">${r.doneBy ? `${esc(r.doneBy)}<div class="text-muted">${esc(r.doneAt)}</div>${r.doneNote ? `<div>${esc(r.doneNote)}</div>` : ''}` : '-'}</td>
+          <td class="text-nowrap">${act}</td></tr>`;
+      }).join('') || '<tr><td colspan="9" class="text-center text-muted py-4">Tidak ada permintaan</td></tr>';
+    }
+    function review(id, ok) {
+      BizLogic.showConfirmModal(ok ? 'ACC Permintaan' : 'Tolak Permintaan', (ok ? 'ACC ' : 'Tolak ') + '<strong>' + id + '</strong>?' + (ok ? ' Setelah ACC, Admin yang mengubah datanya.' : ''),
+        ok ? 'ACC' : 'Tolak', ok ? 'btn-success' : 'btn-danger',
+        f => { const r = ER.review(id, ok, f.note); if (!r.success) { showToast(r.error, 'error'); return false; } showToast(id + (ok ? ' di-ACC' : ' ditolak'), 'success'); render(); },
+        [{ id: 'note', label: ok ? 'Catatan (opsional)' : 'Alasan penolakan', type: 'textarea', required: !ok }]);
+    }
+    function complete(id) {
+      const r0 = ER.list().find(x => x.id === id);
+      BizLogic.showConfirmModal('Tandai Selesai', 'Pastikan data <strong>' + esc(r0.docType + ' ' + r0.docId) + '</strong> sudah diubah sesuai permintaan.' + (r0.link ? ` <a href="${r0.link}" target="_blank">Buka data</a>` : ''),
+        'Selesai', 'btn-primary',
+        f => { const r = ER.complete(id, f.note); if (!r.success) { showToast(r.error, 'error'); return false; } showToast(id + ' selesai', 'success'); render(); },
+        [{ id: 'note', label: 'Catatan perubahan yang dilakukan', type: 'textarea' }]);
+    }
+    function openNew() { ['nId', 'nNotes'].forEach(id => document.getElementById(id).value = ''); new bootstrap.Modal(document.getElementById('newModal')).show(); }
+    function submitNew() {
+      const type = document.getElementById('nType').value, id = document.getElementById('nId').value.trim();
+      if (!id) { showToast('Isi No. / ID data', 'error'); return; }
+      const r = ER.create({ docType: type, docId: id, docLabel: id, link: TYPES[type] ? TYPES[type] + encodeURIComponent(id) : '', action: document.getElementById('nAction').value, notes: document.getElementById('nNotes').value });
+      if (!r.success) { showToast(r.error, 'error'); return; }
+      bootstrap.Modal.getInstance(document.getElementById('newModal')).hide();
+      showToast('Permintaan ' + r.request.id + ' diajukan', 'success');
+      tab = 'mine'; render();
+    }
+    render();
+  </script>
+</body>
+</html>

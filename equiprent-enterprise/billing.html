@@ -18,7 +18,7 @@
         <div class="page-header">
           <div class="page-header-left">
             <h2 class="page-header-title">Rekap Tagihan</h2>
-            <p class="page-header-subtitle">Rekapitulasi tagihan sewa per proyek - periode ditarik dari SJ kirim &amp; SJ pulang</p>
+            <p class="page-header-subtitle">Rekap tagihan sewa per proyek: otomatis dari stok (SJ kirim &amp; pulang) atau manual (tarik dari proyek / isi sendiri)</p>
           </div>
         </div>
 
@@ -57,9 +57,31 @@
               </div>
             </div>
 
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+              <div class="btn-group btn-group-sm" role="group">
+                <button class="btn btn-outline-primary" id="modeStock" onclick="setMode('stok')"><i class="bi bi-boxes me-1"></i>Dari Stok (Surat Jalan)</button>
+                <button class="btn btn-outline-primary" id="modeManual" onclick="setMode('manual')"><i class="bi bi-pencil-square me-1"></i>Manual</button>
+              </div>
+              <label class="d-flex align-items-center gap-2 fs-13" id="lateWrap"><input type="checkbox" class="form-check-input m-0" id="fLate" checked onchange="render()"> Hitung biaya keterlambatan <span class="text-muted">(lewat estimasi kembali ekspedisi, ×<span id="lateRate"></span> tarif harian)</span></label>
+            </div>
+
             <div id="overlapAlert"></div>
 
-            <div class="er-table-wrapper"><table class="er-table">
+            <div id="manualBox" class="d-none">
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                <button class="btn btn-sm btn-outline-secondary" onclick="pullFromStock()"><i class="bi bi-boxes me-1"></i>Tarik dari stok (SJ)</button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="pullFromProject()"><i class="bi bi-folder me-1"></i>Tarik dari kebutuhan proyek</button>
+                <button class="btn btn-sm btn-outline-primary" onclick="addManual()"><i class="bi bi-plus-lg me-1"></i>Tambah baris</button>
+              </div>
+              <div class="er-table-wrapper"><table class="er-table">
+                <thead><tr><th>No</th><th>Nama Barang / Keterangan</th><th style="width:90px">Qty</th><th style="width:150px">Harga Satuan</th><th style="width:150px">Awal</th><th style="width:150px">Akhir</th><th class="num">Hari</th><th class="num">Total</th><th></th></tr></thead>
+                <tbody id="manualBody"></tbody>
+                <tfoot id="manualFoot"></tfoot>
+              </table></div>
+              <div class="fs-12 text-muted mt-1"><i class="bi bi-info-circle me-1"></i>Isi tanggal → dihitung Qty × Hari × Harga ÷ Bulan Sewa. Tanpa tanggal → Qty × Harga (mis. ongkos kirim, biaya lain).</div>
+            </div>
+
+            <div id="stockBox"><div class="er-table-wrapper"><table class="er-table">
               <thead><tr>
                 <th>No</th><th>A. Nama Barang</th><th>SJ Kirim</th><th>SJ Pulang</th>
                 <th class="num">Qty</th><th class="num">Harga Satuan</th>
@@ -67,7 +89,7 @@
               </tr></thead>
               <tbody id="recapBody"></tbody>
               <tfoot id="recapFoot"></tfoot>
-            </table></div>
+            </table></div></div>
 
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mt-3">
               <div class="fs-12 text-muted" style="max-width:640px">
@@ -111,9 +133,14 @@
     let overrides = {};
     let currentLines = [];
     let shadow = null; // invoice bayangan yang sedang diterbitkan (?shadow=)
+    let mode = getUrlParam('mode') === 'manual' ? 'manual' : 'stok';
+    let manual = []; // baris rekap manual
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 
     const billable = MockData.projects.filter(p => Bill.segments(p.id).length);
-    document.getElementById('fProject').innerHTML = billable.map(p => `<option value="${p.id}">${p.name} - ${p.customerName}</option>`).join('');
+    // Mode manual bisa untuk proyek mana saja; mode stok hanya proyek yang punya SJ
+    document.getElementById('fProject').innerHTML = MockData.projects.map(p => `<option value="${p.id}">${p.name} - ${p.customerName}${Bill.segments(p.id).length ? '' : ' (belum ada SJ)'}</option>`).join('');
+    document.getElementById('lateRate').textContent = Bill.lateRate();
     document.getElementById('fAccount').innerHTML = MockData.accounts.filter(a => a.kind !== 'Kas').map(a => `<option value="${a.id}">${a.name}</option>`).join('');
     document.getElementById('fMonthDays').value = Bill.monthDays();
     document.getElementById('fInvDate').value = today;
@@ -146,10 +173,11 @@
     }
 
     function onProjectChange() {
-      overrides = {};
+      overrides = {}; manual = [];
       const per = Bill.suggestPeriod(document.getElementById('fProject').value);
       document.getElementById('fStart').value = per.start;
       document.getElementById('fEnd').value = per.end;
+      if (mode === 'manual') pullFromStock(true);
       render();
     }
 
@@ -159,7 +187,69 @@
     }
 
     function opts() {
-      return { monthDays: Number(document.getElementById('fMonthDays').value) || Bill.monthDays(), endOverrides: overrides };
+      return { monthDays: Number(document.getElementById('fMonthDays').value) || Bill.monthDays(), endOverrides: overrides, lateFee: document.getElementById('fLate').checked };
+    }
+
+    // ---------- Mode manual ----------
+    function setMode(m) {
+      mode = m;
+      if (m === 'manual' && !manual.length) pullFromStock(true);
+      render();
+    }
+    function pullFromStock(silent) {
+      const pid = document.getElementById('fProject').value, ps = document.getElementById('fStart').value, pe = document.getElementById('fEnd').value;
+      const lines = pe >= ps ? Bill.recap(pid, ps, pe, opts()) : [];
+      manual = lines.map(l => ({ desc: l.desc || l.equipment, equipment: l.equipment, qty: l.qty, unitPrice: l.unitPrice, start: l.start, end: l.end, type: l.type === 'late' ? 'late' : 'manual', sjDelivery: l.sjDelivery, sjReturn: l.sjReturn }));
+      if (!silent) { showToast(manual.length ? manual.length + ' baris ditarik dari stok, silakan edit' : 'Tidak ada SJ pada periode ini', manual.length ? 'success' : 'warning'); render(); }
+    }
+    function pullFromProject() {
+      const p = MockData.projects.find(x => x.id === document.getElementById('fProject').value);
+      const ps = document.getElementById('fStart').value, pe = document.getElementById('fEnd').value;
+      const req = (p && p.requirements) || [];
+      if (!req.length) { showToast('Proyek ini belum punya kebutuhan alat', 'warning'); return; }
+      req.forEach(r => manual.push({ desc: r.equipment, equipment: r.equipment, qty: r.qty, unitPrice: r.unitPrice, start: ps, end: pe }));
+      showToast(req.length + ' baris ditarik dari kebutuhan proyek', 'success');
+      render();
+    }
+    function addManual() { manual.push({ desc: '', qty: 1, unitPrice: 0, start: document.getElementById('fStart').value, end: document.getElementById('fEnd').value }); render(); }
+    function setManual(i, k, v) { manual[i][k] = (k === 'qty' || k === 'unitPrice') ? Number(v) || 0 : v; renderManualTotals(); }
+    function renderManual() {
+      document.getElementById('manualBody').innerHTML = manual.map((r, i) => `<tr>
+        <td class="text-muted">${i + 1}</td>
+        <td><input class="form-control form-control-sm ${r.type === 'late' ? 'border-danger' : ''}" value="${esc(r.desc)}" oninput="setManual(${i}, 'desc', this.value)"></td>
+        <td><input type="number" min="0" class="form-control form-control-sm text-end" value="${r.qty}" oninput="setManual(${i}, 'qty', this.value)"></td>
+        <td><input type="number" min="0" class="form-control form-control-sm text-end" value="${r.unitPrice}" oninput="setManual(${i}, 'unitPrice', this.value)"></td>
+        <td><input type="date" class="form-control form-control-sm" value="${r.start || ''}" onchange="setManual(${i}, 'start', this.value)"></td>
+        <td><input type="date" class="form-control form-control-sm" value="${r.end || ''}" onchange="setManual(${i}, 'end', this.value)"></td>
+        <td class="num" id="mDays${i}"></td><td class="num fw-600" id="mAmt${i}"></td>
+        <td><button class="btn-action" onclick="manual.splice(${i}, 1); render()"><i class="bi bi-x-lg"></i></button></td></tr>`).join('')
+        || '<tr><td colspan="9" class="text-center text-muted py-4">Belum ada baris. Tarik dari stok / proyek atau tambah baris.</td></tr>';
+      renderManualTotals();
+    }
+    function renderManualTotals() {
+      const calc = Bill.manualLines(manual, opts().monthDays);
+      let n = 0;
+      manual.forEach((r, i) => {
+        const l = String(r.desc || '').trim() ? calc.lines[n++] : null;
+        const d = document.getElementById('mDays' + i), a = document.getElementById('mAmt' + i);
+        if (d) d.textContent = l && l.days ? l.days : '-';
+        if (a) a.textContent = l ? formatRupiah(l.amount) : '-';
+      });
+      currentLines = calc.lines;
+      renderTotals('manualFoot', 8);
+    }
+
+    function renderTotals(footId, span) {
+      const subtotal = currentLines.reduce((s, l) => s + l.amount, 0);
+      const taxRate = document.getElementById('fTax').checked ? settings.taxRate : 0;
+      const tax = Math.round(subtotal * taxRate);
+      document.getElementById(footId).innerHTML = `
+        <tr><td colspan="${span - 1}" class="text-end">Subtotal</td><td class="num">${formatRupiah(subtotal)}</td>${footId === 'manualFoot' ? '<td></td>' : ''}</tr>
+        ${taxRate ? `<tr><td colspan="${span - 1}" class="text-end">PPN ${Math.round(taxRate * 100)}%</td><td class="num">${formatRupiah(tax)}</td>${footId === 'manualFoot' ? '<td></td>' : ''}</tr>` : ''}
+        <tr><td colspan="${span - 1}" class="text-end">TOTAL TAGIHAN</td><td class="num">${formatRupiah(subtotal + tax)}</td>${footId === 'manualFoot' ? '<td></td>' : ''}</tr>`;
+      const ps = document.getElementById('fStart').value, pe = document.getElementById('fEnd').value;
+      const clash = Bill.overlaps(document.getElementById('fProject').value, ps, pe);
+      document.getElementById('btnCreate').disabled = !currentLines.length || clash.length > 0 || pe < ps;
     }
 
     // ---------- Rekap ----------
@@ -176,8 +266,27 @@
         ? `<div class="alert alert-warning py-2 fs-13"><i class="bi bi-exclamation-triangle me-1"></i>Periode ini sudah ditagih di ${clash.map(i => `<a href="invoice-detail.html?id=${i.id}">${i.id}</a> (${formatDate(i.periodStart)} - ${formatDate(i.periodEnd)})`).join(', ')}. Ubah periode untuk membuat invoice baru.</div>`
         : (pe < ps ? '<div class="alert alert-danger py-2 fs-13">Periode akhir sebelum periode awal.</div>' : '');
 
+      document.getElementById('modeStock').classList.toggle('active', mode === 'stok');
+      document.getElementById('modeManual').classList.toggle('active', mode === 'manual');
+      document.getElementById('stockBox').classList.toggle('d-none', mode !== 'stok');
+      document.getElementById('manualBox').classList.toggle('d-none', mode !== 'manual');
+      document.getElementById('lateWrap').classList.toggle('d-none', mode !== 'stok');
+      if (mode === 'manual') {
+        renderManual();
+        document.getElementById('btnCreate').innerHTML = '<i class="bi bi-receipt me-1"></i>' + (shadow && shadow.projectId === pid ? 'Terbitkan ' + shadow.id : 'Buat Invoice (Manual)');
+        return;
+      }
+
       currentLines = pe >= ps ? Bill.recap(pid, ps, pe, opts()) : [];
-      document.getElementById('recapBody').innerHTML = currentLines.map((l, i) => `<tr>
+      document.getElementById('recapBody').innerHTML = currentLines.map((l, i) => l.type === 'late' ? `<tr class="table-danger">
+        <td class="text-muted">${i + 1}</td>
+        <td class="fw-600" colspan="3"><i class="bi bi-alarm me-1 text-danger"></i>${l.desc} <span class="fs-11 text-muted fw-normal">· estimasi kembali ${formatDate(l.estimate)} (${l.rentalId}) · SJ ${l.sjDelivery}</span></td>
+        <td class="num">${formatNumber(l.qty)}</td>
+        <td class="num">${formatRupiah(l.unitPrice)}</td>
+        <td class="text-nowrap">${formatDate(l.start)}</td><td class="text-nowrap">${formatDate(l.end)}</td>
+        <td class="num">${l.days}</td>
+        <td class="num fw-600">${formatRupiah(l.amount)}</td>
+      </tr>` : `<tr>
         <td class="text-muted">${i + 1}</td>
         <td class="fw-600 text-nowrap">${l.equipment}</td>
         <td class="text-mono fs-12">${l.sjDelivery}</td>
@@ -192,15 +301,7 @@
         <td class="num fw-600">${formatRupiah(l.amount)}</td>
       </tr>`).join('') || '<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada alat yang disewa pada periode ini</td></tr>';
 
-      const subtotal = currentLines.reduce((s, l) => s + l.amount, 0);
-      const taxRate = document.getElementById('fTax').checked ? settings.taxRate : 0;
-      const tax = Math.round(subtotal * taxRate);
-      document.getElementById('recapFoot').innerHTML = `
-        <tr><td colspan="9" class="text-end">Subtotal</td><td class="num">${formatRupiah(subtotal)}</td></tr>
-        ${taxRate ? `<tr><td colspan="9" class="text-end">PPN ${Math.round(taxRate * 100)}%</td><td class="num">${formatRupiah(tax)}</td></tr>` : ''}
-        <tr><td colspan="9" class="text-end">TOTAL TAGIHAN</td><td class="num">${formatRupiah(subtotal + tax)}</td></tr>`;
-
-      document.getElementById('btnCreate').disabled = !currentLines.length || clash.length > 0 || pe < ps;
+      renderTotals('recapFoot', 10);
       document.getElementById('btnCreate').innerHTML = '<i class="bi bi-receipt me-1"></i>' + (shadow && shadow.projectId === pid ? 'Terbitkan ' + shadow.id : 'Buat Invoice');
     }
 
@@ -211,7 +312,8 @@
         invoiceDate: document.getElementById('fInvDate').value,
         dueDays: document.getElementById('fDue').value,
         accountId: document.getElementById('fAccount').value,
-        shadowId: shadow && shadow.projectId === pid ? shadow.id : null
+        shadowId: shadow && shadow.projectId === pid ? shadow.id : null,
+        manualItems: mode === 'manual' ? manual : null
       }));
       if (!res.success) { showToast(res.error, 'error'); return; }
       showToast('Invoice ' + res.invoice.id + ' berhasil dibuat', 'success');
@@ -221,13 +323,14 @@
     function exportCSV() {
       const p = MockData.projects.find(x => x.id === document.getElementById('fProject').value);
       const rows = [['Nama Barang', 'SJ Kirim', 'SJ Pulang', 'Qty', 'Harga Satuan', 'Awal', 'Akhir', 'Hari', 'Bulan Sewa', 'Total']];
-      currentLines.forEach(l => rows.push([l.equipment, l.sjDelivery, l.sjReturn || 'belum pulang', l.qty, l.unitPrice, l.start, l.end, l.days, l.monthDays, l.amount]));
+      currentLines.forEach(l => rows.push([l.desc || l.equipment, l.sjDelivery || '', l.sjReturn || (l.manual ? '' : 'belum pulang'), l.qty, l.unitPrice, l.start || '', l.end || '', l.days, l.monthDays, l.amount]));
       downloadCSV(`rekap-tagihan-${p.id}-${document.getElementById('fStart').value}.csv`, rows);
     }
 
     renderUnbilled();
     const preset = getUrlParam('project');
-    if (preset && billable.find(p => p.id === preset)) document.getElementById('fProject').value = preset;
+    if (preset && MockData.projects.find(p => p.id === preset)) document.getElementById('fProject').value = preset;
+    else if (billable.length) document.getElementById('fProject').value = billable[0].id;
     onProjectChange();
 
     // Menerbitkan invoice bayangan lewat rekap: nomor invoice bayangan dipakai ulang

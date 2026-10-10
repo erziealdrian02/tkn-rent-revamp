@@ -288,10 +288,11 @@ BizLogic.Accounting = {
     var A = this.ACC;
     return (MockData.invoices || []).filter(function(inv) { return ['Shadow', 'Cancelled', 'Draft'].indexOf(inv.status) < 0; }).map(function(inv) {
       var amount = Math.round(Number(inv.amount) || 0), dpp = Math.round(Number(inv.subtotal) || amount), ppn = amount - dpp;
-      var lines = [{ acc: A.AR, d: amount, k: 0, memo: inv.customerName }, { acc: inv.type === 'Klaim' ? A.CLAIM : A.RENT, d: 0, k: dpp }];
+      var revenue = inv.type === 'Klaim' ? A.CLAIM : inv.type === 'Jual' ? A.SALES : A.RENT;
+      var lines = [{ acc: A.AR, d: amount, k: 0, memo: inv.customerName }, { acc: revenue, d: 0, k: dpp }];
       if (ppn) lines.push({ acc: A.PPN, d: 0, k: ppn, tax: { kind: 'PPN_OUT', dpp: dpp, invoiceId: inv.id, customerId: inv.customerId } });
       return { id: 'PJ-' + inv.id, no: inv.id, date: inv.invoiceDate, source: 'penjualan', ref: inv.reference || '', party: inv.customerName,
-        desc: (inv.type === 'Klaim' ? 'Invoice klaim ' : 'Invoice sewa ') + inv.id + ' - ' + (inv.projectName || ''), projectId: inv.projectId || null,
+        desc: ({ Klaim: 'Invoice klaim ', Jual: 'Invoice penjualan ' }[inv.type] || 'Invoice sewa ') + inv.id + ' - ' + (inv.projectName || inv.customerName || ''), projectId: inv.projectId || null,
         link: 'invoice-detail.html?id=' + inv.id, lines: lines };
     });
   },
@@ -300,19 +301,21 @@ BizLogic.Accounting = {
   // Metode periodik: masuk ke akun Pembelian, lalu disesuaikan dgn persediaan akhir (lihat _stockClosing).
   _purchaseJournals: function(costs) {
     var A = this.ACC, rate = (MockData.settings && MockData.settings.taxRate) || 0.11;
-    return (MockData.stockMutations || []).filter(function(d) { return d.type === 'PURCHASE'; }).map(function(d) {
+    return (MockData.stockMutations || []).filter(function(d) { return ['PURCHASE', 'PRODUCTION', 'SURPLUS'].indexOf(d.type) >= 0; }).map(function(d) {
       var m = String(d.reference || '').match(/PO-\d+/), po = m && (MockData.purchases || []).find(function(p) { return p.id === m[0]; });
       var dpp = Math.round(d.items.reduce(function(s, it) {
         var pi = po && (po.items || []).find(function(x) { return x.name === it.equipment; });
         return s + it.qty * ((pi && Number(pi.price)) || costs[it.equipment] || 0);
       }, 0));
-      var fromSupplier = d.from && d.from.type === 'supplier', party = (d.from && d.from.name) || (po && po.supplier) || '';
+      var fromSupplier = d.type === 'PURCHASE' && d.from && d.from.type === 'supplier', party = (d.from && d.from.name) || (po && po.supplier) || '';
       var ppn = fromSupplier ? Math.round(dpp * rate) : 0;
       var lines = [{ acc: A.PURCHASE, d: dpp, k: 0 }];
       if (ppn) lines.push({ acc: A.PPN, d: ppn, k: 0, tax: { kind: 'PPN_IN', dpp: dpp, poId: po ? po.id : null } });
-      lines.push({ acc: A.AP, d: 0, k: dpp + ppn, memo: party });
+      // Kelebihan alat (selisih lebih stock opname) = pendapatan lain-lain; produksi sendiri = hutang biaya produksi
+      if (d.type === 'SURPLUS') lines.push({ acc: A.OTHER_IN, d: 0, k: dpp, memo: 'Selisih lebih stok' });
+      else lines.push({ acc: A.AP, d: 0, k: dpp + ppn, memo: party });
       return { id: 'PB-' + d.id, no: d.no, date: d.date, source: 'pembelian', ref: d.reference || '', party: party,
-        desc: (fromSupplier ? 'Pembelian alat dari ' : 'Produksi / perakitan internal - ') + party,
+        desc: d.type === 'SURPLUS' ? 'Kelebihan alat (selisih lebih stok)' + (d.notes ? ' - ' + d.notes : '') : (fromSupplier ? 'Pembelian alat dari ' : 'Produksi / perakitan internal - ') + party,
         link: po ? 'purchase-detail.html?id=' + po.id : 'stock-mutations.html', lines: lines };
     });
   },

@@ -40,7 +40,11 @@
               <select class="form-select" id="dlvVehicle"><option value="">Select Vehicle</option></select>
             </div>
           </div>
-          <div class="mb-3"><label class="form-label form-label-er">Destination</label><input type="text" class="form-control" id="dlvDest"></div>
+          <div class="mb-3"><label class="form-label form-label-er">Tujuan</label><input type="text" class="form-control" id="dlvDest"></div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6"><label class="form-label form-label-er">Estimasi Berangkat <span class="text-muted fw-normal">(ekspedisi)</span></label><input type="datetime-local" class="form-control" id="dlvEstDepart"></div>
+            <div class="col-md-6"><label class="form-label form-label-er">Estimasi Tiba <span class="text-muted fw-normal">(boleh diisi nanti oleh ekspedisi)</span></label><input type="datetime-local" class="form-control" id="dlvEstArrive"></div>
+          </div>
           <h6 class="fw-600 mb-2">Equipment to Deliver</h6>
           <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Equipment</th><th>Rental Qty</th><th>Already Delivered</th><th>Remaining</th><th>Deliver Qty</th></tr></thead>
           <tbody id="dlvItemsBody"></tbody></table></div>
@@ -52,6 +56,29 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Surat Jalan Pemulangan -->
+  <div class="modal fade" id="pickupModal" tabindex="-1">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-box-arrow-in-left me-2"></i>Surat Jalan Pemulangan</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="alert alert-light border py-2 fs-13">Jemput alat dari proyek. Ekspedisi isi estimasi & update posisi; setelah tiba di gudang alat diinspeksi (baik / rusak / hilang). Sewa berhenti dihitung saat inspeksi (SJR).</div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-4"><label class="form-label form-label-er">Tanggal Jemput</label><input type="date" class="form-control" id="pkDate"></div>
+          <div class="col-md-4"><label class="form-label form-label-er">Driver</label><select class="form-select" id="pkDriver"><option value="">- Pilih nanti -</option></select></div>
+          <div class="col-md-4"><label class="form-label form-label-er">Kendaraan</label><select class="form-select" id="pkVehicle"><option value="">- Pilih nanti -</option></select></div>
+          <div class="col-md-6"><label class="form-label form-label-er">Estimasi Berangkat</label><input type="datetime-local" class="form-control" id="pkEstDepart"></div>
+          <div class="col-md-6"><label class="form-label form-label-er">Estimasi Tiba di Gudang</label><input type="datetime-local" class="form-control" id="pkEstArrive"></div>
+        </div>
+        <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Alat</th><th class="num">Di Proyek</th><th class="num">Bisa Dijemput</th><th style="width:110px">Jemput</th></tr></thead><tbody id="pkItems"></tbody></table></div>
+        <div class="mt-3"><label class="form-label form-label-er">Catatan</label><textarea class="form-control" rows="2" id="pkNotes"></textarea></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+        <button class="btn btn-primary" onclick="createPickup()"><i class="bi bi-check-lg me-1"></i>Buat Surat Jalan Pemulangan</button>
+      </div>
+    </div></div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -97,7 +124,10 @@
         actionBtns += '<button class="btn btn-outline-danger btn-sm" onclick="rejectRental()"><i class="bi bi-x-lg me-1"></i>Tolak</button>';
       }
       if ((s === 'Pending Approval' || s === 'Waiting Approval') && !canDo('Rentals', 'Approve')) {
-        actionBtns += '<span class="badge bg-warning-subtle text-warning align-self-center"><i class="bi bi-hourglass-split me-1"></i>Menunggu persetujuan Manager</span>';
+        actionBtns += '<span class="badge bg-warning-subtle text-warning align-self-center"><i class="bi bi-hourglass-split me-1"></i>Menunggu ACC Staff Piutang</span>';
+      }
+      if (canDo('Rentals', 'Update') && !['Completed', 'Cancelled', 'Rejected'].includes(s)) {
+        actionBtns += `<button class="btn ${rental.logisticsEstimate ? 'btn-outline-secondary' : 'btn-warning'} btn-sm" onclick="openRentalEstimate()"><i class="bi bi-clock-history me-1"></i>${rental.logisticsEstimate ? 'Ubah' : 'Isi'} Estimasi Ekspedisi</button>`;
       }
       if (['Approved', 'Preparing', 'Partially Delivered', 'On Rental', 'Partially Returned', 'Overdue'].includes(s)) {
         actionBtns += '<button class="btn btn-outline-secondary btn-sm" onclick="openExtend()"><i class="bi bi-calendar-plus me-1"></i>Perpanjang Sewa</button>';
@@ -105,12 +135,13 @@
       if (s === 'Rejected') {
         actionBtns += '<button class="btn btn-primary btn-sm" onclick="resubmitRental()"><i class="bi bi-arrow-repeat me-1"></i>Resubmit</button>';
       }
-      if (['Approved', 'Preparing', 'Partially Delivered', 'On Rental'].includes(s)) {
-        actionBtns += '<button class="btn btn-primary btn-sm" onclick="openDeliveryModal()"><i class="bi bi-truck me-1"></i>Create Delivery</button>';
+      if (['Approved', 'Preparing', 'Partially Delivered', 'On Rental'].includes(s) && canDo('Deliveries', 'Create')) {
+        actionBtns += '<button class="btn btn-primary btn-sm" onclick="openDeliveryModal()"><i class="bi bi-truck me-1"></i>Surat Jalan Kirim</button>';
       }
-      if (['On Rental', 'Partially Returned', 'Overdue', 'Partially Delivered'].includes(s)) {
-        actionBtns += '<button class="btn btn-outline-primary btn-sm" onclick="createReturn()"><i class="bi bi-box-arrow-in-left me-1"></i>Buat Pengembalian</button>';
+      if (['On Rental', 'Partially Returned', 'Overdue', 'Partially Delivered'].includes(s) && canDo('Deliveries', 'Create')) {
+        actionBtns += '<button class="btn btn-outline-primary btn-sm" onclick="openPickupModal()"><i class="bi bi-box-arrow-in-left me-1"></i>Surat Jalan Pemulangan</button>';
       }
+      actionBtns += editButton({ docType: 'Penyewaan', docId: rental.id, docLabel: rental.customerName + ' · ' + rental.projectName, link: 'rental-detail.html?id=' + rental.id }, '', { label: 'Ajukan Perubahan' });
       if (['Draft', 'Pending Approval', 'Waiting Approval', 'Approved'].includes(s)) {
         actionBtns += '<button class="btn btn-outline-danger btn-sm" onclick="cancelRental()"><i class="bi bi-x-circle me-1"></i>Batal</button>';
       }
@@ -177,8 +208,22 @@
         stockInfo += '</tbody></table></div>';
       }
 
+      const est = rental.logisticsEstimate, estReturn = BizLogic.Rental.estimatedReturn(rental);
+      const today0 = new Date().toISOString().split('T')[0];
+      const onSiteNow = BizLogic.Delivery.pickupRemaining(rental).reduce((a, x) => a + x.onSite, 0);
+      const lateDays = estReturn && onSiteNow > 0 && today0 > estReturn ? BizLogic.Billing.days(estReturn, today0) - 1 : 0;
+      const estimateBox = `<div class="alert ${est ? 'alert-light border' : 'alert-warning'} py-2 fs-13 mb-3"><i class="bi bi-clock-history me-1"></i><strong>Estimasi Ekspedisi:</strong>
+        ${est ? `kirim ${formatDate(est.deliveryDate)}, jemput / kembali <strong>${formatDate(est.returnDate)}</strong>${est.notes ? ' · ' + est.notes : ''} <span class="text-muted">(${est.by}, ${est.at})</span>` : 'belum diisi Ekspedisi.'}
+        ${lateDays > 0 ? `<div class="text-danger mt-1"><i class="bi bi-alarm me-1"></i>${onSiteNow} unit masih di proyek, lewat ${lateDays} hari dari estimasi kembali (${formatDate(estReturn)}) — biaya keterlambatan dihitung di Rekap Tagihan.</div>` : ''}</div>`;
+      let creditBox = '';
+      if (s === 'Pending Approval' || s === 'Waiting Approval') {
+        const cs = BizLogic.Customer.summary(rental.customerId);
+        creditBox = `<div class="alert ${cs.overdue ? 'alert-danger' : 'alert-info'} py-2 fs-13 mb-3"><i class="bi bi-journal-text me-1"></i><strong>Piutang ${rental.customerName}:</strong>
+          ${formatRupiah(cs.outstanding)} belum dibayar${cs.overdue ? `, <strong>${formatRupiah(cs.overdue)} lewat jatuh tempo</strong>` : ''} · ${cs.activeRentals.length} sewa aktif. Order ini di-ACC Staff Piutang sebelum surat jalan dibuat.</div>`;
+      }
+
       tc += `<div class="er-tab-content active" id="tab-overview">
-        ${overdueBanner}${rejectionInfo}${cancellationInfo}
+        ${editRequestBanner('Penyewaan', rental.id)}${creditBox}${estimateBox}${overdueBanner}${rejectionInfo}${cancellationInfo}
         <div class="info-grid mb-4">
           <div class="info-item"><span class="info-label">Rental Number</span><span class="info-value text-mono">${rental.id}</span></div>
           <div class="info-item"><span class="info-label">Customer</span><span class="info-value"><a href="customer-detail.html?id=${rental.customerId}">${rental.customerName}</a></span></div>
@@ -216,10 +261,12 @@
 
       // ──── DELIVERY TAB ────
       tc += `<div class="er-tab-content" id="tab-delivery">
-        ${deliveries.length ? `<div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No. Pengiriman</th><th>Tanggal</th><th>Pengemudi</th><th>Vehicle</th><th>Item</th><th>Status</th><th>Aksi</th></tr></thead><tbody>
+        ${deliveries.length ? `<div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Surat Jalan</th><th>Jenis</th><th>Tanggal</th><th>Driver</th><th>Estimasi Tiba</th><th>Item</th><th>Status</th><th>Aksi</th></tr></thead><tbody>
         ${deliveries.map(d => `<tr>
-          <td><a href="delivery-detail.html?id=${d.id}" class="cell-link text-mono">${d.id}</a></td>
-          <td>${formatDate(d.deliveryDate)}</td><td>${d.driverName||'<span class=\"text-muted\">Tidak Ditugaskan</span>'}</td><td>${d.vehiclePlate||'-'}</td>
+          <td><a href="delivery-detail.html?id=${d.id}" class="cell-link text-mono">${d.sjNo || d.id}</a><div class="fs-11 text-muted">${d.id}</div></td>
+          <td>${BizLogic.Delivery.KINDS[BizLogic.Delivery.kindOf(d)].label}</td>
+          <td>${formatDate(d.deliveryDate)}</td><td>${d.driverName||'<span class=\"text-muted\">Belum ditugaskan</span>'}<div class="fs-11 text-muted">${d.vehiclePlate||''}</div></td>
+          <td class="fs-12">${d.estimate ? d.estimate.arriveAt : (['Completed','Failed'].includes(d.status) ? '-' : '<span class=\"text-warning\">Belum diisi</span>')}</td>
           <td class="fs-12">${d.items.map(i=>i.name+' ×'+i.qty).join(', ')}</td>
           <td>${statusBadge(d.status)}</td><td><a href="delivery-detail.html?id=${d.id}" class="btn-action"><i class="bi bi-eye"></i></a></td>
         </tr>`).join('')}</tbody></table></div>` : '<div class="empty-state"><i class="bi bi-truck"></i><h5>No Deliveries</h5><p>No delivery has been created for this rental yet.</p>' + (['Approved','Preparing','Partially Delivered','On Rental'].includes(s) ? '<button class="btn btn-primary btn-sm" onclick="openDeliveryModal()"><i class="bi bi-plus-lg me-1"></i>Create Delivery</button>' : '') + '</div>'}
@@ -275,7 +322,7 @@
       // Populate delivery modal items
       const dlvItemsBody = document.getElementById('dlvItemsBody');
       if (dlvItemsBody) {
-        const existingDlvs = MockData.deliveries.filter(d => d.rentalId === rental.id && d.status !== 'Failed');
+        const existingDlvs = MockData.deliveries.filter(d => d.rentalId === rental.id && d.status !== 'Failed' && BizLogic.Delivery.kindOf(d) === 'SEWA');
         dlvItemsBody.innerHTML = rental.items.map((item, idx) => {
           const delivered = existingDlvs.reduce((sum, d) => {
             const di = d.items.find(i => i.name === item.name);
@@ -323,8 +370,8 @@
 
     function approveRental() {
       BizLogic.showConfirmModal(
-        'Approve Rental',
-        'Approve rental <strong>' + rental.id + '</strong>? This will reserve stock for all equipment items.',
+        'ACC Order Sewa',
+        'ACC penyewaan <strong>' + rental.id + '</strong>? Stok alat akan dipesan dan surat jalan bisa dibuat.<br><span class="fs-13 text-muted">Piutang customer: ' + formatRupiah(BizLogic.Customer.summary(rental.customerId).outstanding) + '</span>',
         '<i class="bi bi-check-lg me-1"></i>Approve', 'btn-success',
         function(fields) {
           const result = BizLogic.Rental.approve(rental.id, fields.notes);
@@ -420,7 +467,9 @@
         vehicleId: vehicleSel.value || null,
         vehiclePlate: vehicleSel.value ? vehicleOpt.dataset.plate : null,
         destination: document.getElementById('dlvDest').value,
-        notes: document.getElementById('dlvNotes').value
+        notes: document.getElementById('dlvNotes').value,
+        estimateDepart: document.getElementById('dlvEstDepart').value.replace('T', ' '),
+        estimateArrive: document.getElementById('dlvEstArrive').value.replace('T', ' ')
       });
 
       if (result.success) {
@@ -432,56 +481,50 @@
       }
     }
 
-    function createReturn() {
-      // Calculate remaining items on rental
-      const completedDlvs = MockData.deliveries.filter(d => d.rentalId === rental.id && d.status === 'Completed');
-      const existingReturns = MockData.returns.filter(r => r.rentalId === rental.id);
+    // ──── SURAT JALAN PEMULANGAN ────
+    function openPickupModal() {
+      const rem = BizLogic.Delivery.pickupRemaining(rental).filter(r => r.onSite > 0);
+      if (!rem.some(r => r.remaining > 0)) { showToast('Tidak ada alat di proyek yang belum dijadwalkan pulang', 'warning'); return; }
+      document.getElementById('pkDate').value = today;
+      const est = rental.logisticsEstimate;
+      if (est) document.getElementById('pkDate').value = est.returnDate > today ? est.returnDate : today;
+      document.getElementById('pkDriver').innerHTML = '<option value="">- Pilih nanti -</option>' + MockData.drivers.filter(d => d.status === 'Available').map(d => `<option value="${d.id}" data-name="${d.name}">${d.name}</option>`).join('');
+      document.getElementById('pkVehicle').innerHTML = '<option value="">- Pilih nanti -</option>' + MockData.vehicles.filter(v => v.status === 'Available').map(v => `<option value="${v.id}" data-plate="${v.plate}">${v.plate} - ${v.brand}</option>`).join('');
+      document.getElementById('pkItems').innerHTML = rem.map(r => `<tr><td>${r.name}</td><td class="num">${r.onSite}</td><td class="num fw-600">${r.remaining}</td>
+        <td><input type="number" class="form-control form-control-sm pk-qty" min="0" max="${r.remaining}" value="${r.remaining}" data-name="${r.name.replace(/"/g, '&quot;')}"></td></tr>`).join('');
+      new bootstrap.Modal(document.getElementById('pickupModal')).show();
+    }
 
-      const items = [];
-      rental.items.forEach(item => {
-        const totalDelivered = completedDlvs.reduce((s, d) => {
-          const di = d.items.find(i => i.name === item.name);
-          return s + (di ? di.qty : 0);
-        }, 0);
-        const totalReturned = existingReturns.reduce((s, r) => {
-          return s + r.items.reduce((is, ri) => ri.name === item.name ? is + ri.sent : is, 0);
-        }, 0);
-        const remaining = totalDelivered - totalReturned;
-        if (remaining > 0) {
-          items.push({ name: item.name, sent: remaining, good: remaining, damaged: 0, lost: 0, missing: 0 });
-        }
+    function createPickup() {
+      const items = [...document.querySelectorAll('.pk-qty')].map(i => ({ name: i.dataset.name, qty: parseInt(i.value) || 0 }));
+      const drv = document.getElementById('pkDriver'), veh = document.getElementById('pkVehicle');
+      const res = BizLogic.Delivery.createPickup(rental.id, items, {
+        deliveryDate: document.getElementById('pkDate').value,
+        driverId: drv.value || null, driverName: drv.value ? drv.selectedOptions[0].dataset.name : null,
+        vehicleId: veh.value || null, vehiclePlate: veh.value ? veh.selectedOptions[0].dataset.plate : null,
+        notes: document.getElementById('pkNotes').value,
+        estimateDepart: document.getElementById('pkEstDepart').value.replace('T', ' '),
+        estimateArrive: document.getElementById('pkEstArrive').value.replace('T', ' ')
       });
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      showToast('Surat jalan pemulangan ' + res.delivery.sjNo + ' dibuat', 'success');
+      setTimeout(() => location.href = 'delivery-detail.html?id=' + res.delivery.id, 700);
+    }
 
-      if (items.length === 0) {
-        showToast('No items remaining for return', 'warning');
-        return;
-      }
-
-      const ret = {
-        id: MockData.generateId('RET', 'returns'),
-        rentalId: rental.id,
-        projectId: rental.projectId,
-        projectName: rental.projectName,
-        customerId: rental.customerId,
-        customerName: rental.customerName,
-        returnDate: new Date().toISOString().split('T')[0],
-        status: 'Inspection',
-        inspectedBy: null,
-        items: items
-      };
-
-      MockData.returns.push(ret);
-      MockData.save('returns');
-
-      BizLogic.Activity.log('Return ' + ret.id + ' created for ' + rental.id, 'info');
-      BizLogic.Notification.add(
-        'Return <strong>' + ret.id + '</strong> is waiting for inspection',
-        'warning', 'bi-box-arrow-in-left',
-        'return-detail.html?id=' + ret.id
-      );
-
-      showToast('Return ' + ret.id + ' created - redirecting to inspection', 'success');
-      setTimeout(() => window.location.href = 'return-detail.html?id=' + ret.id, 800);
+    // ──── ESTIMASI EKSPEDISI (saat penyewaan dibuat) ────
+    function openRentalEstimate() {
+      const e = rental.logisticsEstimate || {};
+      BizLogic.showConfirmModal('Estimasi Ekspedisi', 'Rencana kirim & jemput untuk <strong>' + rental.id + '</strong>. Pemulangan yang lewat dari estimasi kembali dikenai biaya keterlambatan ke customer.',
+        '<i class="bi bi-check-lg me-1"></i>Simpan', 'btn-primary',
+        function(f) {
+          const r = BizLogic.Rental.setEstimate(rental.id, f);
+          if (!r.success) { showToast(r.error, 'error'); return false; }
+          showToast('Estimasi disimpan', 'success');
+          setTimeout(() => location.reload(), 600);
+        },
+        [{ id: 'deliveryDate', label: 'Estimasi Kirim', type: 'date', required: true, value: e.deliveryDate || rental.rentalDate },
+         { id: 'returnDate', label: 'Estimasi Jemput / Kembali', type: 'date', required: true, value: e.returnDate || rental.returnDate },
+         { id: 'notes', label: 'Catatan (armada, rute, dll.)', type: 'textarea', value: e.notes || '' }]);
     }
 
     // Initial render

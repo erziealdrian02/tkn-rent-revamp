@@ -133,7 +133,7 @@
         <td class="text-mono">${v.id}</td><td><a href="vehicle-detail.html?id=${v.id}" class="cell-link fw-600">${v.plate}</a></td>
         <td>${v.type}</td><td>${v.brand}</td><td>${v.capacity}</td><td>${v.taxExpiry ? formatDate(v.taxExpiry) : '-'}</td>
         <td>${statusBadge(v.status)}</td>
-        <td><a href="vehicle-detail.html?id=${v.id}" class="btn-action"><i class="bi bi-eye"></i></a><button class="btn-action"><i class="bi bi-pencil"></i></button></td>
+        <td><a href="vehicle-detail.html?id=${v.id}" class="btn-action"><i class="bi bi-eye"></i></a>${editButton({ docType: 'Kendaraan', docId: v.id, docLabel: v.plate, link: 'vehicle-detail.html?id=' + v.id }, '<button class="btn-action" title="Ubah" onclick="showToast(\'Form ubah (prototype)\', \'info\')"><i class="bi bi-pencil"></i></button>')}</td>
       </tr>`).join('')||'<tr><td colspan="8" class="text-center text-muted py-4">Tidak ada kendaraan ditemukan</td></tr>';
     }
     filterData();

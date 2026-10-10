@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detail Penjualan - EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="er-card mb-4">
+          <div class="detail-header" id="detailHeader"></div>
+          <div class="er-card-body" id="detailBody"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Surat Jalan Jual -->
+  <div class="modal fade" id="sjModal" tabindex="-1">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-bag-check me-2"></i>Surat Jalan Jual</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="row g-3 mb-3">
+          <div class="col-md-4"><label class="form-label form-label-er">Tanggal Kirim</label><input type="date" class="form-control" id="sjDate"></div>
+          <div class="col-md-4"><label class="form-label form-label-er">Driver</label><select class="form-select" id="sjDriver"></select></div>
+          <div class="col-md-4"><label class="form-label form-label-er">Kendaraan</label><select class="form-select" id="sjVehicle"></select></div>
+          <div class="col-12"><label class="form-label form-label-er">Tujuan</label><input type="text" class="form-control" id="sjDest"></div>
+          <div class="col-md-6"><label class="form-label form-label-er">Estimasi Berangkat</label><input type="datetime-local" class="form-control" id="sjEstDepart"></div>
+          <div class="col-md-6"><label class="form-label form-label-er">Estimasi Tiba <span class="text-muted fw-normal">(boleh diisi nanti oleh ekspedisi)</span></label><input type="datetime-local" class="form-control" id="sjEstArrive"></div>
+        </div>
+        <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Alat</th><th class="num">Order</th><th class="num">Sudah SJ</th><th style="width:110px">Kirim</th></tr></thead><tbody id="sjItems"></tbody></table></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+        <button class="btn btn-primary" onclick="createSJ()"><i class="bi bi-check-lg me-1"></i>Buat Surat Jalan</button>
+      </div>
+    </div></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    const S = BizLogic.Sale;
+    const sale = S.find(getUrlParam('id')) || (MockData.sales || [])[0];
+    initApp('sales.html', [{label:'Pelanggan & Order',href:'#'},{label:'Penjualan',href:'sales.html'},{label:sale.id}], sale.id);
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const today = new Date().toISOString().split('T')[0];
+    const reload = msg => { showToast(msg, 'success'); setTimeout(() => location.reload(), 600); };
+
+    function render() {
+      const s = sale.status, tax = Math.round(sale.subtotal * (sale.taxRate || 0));
+      const dlvs = MockData.deliveries.filter(d => d.saleId === sale.id);
+      const inv = sale.invoiceId && MockData.invoices.find(i => i.id === sale.invoiceId);
+      const rem = S.remaining(sale);
+      let a = '';
+      if ((s === 'Draft' || s === 'Rejected') && canDo('Sales', 'Create')) a += '<button class="btn btn-primary btn-sm" onclick="submitSale()"><i class="bi bi-send me-1"></i>Ajukan ACC</button>';
+      if (s === 'Pending Approval' && canDo('Sales', 'Approve')) a += '<button class="btn btn-success btn-sm" onclick="approve()"><i class="bi bi-check-lg me-1"></i>ACC</button><button class="btn btn-outline-danger btn-sm" onclick="reject()"><i class="bi bi-x-lg me-1"></i>Tolak</button>';
+      if (s === 'Pending Approval' && !canDo('Sales', 'Approve')) a += '<span class="badge bg-warning-subtle text-warning align-self-center"><i class="bi bi-hourglass-split me-1"></i>Menunggu ACC Staff Piutang</span>';
+      if (S.ACTIVE.includes(s) && rem.some(r => r.remaining > 0) && canDo('Deliveries', 'Create')) a += '<button class="btn btn-primary btn-sm" onclick="openSJ()"><i class="bi bi-truck me-1"></i>Surat Jalan Jual</button>';
+      if (['Approved', 'Partially Delivered', 'Delivered'].includes(s) && !sale.invoiceId && canDo('Invoices', 'Create')) a += '<button class="btn btn-outline-primary btn-sm" onclick="makeInvoice()"><i class="bi bi-receipt me-1"></i>Buat Invoice Jual</button>';
+      if (['Draft', 'Pending Approval', 'Approved', 'Rejected'].includes(s) && !dlvs.some(d => d.status !== 'Failed')) a += '<button class="btn btn-outline-danger btn-sm" onclick="cancelSale()"><i class="bi bi-x-circle me-1"></i>Batal</button>';
+      a += editButton({ docType: 'Penjualan', docId: sale.id, docLabel: sale.customerName, link: 'sale-detail.html?id=' + sale.id }, '', { label: 'Ajukan Perubahan' });
+
+      document.getElementById('detailHeader').innerHTML = `
+        <div class="detail-header-left">
+          <div class="detail-header-icon"><i class="bi bi-bag-check"></i></div>
+          <div class="detail-header-info">
+            <h2>${sale.id} ${statusBadge(s)}</h2>
+            <div class="detail-meta">
+              <span class="detail-meta-item"><i class="bi bi-people"></i><a href="customer-detail.html?id=${sale.customerId}">${esc(sale.customerName)}</a></span>
+              ${sale.projectId ? `<span class="detail-meta-item"><i class="bi bi-folder"></i><a href="project-detail.html?id=${sale.projectId}">${esc(sale.projectName)}</a></span>` : ''}
+              <span class="detail-meta-item"><i class="bi bi-calendar"></i>${formatDate(sale.date)}</span>
+              <span class="detail-meta-item"><i class="bi bi-building"></i>${esc(sale.branch)}</span>
+            </div>
+          </div>
+        </div>
+        <div class="detail-header-actions">${a}</div>`;
+
+      let credit = '';
+      if (s === 'Pending Approval') {
+        const cs = BizLogic.Customer.summary(sale.customerId);
+        credit = `<div class="alert ${cs.overdue ? 'alert-danger' : 'alert-info'} py-2 fs-13"><i class="bi bi-journal-text me-1"></i><strong>Piutang ${esc(sale.customerName)}:</strong> ${formatRupiah(cs.outstanding)} belum dibayar${cs.overdue ? `, <strong>${formatRupiah(cs.overdue)} lewat jatuh tempo</strong>` : ''}.</div>`;
+      }
+      document.getElementById('detailBody').innerHTML = `
+        ${editRequestBanner('Penjualan', sale.id)}${credit}
+        ${s === 'Rejected' ? `<div class="alert alert-danger py-2 fs-13"><strong>Ditolak</strong> oleh ${esc(sale.rejectedBy)} (${esc(sale.rejectedDate)}): ${esc(sale.rejectionReason)}</div>` : ''}
+        <div class="info-grid mb-4">
+          <div class="info-item"><span class="info-label">No. Order</span><span class="info-value text-mono">${sale.id}</span></div>
+          <div class="info-item"><span class="info-label">Pelanggan</span><span class="info-value">${esc(sale.customerName)}</span></div>
+          <div class="info-item"><span class="info-label">Proyek</span><span class="info-value">${esc(sale.projectName || '-')}</span></div>
+          <div class="info-item"><span class="info-label">Gudang Asal</span><span class="info-value">${esc(sale.branch)}</span></div>
+          <div class="info-item"><span class="info-label">Dibuat</span><span class="info-value">${esc(sale.createdBy)} · ${esc(sale.createdAt)}</span></div>
+          <div class="info-item"><span class="info-label">ACC</span><span class="info-value">${sale.approvedBy ? esc(sale.approvedBy) + ' · ' + esc(sale.approvedDate) : '-'}</span></div>
+          <div class="info-item"><span class="info-label">Invoice</span><span class="info-value">${inv ? `<a href="invoice-detail.html?id=${inv.id}">${inv.id}</a> ${invoiceStatusBadge(BizLogic.Invoice.statusOf(inv))}` : '-'}</span></div>
+          <div class="info-item"><span class="info-label">Catatan</span><span class="info-value">${esc(sale.notes || '-')}</span></div>
+        </div>
+        <h6 class="fw-600 mb-2">Alat</h6>
+        <div class="er-table-wrapper mb-3"><table class="er-table"><thead><tr><th>Alat</th><th class="num">Qty</th><th class="num">Sudah SJ</th><th class="num">Terkirim</th><th class="num">Harga Satuan</th><th class="num">Subtotal</th></tr></thead><tbody>
+          ${sale.items.map(i => { const r = rem.find(x => x.name === i.name); return `<tr><td>${esc(i.name)}</td><td class="num">${i.qty}</td><td class="num">${r.sent}</td><td class="num">${i.delivered || 0}</td><td class="num">${formatRupiah(i.unitPrice)}</td><td class="num fw-600">${formatRupiah(i.qty * i.unitPrice)}</td></tr>`; }).join('')}
+        </tbody><tfoot>
+          <tr><td colspan="5">Subtotal</td><td class="num">${formatRupiah(sale.subtotal)}</td></tr>
+          <tr><td colspan="5">PPN ${Math.round((sale.taxRate || 0) * 100)}%</td><td class="num">${formatRupiah(tax)}</td></tr>
+          <tr><td colspan="5" class="fw-700">Total</td><td class="num fw-700">${formatRupiah(sale.subtotal + tax)}</td></tr>
+        </tfoot></table></div>
+        <h6 class="fw-600 mb-2">Surat Jalan Jual</h6>
+        ${dlvs.length ? `<div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No. Surat Jalan</th><th>Tanggal</th><th>Driver</th><th>Estimasi Tiba</th><th>Item</th><th>Status</th></tr></thead><tbody>
+          ${dlvs.map(d => `<tr><td><a href="delivery-detail.html?id=${d.id}" class="cell-link text-mono">${d.sjNo}</a></td><td>${formatDate(d.deliveryDate)}</td><td>${esc(d.driverName || '-')}</td>
+            <td class="fs-12">${d.estimate ? esc(d.estimate.arriveAt) : '<span class="text-warning">Belum diisi</span>'}</td><td class="fs-12">${d.items.map(i => esc(i.name) + ' ×' + i.qty).join(', ')}</td><td>${statusBadge(d.status)}</td></tr>`).join('')}
+        </tbody></table></div>` : '<div class="text-muted fs-13">Belum ada surat jalan.</div>'}`;
+    }
+
+    function submitSale() { const r = S.submit(sale.id); if (!r.success) return showToast(r.error, 'error'); reload('Diajukan ke Staff Piutang'); }
+    function approve() {
+      BizLogic.showConfirmModal('ACC Penjualan', 'ACC <strong>' + sale.id + '</strong>? Stok di gudang ' + esc(sale.branch) + ' akan dipesan.', '<i class="bi bi-check-lg me-1"></i>ACC', 'btn-success',
+        f => { const r = S.approve(sale.id, f.notes); if (!r.success) { showToast(r.error, 'error'); return false; } reload('Penjualan di-ACC'); },
+        [{ id: 'notes', label: 'Catatan', type: 'textarea' }]);
+    }
+    function reject() {
+      BizLogic.showConfirmModal('Tolak Penjualan', 'Tolak <strong>' + sale.id + '</strong>?', '<i class="bi bi-x-lg me-1"></i>Tolak', 'btn-danger',
+        f => { const r = S.reject(sale.id, f.reason); if (!r.success) { showToast(r.error, 'error'); return false; } reload('Penjualan ditolak'); },
+        [{ id: 'reason', label: 'Alasan', type: 'textarea', required: true }]);
+    }
+    function cancelSale() {
+      BizLogic.showConfirmModal('Batalkan Penjualan', 'Batalkan <strong>' + sale.id + '</strong>?', 'Batalkan', 'btn-danger',
+        f => { const r = S.cancel(sale.id, f.reason); if (!r.success) { showToast(r.error, 'error'); return false; } reload('Penjualan dibatalkan'); },
+        [{ id: 'reason', label: 'Alasan', type: 'textarea', required: true }]);
+    }
+    function makeInvoice() {
+      const r = BizLogic.Invoice.createForSale(sale.id);
+      if (!r.success) { showToast(r.error, 'error'); return; }
+      showToast('Invoice ' + r.invoice.id + ' dibuat', 'success');
+      setTimeout(() => location.href = 'invoice-detail.html?id=' + r.invoice.id, 700);
+    }
+    function openSJ() {
+      const c = MockData.customers.find(x => x.id === sale.customerId), p = MockData.projects.find(x => x.id === sale.projectId);
+      document.getElementById('sjDate').value = today;
+      document.getElementById('sjDest').value = (p && p.location) || (c && c.address) || '';
+      document.getElementById('sjDriver').innerHTML = '<option value="">- Pilih nanti -</option>' + MockData.drivers.filter(d => d.status === 'Available').map(d => `<option value="${d.id}" data-name="${esc(d.name)}">${esc(d.name)}</option>`).join('');
+      document.getElementById('sjVehicle').innerHTML = '<option value="">- Pilih nanti -</option>' + MockData.vehicles.filter(v => v.status === 'Available').map(v => `<option value="${v.id}" data-plate="${v.plate}">${v.plate} - ${esc(v.brand)}</option>`).join('');
+      document.getElementById('sjItems').innerHTML = S.remaining(sale).filter(r => r.remaining > 0).map(r => `<tr><td>${esc(r.name)}</td><td class="num">${r.qty}</td><td class="num">${r.sent}</td>
+        <td><input type="number" class="form-control form-control-sm sj-qty" min="0" max="${r.remaining}" value="${r.remaining}" data-name="${esc(r.name)}"></td></tr>`).join('');
+      new bootstrap.Modal(document.getElementById('sjModal')).show();
+    }
+    function createSJ() {
+      const drv = document.getElementById('sjDriver'), veh = document.getElementById('sjVehicle');
+      const r = BizLogic.Delivery.createForSale(sale.id, [...document.querySelectorAll('.sj-qty')].map(i => ({ name: i.dataset.name, qty: parseInt(i.value) || 0 })), {
+        deliveryDate: document.getElementById('sjDate').value, destination: document.getElementById('sjDest').value,
+        driverId: drv.value || null, driverName: drv.value ? drv.selectedOptions[0].dataset.name : null,
+        vehicleId: veh.value || null, vehiclePlate: veh.value ? veh.selectedOptions[0].dataset.plate : null,
+        estimateDepart: document.getElementById('sjEstDepart').value.replace('T', ' '), estimateArrive: document.getElementById('sjEstArrive').value.replace('T', ' ')
+      });
+      if (!r.success) { showToast(r.error, 'error'); return; }
+      showToast('Surat jalan ' + r.delivery.sjNo + ' dibuat', 'success');
+      setTimeout(() => location.href = 'delivery-detail.html?id=' + r.delivery.id, 700);
+    }
+    render();
+  </script>
+</body>
+</html>

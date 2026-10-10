@@ -1,8 +1,8 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pengiriman - EquipRent Enterprise</title>
+  <title>Surat Jalan & Pengiriman - EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -16,17 +16,20 @@
       <header class="app-header" id="appHeader"></header>
       <div class="app-content">
         <div class="page-header">
-          <div class="page-header-left"><h2 class="page-header-title">Pengiriman</h2><p class="page-header-subtitle">Monitor delivery operations</p></div>
+          <div class="page-header-left"><h2 class="page-header-title">Surat Jalan & Pengiriman</h2><p class="page-header-subtitle">Surat jalan sewa, jual dan pemulangan. Ekspedisi mengisi estimasi & update posisi driver.</p></div>
         </div>
+        <div class="row g-3 mb-4" id="kpis"></div>
         <div class="er-card"><div class="er-card-body">
           <div class="table-toolbar">
-            <div class="table-toolbar-left">
-              <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Search deliveries..." id="searchInput" oninput="filterData()"></div>
+            <div class="table-toolbar-left flex-wrap">
+              <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Cari no. surat jalan, proyek, pelanggan..." id="searchInput" oninput="filterData()"></div>
+              <select class="filter-select" id="kindFilter" onchange="filterData()"><option value="">Semua Jenis</option></select>
               <select class="filter-select" id="statusFilter" onchange="filterData()"><option value="">Semua Status</option><option value="Preparing">Disiapkan</option><option value="Assigned">Ditugaskan</option><option value="Departed">Berangkat</option><option value="Arrived">Sampai</option><option value="Completed">Selesai</option><option value="Failed">Gagal</option><option value="Rescheduled">Dijadwal Ulang</option></select>
-              <select class="filter-select" id="driverFilter" onchange="filterData()"><option value="">All Drivers</option></select>
+              <select class="filter-select" id="driverFilter" onchange="filterData()"><option value="">Semua Driver</option></select>
+              <label class="d-flex align-items-center gap-2 fs-13"><input type="checkbox" class="form-check-input m-0" id="noEstimate" onchange="filterData()"> Belum ada estimasi</label>
             </div>
           </div>
-          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No. Pengiriman</th><th>Penyewaan</th><th>Proyek</th><th>Pelanggan</th><th>Pengemudi</th><th>Vehicle</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr></thead>
+          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No. Surat Jalan</th><th>Jenis</th><th>Order</th><th>Pelanggan / Proyek</th><th>Driver · Kendaraan</th><th>Tanggal</th><th>Estimasi Tiba</th><th>Posisi Terakhir</th><th>Status</th><th></th></tr></thead>
           <tbody id="tableBody"></tbody></table></div>
         </div></div>
       </div>
@@ -35,47 +38,65 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
-    initApp('deliveries.html',[{label:'Rekap Stok',href:'#'},{label:'Pengiriman'}],'Pengiriman');
-    const df=document.getElementById('driverFilter');
-    [...new Set(MockData.deliveries.filter(d=>d.driverName).map(d=>d.driverName))].forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;df.appendChild(o);});
-    const sessionUser = JSON.parse(sessionStorage.getItem('er_user') || '{}');
-    const isDriver = sessionUser.role === 'Driver';
-    
-    if (isDriver && sessionUser.driverId) {
-      // Force driver filter if logged in as driver
-      df.value = sessionUser.name;
-      df.disabled = true;
+    initApp('deliveries.html', [{label:'Logistik & Stok',href:'#'},{label:'Surat Jalan & Pengiriman'}], 'Surat Jalan & Pengiriman');
+    const D = BizLogic.Delivery;
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const df = document.getElementById('driverFilter');
+    [...new Set(MockData.deliveries.filter(d => d.driverName).map(d => d.driverName))].forEach(n => df.innerHTML += `<option>${esc(n)}</option>`);
+    document.getElementById('kindFilter').innerHTML += Object.keys(D.KINDS).map(k => `<option value="${k}">${D.KINDS[k].label}</option>`).join('');
+    if (getUrlParam('kind')) document.getElementById('kindFilter').value = getUrlParam('kind');
+    const open = d => ['Completed', 'Failed'].indexOf(d.status) < 0;
+
+    function lateBadge(d) {
+      const m = D.lateMinutes(d);
+      if (m == null || m <= 0) return '';
+      return `<div class="fs-11 text-danger">Telat ${D.durationText(m)}</div>`;
+    }
+    const orderLink = d => d.saleId ? `<a href="sale-detail.html?id=${d.saleId}" class="cell-link">${d.saleId}</a>` : d.rentalId ? `<a href="rental-detail.html?id=${d.rentalId}" class="cell-link">${d.rentalId}</a>` : '-';
+
+    function renderKpis() {
+      const list = MockData.deliveries.filter(open);
+      const card = (c, i, l, v, onclick) => `<div class="col-6 col-lg-3"><div class="kpi-card h-100" ${onclick ? `role="button" onclick="${onclick}"` : ''}><div class="kpi-icon ${c}"><i class="bi ${i}"></i></div><div class="kpi-content"><div class="kpi-value">${v}</div><div class="kpi-label">${l}</div></div></div></div>`;
+      document.getElementById('kpis').innerHTML =
+        card('blue', 'bi-truck', 'Surat jalan aktif', list.length) +
+        card('orange', 'bi-hourglass-split', 'Belum ada estimasi ekspedisi', list.filter(d => !d.estimate).length, "document.getElementById('noEstimate').checked=true;filterData()") +
+        card('purple', 'bi-signpost-split', 'Sedang di jalan', list.filter(d => d.status === 'Departed').length, "document.getElementById('statusFilter').value='Departed';filterData()") +
+        card('red', 'bi-alarm', 'Lewat estimasi', list.filter(d => (D.lateMinutes(d) || 0) > 0).length);
     }
 
-    function filterData(){
-      const q=document.getElementById('searchInput').value.toLowerCase();
-      const s=document.getElementById('statusFilter').value;
-      const d = (isDriver && sessionUser.name) ? sessionUser.name : document.getElementById('driverFilter').value;
-      const data=MockData.deliveries.filter(r=>{
-        if(q&&!r.id.toLowerCase().includes(q)&&!r.customerName.toLowerCase().includes(q)&&!r.projectName.toLowerCase().includes(q))return false;
-        if(s&&r.status!==s)return false;if(d&&r.driverName!==d)return false;return true;
-      });
-      document.getElementById('tableBody').innerHTML=data.map(r=>`<tr>
-        <td><a href="delivery-detail.html?id=${r.id}" class="cell-link text-mono">${r.id}</a></td>
-        <td><a href="rental-detail.html?id=${r.rentalId}" class="cell-link">${r.rentalId}</a></td>
-        <td>${r.projectName}</td><td>${r.customerName}</td>
-        <td>${r.driverName||'<span class="text-muted">Tidak Ditugaskan</span>'}</td>
-        <td>${r.vehiclePlate||'-'}</td><td>${formatDate(r.deliveryDate)}</td>
-        <td>${statusBadge(r.status)}</td>
-        <td><a href="delivery-detail.html?id=${r.id}" class="btn-action"><i class="bi bi-eye"></i></a></td>
-      </tr>`).join('')||'<tr><td colspan="9" class="text-center text-muted py-4">Tidak ada pengiriman ditemukan</td></tr>';
+    function filterData() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const k = document.getElementById('kindFilter').value, s = document.getElementById('statusFilter').value, drv = df.value;
+      const noEst = document.getElementById('noEstimate').checked;
+      const data = MockData.deliveries.filter(r => {
+        if (q && !`${r.id} ${r.sjNo} ${r.customerName} ${r.projectName || ''} ${r.rentalId || ''} ${r.saleId || ''}`.toLowerCase().includes(q)) return false;
+        if (k && D.kindOf(r) !== k) return false;
+        if (s && r.status !== s) return false;
+        if (drv && r.driverName !== drv) return false;
+        if (noEst && (r.estimate || !open(r))) return false;
+        return true;
+      }).sort((a, b) => (b.deliveryDate || '').localeCompare(a.deliveryDate || ''));
+      document.getElementById('tableBody').innerHTML = data.map(r => {
+        const kd = D.KINDS[D.kindOf(r)], last = (r.tracking || []).slice(-1)[0];
+        return `<tr>
+          <td><a href="delivery-detail.html?id=${r.id}" class="cell-link text-mono">${r.sjNo || r.id}</a><div class="fs-11 text-muted">${r.id}</div></td>
+          <td><span class="badge bg-${kd.color}-subtle text-${kd.color} fw-normal"><i class="bi ${kd.icon} me-1"></i>${kd.label}</span></td>
+          <td>${orderLink(r)}</td>
+          <td>${esc(r.customerName)}<div class="fs-12 text-muted">${esc(r.projectName || '-')}</div></td>
+          <td>${r.driverName ? esc(r.driverName) : '<span class="text-muted">Belum ditugaskan</span>'}<div class="fs-12 text-muted">${r.vehiclePlate || ''}</div></td>
+          <td class="text-nowrap">${formatDate(r.deliveryDate)}</td>
+          <td class="text-nowrap">${r.estimate ? esc(r.estimate.arriveAt) + lateBadge(r) : (open(r) ? '<span class="badge bg-warning-subtle text-warning fw-normal">Belum diisi</span>' : '-')}</td>
+          <td class="fs-12">${last ? `${esc(last.location || last.note)}<div class="text-muted">${esc(last.at)}</div>` : '<span class="text-muted">-</span>'}</td>
+          <td>${statusBadge(r.status)}</td>
+          <td><a href="delivery-detail.html?id=${r.id}" class="btn-action"><i class="bi bi-eye"></i></a></td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada surat jalan</td></tr>';
     }
+    renderKpis();
     filterData();
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-

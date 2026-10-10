@@ -21,29 +21,32 @@ function logout() {
 // Halaman → modul di matriks hak akses. Halaman yang tidak terdaftar boleh dibuka semua role.
 const PAGE_MODULE = {
   'dashboard.html': 'Dashboard',
-  'rentals.html': 'Rentals', 'rental-create.html': 'Rentals', 'rental-detail.html': 'Rentals',
+  'customers.html': 'Customers', 'customer-detail.html': 'Customers',
   'projects.html': 'Projects', 'project-create.html': 'Projects', 'project-detail.html': 'Projects',
+  'rentals.html': 'Rentals', 'rental-create.html': 'Rentals', 'rental-detail.html': 'Rentals',
+  'sales.html': 'Sales', 'sale-create.html': 'Sales', 'sale-detail.html': 'Sales',
   'claims.html': 'Claims', 'claim-detail.html': 'Claims',
+  'approvals.html': 'Approvals',
+  'billing.html': 'Invoices', 'invoices.html': 'Invoices', 'invoice-detail.html': 'Invoices', 'invoice-shadow.html': 'Invoices',
+  'receivables.html': 'Invoices', 'payments.html': 'Payments',
   'deliveries.html': 'Deliveries', 'delivery-detail.html': 'Deliveries',
   'returns.html': 'Returns', 'return-detail.html': 'Returns',
   'stock.html': 'Stock', 'stock-mutations.html': 'Stock', 'stock-transfer.html': 'Stock', 'project-stock.html': 'Stock', 'stock-report.html': 'Stock',
-  'equipment.html': 'Equipment', 'equipment-detail.html': 'Equipment', 'repairs.html': 'Equipment', 'repair-detail.html': 'Equipment',
-  'maintenance.html': 'Equipment', 'maintenance-detail.html': 'Equipment',
+  'equipment.html': 'Equipment', 'equipment-detail.html': 'Equipment',
   'branches.html': 'Branches', 'branch-detail.html': 'Branches',
   'movements.html': 'Movements', 'movement-detail.html': 'Movements',
   'purchases.html': 'Purchases', 'purchase-create.html': 'Purchases', 'purchase-detail.html': 'Purchases',
   'goods-receipts.html': 'Purchases', 'goods-receipt-detail.html': 'Purchases',
-  'customers.html': 'Customers', 'customer-detail.html': 'Customers',
   'drivers.html': 'Drivers', 'driver-detail.html': 'Drivers',
   'vehicles.html': 'Vehicles', 'vehicle-detail.html': 'Vehicles',
   'accounts.html': 'Accounts', 'finance-ledger.html': 'Accounts', 'cash-report.html': 'Accounts', 'bank-reconciliation.html': 'Accounts',
-  'billing.html': 'Invoices', 'invoices.html': 'Invoices', 'invoice-detail.html': 'Invoices', 'invoice-shadow.html': 'Invoices',
-  'payments.html': 'Invoices', 'receivables.html': 'Invoices',
   'coa.html': 'Accounting', 'journal.html': 'Accounting', 'general-ledger.html': 'Accounting', 'worksheet.html': 'Accounting',
   'adjustments.html': 'Accounting', 'profit-loss.html': 'Accounting', 'balance-sheet.html': 'Accounting',
   'tax-ppn.html': 'Tax', 'tax-pph23.html': 'Tax',
   'users.html': 'Users', 'roles.html': 'Roles', 'role-create.html': 'Roles'
+  // edit-requests.html sengaja tidak didaftarkan: semua role bisa melihat & mengajukan perubahan
 };
+// Portal Driver: role Driver hanya bisa membuka halaman ini (Ekspedisi/Admin yang punya akses Pengiriman juga bisa)
 const DRIVER_PAGES = ['driver-dashboard.html', 'driver-deliveries.html', 'driver-delivery-detail.html'];
 
 function roleRule(role) {
@@ -81,7 +84,7 @@ function currentDriver(user) {
   return MockData.drivers.find(d => d.id === user.driverId) || MockData.drivers.find(d => d.name === user.name) || null;
 }
 
-// Pengiriman untuk portal driver: driver hanya lihat tugasnya; admin yang membuka portal lihat semua yang sudah ada driver
+// Pengiriman untuk portal driver: driver hanya lihat tugasnya; role lain yang membuka portal lihat semua yang sudah ada driver
 function myDeliveries(user) {
   user = user || JSON.parse(sessionStorage.getItem('er_user') || 'null');
   if (user && user.role === 'Driver') {
@@ -95,6 +98,114 @@ function homePageFor(user) {
   if (user.role === 'Driver') return 'driver-dashboard.html';
   const first = Object.keys(PAGE_MODULE).find(p => canAccessPage(p, user));
   return first || 'login.html';
+}
+
+// ---- PERUBAHAN DATA ----
+// Hanya Admin yang boleh mengubah / menghapus data. Role lain mengajukan Permintaan Perubahan (dengan catatan)
+// → di-ACC Accounting & Tax → dikerjakan Admin.
+function currentUser() { return JSON.parse(sessionStorage.getItem('er_user') || 'null'); }
+function isAdmin(user) { user = user || currentUser(); return !!user && user.role === 'Admin'; }
+
+const EditRequest = {
+  list: function() { return (MockData.editRequests = MockData.editRequests || []); },
+  canReview: function(user) { return canDo('Accounting', 'Approve', user); },
+  // Jumlah yang perlu ditindaklanjuti user ini (Accounting: menunggu ACC; Admin: sudah di-ACC, tinggal dikerjakan)
+  todo: function(user) {
+    user = user || currentUser();
+    if (!user) return 0;
+    return this.list().filter(r => (r.status === 'Menunggu ACC' && this.canReview(user) && !isAdmin(user)) || (r.status === 'Disetujui' && isAdmin(user))).length;
+  },
+  openFor: function(docType, docId) { return this.list().filter(r => r.docType === docType && r.docId === docId && (r.status === 'Menunggu ACC' || r.status === 'Disetujui')); },
+  create: function(d) {
+    const user = currentUser() || {};
+    if (!String(d.notes || '').trim()) return { success: false, error: 'Tulis catatan perubahan yang diminta' };
+    const r = { id: MockData.generateId('ER', 'editRequests'), docType: d.docType, docId: d.docId, docLabel: d.docLabel || d.docId, link: d.link || '',
+      action: d.action || 'Ubah', notes: String(d.notes).trim(), requestedBy: user.name || 'User', requestedRole: user.role || '',
+      requestedAt: new Date().toISOString().replace('T', ' ').substring(0, 16), status: 'Menunggu ACC' };
+    this.list().unshift(r);
+    MockData.save('editRequests');
+    if (typeof BizLogic !== 'undefined' && BizLogic.Notification) BizLogic.Notification.add('Permintaan ' + r.action.toLowerCase() + ' <strong>' + r.docType + ' ' + r.docId + '</strong> menunggu ACC Accounting', 'warning', 'bi-pencil-square', 'edit-requests.html');
+    return { success: true, request: r };
+  },
+  review: function(id, approve, note) {
+    const r = this.list().find(x => x.id === id), user = currentUser() || {};
+    if (!r) return { success: false, error: 'Permintaan tidak ditemukan' };
+    if (!this.canReview(user)) return { success: false, error: 'Hanya Accounting & Tax yang bisa ACC permintaan perubahan' };
+    if (r.status !== 'Menunggu ACC') return { success: false, error: 'Permintaan sudah diproses' };
+    if (!approve && !String(note || '').trim()) return { success: false, error: 'Tulis alasan penolakan' };
+    r.status = approve ? 'Disetujui' : 'Ditolak';
+    r.reviewedBy = user.name; r.reviewedAt = new Date().toISOString().replace('T', ' ').substring(0, 16); r.reviewNote = String(note || '').trim();
+    MockData.save('editRequests');
+    return { success: true, request: r };
+  },
+  complete: function(id, note) {
+    const r = this.list().find(x => x.id === id), user = currentUser() || {};
+    if (!r) return { success: false, error: 'Permintaan tidak ditemukan' };
+    if (!isAdmin(user)) return { success: false, error: 'Perubahan dikerjakan oleh Admin' };
+    if (r.status !== 'Disetujui') return { success: false, error: 'Permintaan belum di-ACC Accounting' };
+    r.status = 'Selesai'; r.doneBy = user.name; r.doneAt = new Date().toISOString().replace('T', ' ').substring(0, 16); r.doneNote = String(note || '').trim();
+    MockData.save('editRequests');
+    return { success: true, request: r };
+  }
+};
+
+// Tombol ubah / hapus. Admin → tombol aslinya (adminHtml). Role lain → tombol "Ajukan Perubahan".
+// doc: { docType, docId, docLabel, link }   opts: { action: 'Ubah'|'Hapus', label: teks tombol (kalau mau tombol besar) }
+window.__editDocs = [];
+function editButton(doc, adminHtml, opts) {
+  opts = opts || {};
+  if (isAdmin()) return adminHtml;
+  const i = window.__editDocs.push(Object.assign({ action: opts.action || 'Ubah' }, doc)) - 1;
+  const pending = EditRequest.openFor(doc.docType, doc.docId).length;
+  const title = 'Ajukan permintaan ' + (opts.action || 'ubah').toLowerCase() + ' ke Admin (ACC Accounting)';
+  return opts.label
+    ? `<button class="btn btn-outline-secondary btn-sm" onclick="openEditRequest(${i})" title="${title}"><i class="bi bi-pencil-square me-1"></i>${opts.label}${pending ? ` <span class="badge bg-warning text-dark ms-1">${pending}</span>` : ''}</button>`
+    : `<button class="btn-action" onclick="openEditRequest(${i})" title="${title}"><i class="bi bi-pencil-square"></i></button>`;
+}
+
+function openEditRequest(i) {
+  const d = window.__editDocs[i];
+  let el = document.getElementById('editReqModal');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'modal fade'; el.id = 'editReqModal'; el.tabIndex = -1;
+    el.innerHTML = `<div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Ajukan Permintaan Perubahan</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="alert alert-light border py-2 fs-13">Data hanya bisa diubah oleh <strong>Admin</strong>. Permintaan ini di-ACC dulu oleh <strong>Accounting</strong>, lalu dikerjakan Admin.</div>
+        <div class="mb-2 fs-13"><span class="text-muted">Data:</span> <strong id="erDoc"></strong></div>
+        <div class="mb-3"><label class="form-label form-label-er">Jenis</label><select class="form-select" id="erAction"><option>Ubah</option><option>Hapus</option><option>Batalkan</option></select></div>
+        <div id="erPending" class="mb-3"></div>
+        <label class="form-label form-label-er">Catatan perubahan *</label>
+        <textarea class="form-control" id="erNotes" rows="3" placeholder="Apa yang perlu diubah, nilai lama → nilai baru, dan alasannya"></textarea>
+      </div>
+      <div class="modal-footer"><a href="edit-requests.html" class="btn btn-link me-auto">Lihat semua permintaan</a>
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+        <button class="btn btn-primary" id="erSubmit"><i class="bi bi-send me-1"></i>Ajukan</button></div>
+    </div></div>`;
+    document.body.appendChild(el);
+  }
+  el.querySelector('#erDoc').textContent = d.docType + ' ' + d.docId + (d.docLabel && d.docLabel !== d.docId ? ' — ' + d.docLabel : '');
+  el.querySelector('#erAction').value = d.action || 'Ubah';
+  el.querySelector('#erNotes').value = '';
+  const open = EditRequest.openFor(d.docType, d.docId);
+  el.querySelector('#erPending').innerHTML = open.length ? `<div class="alert alert-warning py-2 fs-12 mb-0"><i class="bi bi-hourglass-split me-1"></i>Sudah ada ${open.length} permintaan untuk data ini (${open.map(r => r.id + ': ' + r.status).join(', ')})</div>` : '';
+  el.querySelector('#erSubmit').onclick = function() {
+    const r = EditRequest.create(Object.assign({}, d, { action: el.querySelector('#erAction').value, notes: el.querySelector('#erNotes').value }));
+    if (!r.success) { showToast(r.error, 'error'); return; }
+    bootstrap.Modal.getInstance(el).hide();
+    showToast('Permintaan ' + r.request.id + ' diajukan, menunggu ACC Accounting', 'success');
+  };
+  bootstrap.Modal.getOrCreateInstance(el).show();
+}
+
+// Banner untuk Admin di halaman detail: permintaan perubahan yang sudah di-ACC untuk data ini
+function editRequestBanner(docType, docId) {
+  const list = EditRequest.openFor(docType, docId);
+  if (!list.length) return '';
+  return `<div class="alert ${isAdmin() ? 'alert-warning' : 'alert-light border'} py-2 fs-13 mb-3"><i class="bi bi-pencil-square me-1"></i>${list.map(r =>
+    `<strong>${r.id}</strong> (${r.status === 'Disetujui' ? 'sudah di-ACC, menunggu dikerjakan Admin' : 'menunggu ACC Accounting'}): ${r.notes} <span class="text-muted">— ${r.requestedBy}</span>`).join('<br>')}
+    <a href="edit-requests.html" class="ms-1">Buka</a></div>`;
 }
 
 // Tampilkan pesan kalau sebelumnya ditolak masuk ke halaman tertentu
@@ -177,6 +288,8 @@ function statusBadge(status) {
     'disposed': 'rejected',
     'maintenance-due': 'warning',
     'in-maintenance': 'maintenance',
+    'delivered': 'completed',
+    'menunggu-acc': 'waiting', 'disetujui': 'approved', 'ditolak': 'rejected', 'selesai': 'completed',
   };
   const badgeCls = map[cls] || cls;
   return `<span class="badge-status ${badgeCls}">${status}</span>`;
@@ -184,108 +297,11 @@ function statusBadge(status) {
 
 // ---- SIDEBAR ----
 function renderSidebar(user, activePage) {
-  if (typeof I18n !== 'undefined') return renderSidebarI18n(user, activePage);
-  const isDriver = user.role === 'Driver';
-  let html = '';
-  html += `
-    <div class="sidebar-brand">
-      <div class="sidebar-brand-icon"><i class="bi bi-gear-wide-connected"></i></div>
-      <div class="sidebar-brand-text">EquipRent<small>Enterprise v1.0</small></div>
-    </div>`;
-  html += '<nav class="sidebar-nav">';
-  if (isDriver) {
-    html += sidebarLink('driver-dashboard.html', 'bi-speedometer2', 'Dashboard', activePage);
-    html += sidebarLink('driver-deliveries.html', 'bi-truck', 'My Deliveries', activePage);
-    html += sidebarLink('#', 'bi-person', 'Profile', activePage);
-  } else {
-    html += sidebarLink('dashboard.html', 'bi-speedometer2', 'Dashboard', activePage);
-    html += sidebarSection('RENTAL');
-    html += sidebarLink('rentals.html', 'bi-file-earmark-text', 'Rentals', activePage);
-    html += sidebarLink('projects.html', 'bi-folder', 'Projects', activePage);
-    html += sidebarLink('claims.html', 'bi-exclamation-triangle', 'Claims', activePage);
-    html += sidebarSection('STOCK RECAP');
-    html += sidebarLink('deliveries.html', 'bi-truck', 'Deliveries', activePage);
-    html += sidebarLink('returns.html', 'bi-box-arrow-in-left', 'Returns', activePage);
-    html += sidebarLink('stock.html', 'bi-boxes', 'Warehouse Stock', activePage);
-    html += sidebarLink('stock-mutations.html', 'bi-arrow-left-right', 'Stock Movements', activePage);
-    html += sidebarLink('project-stock.html', 'bi-folder-check', 'Project Stock', activePage);
-    html += sidebarLink('stock-report.html', 'bi-clipboard-data', 'Stock Report', activePage);
-    html += sidebarSection('INVENTORY');
-    html += sidebarLink('equipment.html', 'bi-tools', 'Equipment', activePage);
-    html += sidebarLink('branches.html', 'bi-building', 'Warehouses', activePage);
-    html += sidebarLink('movements.html', 'bi-clock-history', 'Asset Log', activePage);
-    html += sidebarLink('purchases.html', 'bi-cart', 'Purchases', activePage);
-    html += sidebarLink('goods-receipts.html', 'bi-box-seam', 'Goods Receipts', activePage);
-    html += sidebarLink('repairs.html', 'bi-tools', 'Repairs', activePage);
-    html += sidebarLink('maintenance.html', 'bi-wrench-adjustable', 'Maintenance', activePage);
-    html += sidebarSection('MASTER DATA');
-    html += sidebarLink('customers.html', 'bi-people', 'Customers', activePage);
-    html += sidebarLink('drivers.html', 'bi-person-badge', 'Drivers', activePage);
-    html += sidebarLink('vehicles.html', 'bi-truck-front', 'Vehicles', activePage);
-    html += sidebarLink('accounts.html', 'bi-bank', 'Company Accounts', activePage);
-    html += sidebarSection('RECEIVABLES');
-    html += sidebarLink('billing.html', 'bi-calculator', 'Billing Recap', activePage);
-    html += sidebarLink('invoices.html', 'bi-receipt', 'Invoices', activePage);
-    html += sidebarLink('payments.html', 'bi-cash-coin', 'Payments', activePage);
-    html += sidebarLink('receivables.html', 'bi-journal-text', 'Receivables Report', activePage);
-    html += sidebarLink('finance-ledger.html', 'bi-wallet2', 'Bank Ledger', activePage);
-    html += sidebarLink('cash-report.html', 'bi-file-earmark-bar-graph', 'Cash Report', activePage);
-    html += sidebarLink('bank-reconciliation.html', 'bi-check2-square', 'Bank Reconciliation', activePage);
-    html += sidebarSection('ACCOUNTING');
-    html += sidebarLink('coa.html', 'bi-diagram-3', 'Chart of Accounts', activePage);
-    html += sidebarLink('journal.html', 'bi-journal-bookmark', 'Journal', activePage);
-    html += sidebarLink('general-ledger.html', 'bi-book', 'General Ledger', activePage);
-    html += sidebarLink('worksheet.html', 'bi-table', 'Worksheet', activePage);
-    html += sidebarLink('adjustments.html', 'bi-pencil-square', 'Adjusting Entries', activePage);
-    html += sidebarLink('profit-loss.html', 'bi-graph-up-arrow', 'Profit & Loss', activePage);
-    html += sidebarLink('balance-sheet.html', 'bi-columns-gap', 'Balance Sheet', activePage);
-    html += sidebarSection('TAX');
-    html += sidebarLink('tax-ppn.html', 'bi-percent', 'VAT (PPN)', activePage);
-    html += sidebarLink('tax-pph23.html', 'bi-file-earmark-ruled', 'Withholding Tax (PPh 23)', activePage);
-    html += sidebarSection('ADMINISTRATION');
-    html += sidebarLink('users.html', 'bi-person-gear', 'Users', activePage);
-    html += sidebarLink('roles.html', 'bi-shield-lock', 'Roles', activePage);
-  }
-  html += '</nav>';
-  html = pruneEmptySections(html);
-  const theme = document.documentElement.getAttribute('data-theme') || 'light';
-  html += `
-    <div class="sidebar-footer">
-      <div class="sidebar-user">
-        <div class="sidebar-user-avatar">${user.initials}</div>
-        <div class="sidebar-user-info">
-          <div class="sidebar-user-name">${user.name}</div>
-          <div class="sidebar-user-role">${user.role}</div>
-        </div>
-      </div>
-      <div class="sidebar-footer-actions">
-        <button class="sidebar-footer-btn" onclick="toggleTheme()" title="Toggle Theme">
-          <i class="bi ${theme === 'dark' ? 'bi-sun' : 'bi-moon'}" id="themeIcon"></i>
-          <span>${theme === 'dark' ? 'Light' : 'Dark'} Mode</span>
-        </button>
-        <button class="sidebar-footer-btn ms-auto" onclick="logout()" title="Logout">
-          <i class="bi bi-box-arrow-left"></i>
-          <span>Logout</span>
-        </button>
-      </div>
-    </div>`;
-  return html;
-}
-
-function sidebarSection(title) {
-  return `<div class="sidebar-section"><div class="sidebar-section-title">${title}</div></div>`;
-}
-
-function sidebarLink(href, icon, label, activePage) {
-  const fileName = href.split('/').pop().split('?')[0];
-  if (href !== '#' && !canAccessPage(fileName)) return '';
-  const isActive = activePage === fileName || activePage === label.toLowerCase();
-  return `<a href="${href}" class="sidebar-link ${isActive ? 'active' : ''}"><i class="bi ${icon}"></i>${label}</a>`;
+  return renderSidebarI18n(user, activePage);
 }
 
 // ---- SIDEBAR i18n ----
 function renderSidebarI18n(user, activePage) {
-  const isDriver = user.role === 'Driver';
   let html = '';
   html += `
     <div class="sidebar-brand">
@@ -293,61 +309,71 @@ function renderSidebarI18n(user, activePage) {
       <div class="sidebar-brand-text">EquipRent<small>Enterprise v1.0</small></div>
     </div>`;
   html += '<nav class="sidebar-nav">';
-  if (isDriver) {
-    html += sidebarLinkI18n('driver-dashboard.html', 'bi-speedometer2', t('dashboard'), activePage, 'driver-dashboard.html');
-    html += sidebarLinkI18n('driver-deliveries.html', 'bi-truck', t('my_deliveries'), activePage, 'driver-deliveries.html');
-    html += sidebarLinkI18n('#', 'bi-person', t('profile'), activePage, '#');
-  } else {
-    html += sidebarLinkI18n('dashboard.html', 'bi-speedometer2', t('dashboard'), activePage, 'dashboard.html');
-    html += sidebarSectionI18n(t('rental_section'));
-    html += sidebarLinkI18n('rentals.html', 'bi-file-earmark-text', t('rentals'), activePage, 'rentals.html');
-    html += sidebarLinkI18n('projects.html', 'bi-folder', t('projects'), activePage, 'projects.html');
-    html += sidebarLinkI18n('claims.html', 'bi-exclamation-triangle', t('claims'), activePage, 'claims.html');
-    html += sidebarSectionI18n(t('stock_recap_section'));
-    html += sidebarLinkI18n('deliveries.html', 'bi-truck', t('deliveries'), activePage, 'deliveries.html');
-    html += sidebarLinkI18n('returns.html', 'bi-box-arrow-in-left', t('returns'), activePage, 'returns.html');
-    html += sidebarLinkI18n('stock.html', 'bi-boxes', t('warehouse_stock'), activePage, 'stock.html');
-    html += sidebarLinkI18n('stock-mutations.html', 'bi-arrow-left-right', t('stock_mutations'), activePage, 'stock-mutations.html');
-    html += sidebarLinkI18n('project-stock.html', 'bi-folder-check', t('project_stock'), activePage, 'project-stock.html');
-    html += sidebarLinkI18n('stock-report.html', 'bi-clipboard-data', t('stock_report'), activePage, 'stock-report.html');
-    html += sidebarSectionI18n(t('inventory'));
-    html += sidebarLinkI18n('equipment.html', 'bi-tools', t('equipment'), activePage, 'equipment.html');
-    html += sidebarLinkI18n('branches.html', 'bi-building', t('branches'), activePage, 'branches.html');
-    html += sidebarLinkI18n('movements.html', 'bi-clock-history', t('movements'), activePage, 'movements.html');
-    html += sidebarLinkI18n('purchases.html', 'bi-cart', t('purchases'), activePage, 'purchases.html');
-    html += sidebarLinkI18n('goods-receipts.html', 'bi-box-seam', t('goods_receipts'), activePage, 'goods-receipts.html');
-    html += sidebarLinkI18n('repairs.html', 'bi-tools', t('repairs'), activePage, 'repairs.html');
-    html += sidebarLinkI18n('maintenance.html', 'bi-wrench-adjustable', t('maintenance'), activePage, 'maintenance.html');
-    html += sidebarSectionI18n(t('master_data'));
-    html += sidebarLinkI18n('customers.html', 'bi-people', t('customers'), activePage, 'customers.html');
-    html += sidebarLinkI18n('drivers.html', 'bi-person-badge', t('drivers'), activePage, 'drivers.html');
-    html += sidebarLinkI18n('vehicles.html', 'bi-truck-front', t('vehicles'), activePage, 'vehicles.html');
-    html += sidebarLinkI18n('accounts.html', 'bi-bank', t('company_accounts'), activePage, 'accounts.html');
-    html += sidebarSectionI18n(t('finance_billing'));
-    html += sidebarLinkI18n('billing.html', 'bi-calculator', t('billing_recap'), activePage, 'billing.html');
-    html += sidebarLinkI18n('invoices.html', 'bi-receipt', t('invoices'), activePage, 'invoices.html');
-    html += sidebarLinkI18n('payments.html', 'bi-cash-coin', t('payments'), activePage, 'payments.html');
-    html += sidebarLinkI18n('receivables.html', 'bi-journal-text', t('receivables_report'), activePage, 'receivables.html');
-    html += sidebarLinkI18n('finance-ledger.html', 'bi-wallet2', t('bank_ledger'), activePage, 'finance-ledger.html');
-    html += sidebarLinkI18n('cash-report.html', 'bi-file-earmark-bar-graph', t('cash_report'), activePage, 'cash-report.html');
-    html += sidebarLinkI18n('bank-reconciliation.html', 'bi-check2-square', t('bank_reconciliation'), activePage, 'bank-reconciliation.html');
-    html += sidebarSectionI18n(t('accounting_section'));
-    html += sidebarLinkI18n('coa.html', 'bi-diagram-3', t('coa'), activePage, 'coa.html');
-    html += sidebarLinkI18n('journal.html', 'bi-journal-bookmark', t('journal'), activePage, 'journal.html');
-    html += sidebarLinkI18n('general-ledger.html', 'bi-book', t('general_ledger'), activePage, 'general-ledger.html');
-    html += sidebarLinkI18n('worksheet.html', 'bi-table', t('worksheet'), activePage, 'worksheet.html');
-    html += sidebarLinkI18n('adjustments.html', 'bi-pencil-square', t('adjustments'), activePage, 'adjustments.html');
-    html += sidebarLinkI18n('profit-loss.html', 'bi-graph-up-arrow', t('profit_loss'), activePage, 'profit-loss.html');
-    html += sidebarLinkI18n('balance-sheet.html', 'bi-columns-gap', t('balance_sheet'), activePage, 'balance-sheet.html');
-    html += sidebarSectionI18n(t('tax_section'));
-    html += sidebarLinkI18n('tax-ppn.html', 'bi-percent', t('tax_ppn'), activePage, 'tax-ppn.html');
-    html += sidebarLinkI18n('tax-pph23.html', 'bi-file-earmark-ruled', t('tax_pph23'), activePage, 'tax-pph23.html');
-    html += sidebarSectionI18n(t('administration'));
-    html += sidebarLinkI18n('users.html', 'bi-person-gear', t('users'), activePage, 'users.html');
-    html += sidebarLinkI18n('roles.html', 'bi-shield-lock', t('roles'), activePage, 'roles.html');
+  const L = (href, icon, key, badge) => sidebarLinkI18n(href, icon, t(key), activePage, href, badge);
+  if (user.role === 'Driver') {
+    html += L('driver-dashboard.html', 'bi-speedometer2', 'dashboard');
+    html += L('driver-deliveries.html', 'bi-truck', 'my_deliveries');
+    html += '</nav>';
+    return html + sidebarFooter(user);
   }
+  const pendingOrders = (MockData.rentals || []).filter(r => r.status === 'Pending Approval' || r.status === 'Waiting Approval').length +
+    (MockData.sales || []).filter(s => s.status === 'Pending Approval').length;
+  html += L('dashboard.html', 'bi-speedometer2', 'dashboard');
+  html += sidebarSectionI18n(t('rental_section'));
+  html += L('customers.html', 'bi-people', 'customers');
+  html += L('projects.html', 'bi-folder', 'projects');
+  html += L('rentals.html', 'bi-file-earmark-text', 'rentals');
+  html += L('sales.html', 'bi-bag-check', 'sales');
+  html += L('claims.html', 'bi-exclamation-triangle', 'claims');
+  html += sidebarSectionI18n(t('receivables_section'));
+  html += L('approvals.html', 'bi-check2-circle', 'approvals', canDo('Approvals', 'Approve') ? pendingOrders : 0);
+  html += L('billing.html', 'bi-calculator', 'billing_recap');
+  html += L('invoices.html', 'bi-receipt', 'invoices');
+  html += L('payments.html', 'bi-cash-coin', 'payments');
+  html += L('receivables.html', 'bi-journal-text', 'receivables_report');
+  html += sidebarSectionI18n(t('stock_recap_section'));
+  html += L('deliveries.html', 'bi-truck', 'deliveries');
+  html += L('returns.html', 'bi-box-arrow-in-left', 'returns');
+  html += L('stock.html', 'bi-boxes', 'warehouse_stock');
+  html += L('stock-mutations.html', 'bi-arrow-left-right', 'stock_mutations');
+  html += L('project-stock.html', 'bi-folder-check', 'project_stock');
+  html += L('stock-report.html', 'bi-clipboard-data', 'stock_report');
+  html += sidebarSectionI18n(t('inventory'));
+  html += L('equipment.html', 'bi-tools', 'equipment');
+  html += L('branches.html', 'bi-building', 'branches');
+  html += L('movements.html', 'bi-clock-history', 'movements');
+  html += L('purchases.html', 'bi-cart', 'purchases');
+  html += L('goods-receipts.html', 'bi-box-seam', 'goods_receipts');
+  html += sidebarSectionI18n(t('master_data'));
+  html += L('drivers.html', 'bi-person-badge', 'drivers');
+  html += L('vehicles.html', 'bi-truck-front', 'vehicles');
+  html += L('accounts.html', 'bi-bank', 'company_accounts');
+  html += sidebarSectionI18n(t('finance_billing'));
+  html += L('finance-ledger.html', 'bi-wallet2', 'bank_ledger');
+  html += L('cash-report.html', 'bi-file-earmark-bar-graph', 'cash_report');
+  html += L('bank-reconciliation.html', 'bi-check2-square', 'bank_reconciliation');
+  html += sidebarSectionI18n(t('accounting_section'));
+  html += L('coa.html', 'bi-diagram-3', 'coa');
+  html += L('journal.html', 'bi-journal-bookmark', 'journal');
+  html += L('general-ledger.html', 'bi-book', 'general_ledger');
+  html += L('worksheet.html', 'bi-table', 'worksheet');
+  html += L('adjustments.html', 'bi-pencil-square', 'adjustments');
+  html += L('profit-loss.html', 'bi-graph-up-arrow', 'profit_loss');
+  html += L('balance-sheet.html', 'bi-columns-gap', 'balance_sheet');
+  html += sidebarSectionI18n(t('tax_section'));
+  html += L('tax-ppn.html', 'bi-percent', 'tax_ppn');
+  html += L('tax-pph23.html', 'bi-file-earmark-ruled', 'tax_pph23');
+  html += sidebarSectionI18n(t('administration'));
+  html += L('edit-requests.html', 'bi-pencil-square', 'edit_requests', EditRequest.todo(user));
+  html += L('users.html', 'bi-person-gear', 'users');
+  html += L('roles.html', 'bi-shield-lock', 'roles');
   html += '</nav>';
   html = pruneEmptySections(html);
+  return html + sidebarFooter(user);
+}
+
+function sidebarFooter(user) {
+  let html = '';
   const theme = document.documentElement.getAttribute('data-theme') || 'light';
   const themeLabel = theme === 'dark' ? t('light_mode') : t('dark_mode');
   html += `
@@ -382,10 +408,11 @@ function pruneEmptySections(html) {
   return html.replace(/<div class="sidebar-section"><div class="sidebar-section-title">[^<]*<\/div><\/div>(?=<div class="sidebar-section">|<\/nav>)/g, '');
 }
 
-function sidebarLinkI18n(href, icon, label, activePage, pageFile) {
+function sidebarLinkI18n(href, icon, label, activePage, pageFile, badge) {
   if (href !== '#' && !canAccessPage(pageFile)) return '';
   const isActive = activePage === pageFile;
-  return `<a href="${href}" class="sidebar-link ${isActive ? 'active' : ''}"><i class="bi ${icon}"></i>${label}</a>`;
+  const b = badge ? `<span class="badge rounded-pill bg-danger ms-auto">${badge}</span>` : '';
+  return `<a href="${href}" class="sidebar-link ${isActive ? 'active' : ''}"><i class="bi ${icon}"></i>${label}${b}</a>`;
 }
 
 // ---- HEADER ----
@@ -608,6 +635,15 @@ function performGlobalSearch(query) {
     html += `<div class="search-result-group"><div class="search-result-group-title">${grpCustomers}</div>`;
     customers.slice(0, 5).forEach(c => {
       html += `<a href="customer-detail.html?id=${c.id}" class="search-result-item"><i class="bi bi-people"></i><div><strong>${c.code}</strong> - ${c.name}<br><span class="text-muted fs-11">${c.pic}</span></div></a>`;
+    });
+    html += '</div>';
+  }
+
+  const sales = (MockData.sales || []).filter(s => s.id.toLowerCase().includes(q) || s.customerName.toLowerCase().includes(q));
+  if (sales.length && canAccessPage('sale-detail.html')) {
+    html += `<div class="search-result-group"><div class="search-result-group-title">Penjualan</div>`;
+    sales.slice(0, 5).forEach(s => {
+      html += `<a href="sale-detail.html?id=${s.id}" class="search-result-item"><i class="bi bi-bag-check"></i><div><strong>${s.id}</strong> - ${s.customerName}<br><span class="text-muted fs-11">${s.status}</span></div></a>`;
     });
     html += '</div>';
   }

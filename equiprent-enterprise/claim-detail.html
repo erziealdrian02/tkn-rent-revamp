@@ -56,7 +56,7 @@
         ${clm.status === 'Approved' ? `<button class="btn btn-primary btn-sm" onclick="invoiceClaim()"><i class="bi bi-receipt me-1"></i>Generate Invoice</button>` : ''}
         ${clm.status === 'Disputed' && canDo('Claims', 'Approve') ? `<button class="btn btn-success btn-sm" onclick="approveClaim()"><i class="bi bi-check-circle me-1"></i>Force Approve (Manager)</button>` : ''}
         ${clm.status === 'Disputed' || clm.status === 'Paid' || clm.status === 'Invoiced' ? `<button class="btn btn-outline-secondary btn-sm" onclick="closeClaim()"><i class="bi bi-archive me-1"></i>Tutup Klaim</button>` : ''}
-        ${editable ? `<button class="btn btn-outline-primary btn-sm" onclick="editAmount()"><i class="bi bi-pencil me-1"></i>Ubah Nilai Klaim</button>` : ''}
+        ${editable ? editButton({ docType: 'Klaim', docId: clm.id, docLabel: clm.equipment, link: 'claim-detail.html?id=' + clm.id }, `<button class="btn btn-outline-primary btn-sm" onclick="editAmount()"><i class="bi bi-pencil me-1"></i>Ubah Nilai Klaim</button>`, { label: 'Ajukan Ubah Nilai' }) : ''}
         <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Cetak</button>
       </div>`;
 

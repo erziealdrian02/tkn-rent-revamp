@@ -139,7 +139,7 @@
       document.getElementById('tableBody').innerHTML=MockData.demoUsers.map(u=>`<tr>
         <td class="fw-600">${u.name}</td><td>${u.username}</td><td><span class="badge bg-light text-dark border">${u.role}</span></td>
         <td><span class="badge-status good">Active</span></td>
-        <td><button class="btn-action" onclick="showToast('Edit user','info')"><i class="bi bi-pencil"></i></button></td>
+        <td>${editButton({ docType: 'Pengguna', docId: u.username, docLabel: u.name, link: 'users.html' }, '<button class="btn-action" title="Ubah" onclick="showToast(\'Form ubah (prototype)\', \'info\')"><i class="bi bi-pencil"></i></button>')}</td>
       </tr>`).join('');
     }
     renderTable();

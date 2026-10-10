@@ -118,7 +118,7 @@
 
     const L = BizLogic.StockLedger;
     const T = L.TYPES;
-    const MAIN_TYPES = ['PURCHASE', 'TRANSFER', 'DELIVERY', 'RETURN', 'SALE'];
+    const MAIN_TYPES = ['PURCHASE', 'PRODUCTION', 'SURPLUS', 'TRANSFER', 'DELIVERY', 'RETURN', 'SALE'];
     const warehouses = L.warehouses();
     let activeType = getUrlParam('type') || '';
 
@@ -288,14 +288,23 @@
       const hint = document.getElementById('createHint');
 
       if (type === 'PURCHASE') {
-        fromW.innerHTML = `<label class="form-label form-label-er">Sumber <span class="text-danger">*</span></label>
-          <div class="input-group">
-            <select class="form-select" id="fSrcKind" style="max-width:150px"><option value="supplier">Pembelian</option><option value="production">Produksi</option></select>
-            <input type="text" class="form-control" id="fSrcName" required placeholder="Nama supplier / workshop produksi">
-          </div>`;
+        fromW.innerHTML = `<label class="form-label form-label-er">Supplier <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="fSrcName" required placeholder="Nama supplier">`;
         toW.innerHTML = selectField('fTo', 'Masuk ke Gudang', whOptions(preset.to));
-        refLabel.textContent = 'No. PO / No. Work Order';
-        hint.innerHTML = '<i class="bi bi-plus-circle text-success me-1"></i>Alat baru dari pembelian supplier atau hasil produksi internal. <strong>Menambah stok gudang tujuan.</strong>';
+        refLabel.textContent = 'No. PO';
+        hint.innerHTML = '<i class="bi bi-plus-circle text-success me-1"></i>Alat baru dari pembelian supplier (tanpa PO di sistem). Pembelian dengan PO dicatat lewat Penerimaan Barang. <strong>Menambah stok gudang tujuan.</strong>';
+      } else if (type === 'PRODUCTION') {
+        fromW.innerHTML = `<label class="form-label form-label-er">Dibuat / dirakit di <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" id="fSrcName" required placeholder="mis. Workshop Cileungsi">`;
+        toW.innerHTML = selectField('fTo', 'Masuk ke Gudang', whOptions(preset.to));
+        refLabel.textContent = 'No. Work Order';
+        hint.innerHTML = '<i class="bi bi-hammer text-success me-1"></i>Alat yang dibuat / dirakit sendiri (mis. scaffolding, rangka, panel). <strong>Menambah stok gudang tujuan.</strong>';
+      } else if (type === 'SURPLUS') {
+        fromW.innerHTML = `<label class="form-label form-label-er">Asal kelebihan <span class="text-danger">*</span></label>
+          <select class="form-select" id="fSrcName" required><option>Selisih lebih stock opname</option><option>Alat lebih kembali dari proyek</option><option>Temuan di gudang</option><option>Lainnya</option></select>`;
+        toW.innerHTML = selectField('fTo', 'Masuk ke Gudang', whOptions(preset.to));
+        refLabel.textContent = 'No. Berita Acara / Stock Opname';
+        hint.innerHTML = '<i class="bi bi-plus-square text-success me-1"></i>Alat yang ternyata lebih dari catatan sistem (hasil stock opname / alat lebih). Dicatat sebagai pendapatan lain-lain di akuntansi. <strong>Menambah stok gudang tujuan.</strong>';
       } else if (type === 'TRANSFER') {
         fromW.innerHTML = selectField('fFrom', 'Gudang Asal', whOptions(preset.from || warehouses[0].id));
         toW.innerHTML = selectField('fTo', 'Gudang Tujuan', whOptions(preset.to || (warehouses[1] || warehouses[0]).id), '');
@@ -402,11 +411,11 @@
 
     function readLoc(which) {
       const el = document.getElementById(which === 'from' ? 'fFrom' : 'fTo');
-      if (createType === 'PURCHASE' && which === 'from') {
-        return { type: document.getElementById('fSrcKind').value, name: document.getElementById('fSrcName').value.trim() };
+      if (['PURCHASE', 'PRODUCTION', 'SURPLUS'].includes(createType) && which === 'from') {
+        return { type: { PURCHASE: 'supplier', PRODUCTION: 'production', SURPLUS: 'surplus' }[createType], name: document.getElementById('fSrcName').value.trim() };
       }
       const kind = {
-        PURCHASE: { to: 'warehouse' },
+        PURCHASE: { to: 'warehouse' }, PRODUCTION: { to: 'warehouse' }, SURPLUS: { to: 'warehouse' },
         TRANSFER: { from: 'warehouse', to: 'warehouse' },
         DELIVERY: { from: 'warehouse', to: 'project' },
         RETURN: { from: 'project', to: 'warehouse' },

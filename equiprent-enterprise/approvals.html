@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Persetujuan Order - EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header">
+          <div class="page-header-left"><h2 class="page-header-title">Persetujuan Order</h2><p class="page-header-subtitle">Order sewa & jual dari proyek di-ACC Staff Piutang sebelum logistik membuat surat jalan. Cek piutang customer dulu.</p></div>
+        </div>
+        <div class="row g-3 mb-4" id="kpis"></div>
+        <div class="er-card mb-4"><div class="er-card-body">
+          <h6 class="fw-700 mb-3"><i class="bi bi-hourglass-split me-1"></i>Menunggu ACC</h6>
+          <div class="er-table-wrapper"><table class="er-table">
+            <thead><tr><th>Order</th><th>Jenis</th><th>Diajukan</th><th>Pelanggan</th><th>Proyek</th><th class="num">Nilai Order</th><th class="num">Piutang Customer</th><th class="num">Lewat Jatuh Tempo</th><th>Stok</th><th></th></tr></thead>
+            <tbody id="pendingBody"></tbody>
+          </table></div>
+        </div></div>
+        <div class="er-card"><div class="er-card-body">
+          <h6 class="fw-700 mb-3"><i class="bi bi-clock-history me-1"></i>Riwayat ACC Terakhir</h6>
+          <div class="er-table-wrapper"><table class="er-table">
+            <thead><tr><th>Order</th><th>Jenis</th><th>Pelanggan</th><th>Hasil</th><th>Oleh</th><th>Waktu</th><th>Catatan</th></tr></thead>
+            <tbody id="historyBody"></tbody>
+          </table></div>
+        </div></div>
+      </div>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    initApp('approvals.html', [{label:'Piutang',href:'#'},{label:'Persetujuan Order'}], 'Persetujuan Order');
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const canApprove = canDo('Approvals', 'Approve');
+
+    // Satu daftar untuk sewa & jual
+    function orders() {
+      const r = MockData.rentals.map(x => ({ kind: 'Sewa', id: x.id, link: 'rental-detail.html?id=' + x.id, status: x.status === 'Waiting Approval' ? 'Pending Approval' : x.status,
+        submitted: x.submittedAt || x.createdAt, customerId: x.customerId, customerName: x.customerName, projectId: x.projectId, projectName: x.projectName,
+        value: x.total || 0, branch: (x.branch || '').replace(' Warehouse', ''), items: x.items.map(i => ({ name: i.name, qty: i.quantity })),
+        approvedBy: x.approvedBy, approvedDate: x.approvedDate, rejectedBy: x.rejectedBy, rejectedDate: x.rejectedDate, note: x.approvalNotes || x.rejectionReason }));
+      const s = (MockData.sales || []).map(x => ({ kind: 'Jual', id: x.id, link: 'sale-detail.html?id=' + x.id, status: x.status,
+        submitted: x.submittedAt || x.createdAt, customerId: x.customerId, customerName: x.customerName, projectId: x.projectId, projectName: x.projectName,
+        value: Math.round(x.subtotal * (1 + (x.taxRate || 0))), branch: x.branch, items: x.items.map(i => ({ name: i.name, qty: i.qty })),
+        approvedBy: x.approvedBy, approvedDate: x.approvedDate, rejectedBy: x.rejectedBy, rejectedDate: x.rejectedDate, note: x.approvalNotes || x.rejectionReason }));
+      return r.concat(s);
+    }
+    const stockShort = o => o.items.filter(i => BizLogic.Stock.getAvailable(i.name, o.branch) < i.qty).map(i => i.name);
+
+    function render() {
+      const all = orders(), pending = all.filter(o => o.status === 'Pending Approval').sort((a, b) => (a.submitted || '').localeCompare(b.submitted || ''));
+      const risky = pending.filter(o => BizLogic.Customer.summary(o.customerId).overdue > 0).length;
+      const card = (c, i, l, v) => `<div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon ${c}"><i class="bi ${i}"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${v}</div><div class="kpi-label">${l}</div></div></div></div>`;
+      document.getElementById('kpis').innerHTML = card('orange', 'bi-hourglass-split', 'Order menunggu ACC', pending.length) +
+        card('blue', 'bi-file-earmark-text', 'Sewa', pending.filter(o => o.kind === 'Sewa').length) + card('green', 'bi-bag-check', 'Jual', pending.filter(o => o.kind === 'Jual').length) +
+        card('red', 'bi-exclamation-triangle', 'Customer punya piutang lewat JT', risky);
+
+      document.getElementById('pendingBody').innerHTML = pending.map(o => {
+        const cs = BizLogic.Customer.summary(o.customerId), short = stockShort(o);
+        return `<tr>
+          <td><a href="${o.link}" class="cell-link text-mono">${o.id}</a></td>
+          <td><span class="badge ${o.kind === 'Sewa' ? 'bg-primary-subtle text-primary' : 'bg-success-subtle text-success'} fw-normal">${o.kind}</span></td>
+          <td class="fs-12">${esc(o.submitted || '-')}</td>
+          <td><a href="customer-detail.html?id=${o.customerId}" class="cell-link">${esc(o.customerName)}</a></td>
+          <td>${esc(o.projectName || '-')}</td>
+          <td class="num fw-600">${formatRupiah(o.value)}</td>
+          <td class="num">${formatRupiah(cs.outstanding)}</td>
+          <td class="num ${cs.overdue ? 'text-danger fw-600' : 'text-muted'}">${cs.overdue ? formatRupiah(cs.overdue) : '-'}</td>
+          <td class="fs-12">${short.length ? `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Kurang: ${short.map(esc).join(', ')}</span>` : '<span class="text-success"><i class="bi bi-check-circle me-1"></i>Cukup</span>'}</td>
+          <td class="text-nowrap">${canApprove ? `<button class="btn btn-success btn-sm py-0" onclick="decide('${o.kind}', '${o.id}', true)"><i class="bi bi-check-lg"></i> ACC</button>
+            <button class="btn btn-outline-danger btn-sm py-0" onclick="decide('${o.kind}', '${o.id}', false)"><i class="bi bi-x-lg"></i></button>` : ''}</td></tr>`;
+      }).join('') || '<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada order yang menunggu ACC</td></tr>';
+
+      const hist = all.filter(o => o.approvedBy || o.rejectedBy).sort((a, b) => ((b.approvedDate || b.rejectedDate) || '').localeCompare((a.approvedDate || a.rejectedDate) || '')).slice(0, 12);
+      document.getElementById('historyBody').innerHTML = hist.map(o => `<tr><td><a href="${o.link}" class="cell-link text-mono">${o.id}</a></td><td>${o.kind}</td><td>${esc(o.customerName)}</td>
+        <td>${o.rejectedBy && !o.approvedBy ? statusBadge('Rejected') : statusBadge('Approved')}</td><td>${esc(o.approvedBy || o.rejectedBy)}</td><td class="fs-12">${esc(o.approvedDate || o.rejectedDate || '-')}</td><td class="fs-12">${esc(o.note || '')}</td></tr>`).join('')
+        || '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada riwayat</td></tr>';
+    }
+
+    function decide(kind, id, ok) {
+      const api = kind === 'Sewa' ? BizLogic.Rental : BizLogic.Sale;
+      BizLogic.showConfirmModal(ok ? 'ACC Order ' + kind : 'Tolak Order ' + kind, (ok ? 'ACC ' : 'Tolak ') + '<strong>' + id + '</strong>?' + (ok ? ' Stok akan dipesan dan logistik bisa membuat surat jalan.' : ''),
+        ok ? '<i class="bi bi-check-lg me-1"></i>ACC' : '<i class="bi bi-x-lg me-1"></i>Tolak', ok ? 'btn-success' : 'btn-danger',
+        f => {
+          const r = ok ? api.approve(id, f.note) : api.reject(id, f.note);
+          if (!r.success) { showToast(r.error, 'error'); return false; }
+          showToast(id + (ok ? ' di-ACC' : ' ditolak'), ok ? 'success' : 'warning');
+          setTimeout(() => location.reload(), 500);
+        },
+        [{ id: 'note', label: ok ? 'Catatan' : 'Alasan penolakan', type: 'textarea', required: !ok }]);
+    }
+    render();
+  </script>
+</body>
+</html>

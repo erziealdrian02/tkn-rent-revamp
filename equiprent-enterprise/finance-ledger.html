@@ -177,7 +177,7 @@
         <td class="num ${e.type === 'OUT' ? 'qty-minus fw-600' : 'zero'}">${e.type === 'OUT' ? formatRupiah(e.amount) : '-'}</td>
         <td class="num">${formatRupiah(bal)}</td>
         <td>${kind === 'Bank' ? (e.reconciled ? '<i class="bi bi-check-circle-fill text-success" title="Sudah direkonsiliasi"></i>' : '<i class="bi bi-circle text-muted" title="Belum direkonsiliasi"></i>') : ''}</td>
-        <td>${e.source !== 'payment' && !e.reconciled ? `<button class="btn-action" title="Hapus" onclick="removeEntry('${e.id}')"><i class="bi bi-trash"></i></button>` : ''}</td>
+        <td>${e.source !== 'payment' && !e.reconciled ? editButton({ docType: 'Transaksi Kas/Bank', docId: e.voucherNo, docLabel: e.description, link: 'finance-ledger.html' }, `<button class="btn-action" title="Hapus" onclick="removeEntry('${e.id}')"><i class="bi bi-trash"></i></button>`, { action: 'Hapus' }) : ''}</td>
       </tr>`).join('') || '<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada transaksi</td></tr>';
       const tin = data.filter(r => r.e.type === 'IN').reduce((s, r) => s + r.e.amount, 0);
       const tout = data.filter(r => r.e.type === 'OUT').reduce((s, r) => s + r.e.amount, 0);

@@ -169,7 +169,7 @@
         <td class="num">${formatRupiah(Number(a.openingBalance) || 0)}</td>
         <td class="num fw-600">${formatRupiah(CB.balance(a.id))}</td>
         <td><span class="badge-status ${a.status==='Active'?'good':'draft'}">${a.status}</span></td>
-        <td><button class="btn-action" onclick="showToast('Edit Account','info')"><i class="bi bi-pencil"></i></button></td>
+        <td>${editButton({ docType: 'Rekening', docId: a.id, docLabel: a.name, link: 'accounts.html' }, '<button class="btn-action" title="Ubah" onclick="showToast(\'Form ubah (prototype)\', \'info\')"><i class="bi bi-pencil"></i></button>')}</td>
       </tr>`).join('');
     }
     renderTable();

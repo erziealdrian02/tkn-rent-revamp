@@ -153,7 +153,7 @@
               </div>
             </div>
             <div class="detail-header-actions">
-              <button class="btn btn-outline-secondary btn-sm" onclick="openReq()"><i class="bi bi-pencil me-1"></i>Ubah Kebutuhan</button>
+              ${editButton({ docType: 'Proyek', docId: p.id, docLabel: 'Kebutuhan alat ' + p.name, link: 'project-stock.html?project=' + p.id }, '<button class="btn btn-outline-secondary btn-sm" onclick="openReq()"><i class="bi bi-pencil me-1"></i>Ubah Kebutuhan</button>', { label: 'Ajukan Ubah Kebutuhan' })}
               ${closed ? '' : `<a class="btn btn-primary btn-sm" href="stock-mutations.html?new=DELIVERY&project=${p.id}"><i class="bi bi-truck me-1"></i>Kirim Alat (SJ)</a>`}
               ${t.onSite > 0 ? `<a class="btn btn-success btn-sm" href="stock-mutations.html?new=RETURN&project=${p.id}"><i class="bi bi-box-arrow-in-left me-1"></i>Pulangkan Alat (SJ)</a>` : ''}
             </div>

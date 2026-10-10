@@ -40,7 +40,7 @@
         <td class="fw-600">${r.name}${canApprove ? ' <span class="badge bg-success-subtle text-success fs-11">bisa menyetujui</span>' : ''}</td>
         <td>${r.description || '-'}</td><td>${users}</td>
         <td class="fs-12">${access.length === modules.length ? 'Semua modul' : access.join(', ') || '<span class="text-muted">Tidak ada</span>'}</td>
-        <td>${r.name === 'Super Admin' || r.name === 'Driver' ? '' : `<a class="btn-action" title="Ubah hak akses" href="role-create.html?role=${encodeURIComponent(r.name)}"><i class="bi bi-shield-lock"></i></a>`}</td>
+        <td>${r.name === 'Admin' || r.name === 'Driver' ? '' : `<a class="btn-action" title="Ubah hak akses" href="role-create.html?role=${encodeURIComponent(r.name)}"><i class="bi bi-shield-lock"></i></a>`}</td>
       </tr>`;
     }).join('');
   </script>

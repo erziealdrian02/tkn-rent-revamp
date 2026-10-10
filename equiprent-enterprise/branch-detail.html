@@ -40,7 +40,7 @@
     const whBal = SL.balances()['warehouse:' + branch.id] || {};
     const whQty = Object.values(whBal).reduce((a, v) => a + v, 0);
     const whAvail = branchStock.reduce((a, s) => a + s.available, 0);
-    const whIssues = branchStock.reduce((a, s) => a + (s.damaged || 0) + (s.maintenance || 0), 0);
+    const whIssues = branchStock.reduce((a, s) => a + (s.damaged || 0), 0);
     const branchMov = MockData.stockMutations.filter(m => (m.from.type === 'warehouse' && m.from.id === branch.id) || (m.to.type === 'warehouse' && m.to.id === branch.id)).sort((a, b) => b.date.localeCompare(a.date));
 
     document.getElementById('detailHeader').innerHTML = `
@@ -65,7 +65,7 @@
       <div class="row g-3 mb-4">
         <div class="col-md-3"><div class="kpi-card"><div class="kpi-icon blue"><i class="bi bi-boxes"></i></div><div class="kpi-content"><div class="kpi-value">${formatNumber(whQty)}</div><div class="kpi-label">Stok Fisik</div></div></div></div>
         <div class="col-md-3"><div class="kpi-card"><div class="kpi-icon green"><i class="bi bi-check-circle"></i></div><div class="kpi-content"><div class="kpi-value">${formatNumber(whAvail)}</div><div class="kpi-label">Tersedia</div></div></div></div>
-        <div class="col-md-3"><div class="kpi-card"><div class="kpi-icon purple"><i class="bi bi-wrench"></i></div><div class="kpi-content"><div class="kpi-value">${formatNumber(whIssues)}</div><div class="kpi-label">Rusak / Perawatan</div></div></div></div>
+        <div class="col-md-3"><div class="kpi-card"><div class="kpi-icon purple"><i class="bi bi-wrench"></i></div><div class="kpi-content"><div class="kpi-value">${formatNumber(whIssues)}</div><div class="kpi-label">Rusak</div></div></div></div>
         <div class="col-md-3"><div class="kpi-card"><div class="kpi-icon orange"><i class="bi bi-archive"></i></div><div class="kpi-content"><div class="kpi-value">${branch.capacity}</div><div class="kpi-label">Capacity</div></div></div></div>
       </div>
       <div class="info-grid">
@@ -76,8 +76,8 @@
     </div>`;
 
     tc += `<div class="er-tab-content" id="tab-stock">
-      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Nama Alat</th><th class="num">Stok Fisik</th><th class="num">Tersedia</th><th class="num">Dipesan</th><th class="num">Rusak</th><th class="num">Perawatan</th></tr></thead><tbody>
-      ${branchStock.filter(s => s.total || s.reserved).map(s=>`<tr><td>${s.equipment}</td><td class="num fw-600">${whBal[s.equipment] || 0}</td><td class="num"><span class="badge-status available">${s.available}</span></td><td class="num">${s.reserved}</td><td class="num">${s.damaged||0}</td><td class="num">${s.maintenance||0}</td></tr>`).join('')}
+      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Nama Alat</th><th class="num">Stok Fisik</th><th class="num">Tersedia</th><th class="num">Dipesan</th><th class="num">Rusak</th></tr></thead><tbody>
+      ${branchStock.filter(s => s.total || s.reserved).map(s=>`<tr><td>${s.equipment}</td><td class="num fw-600">${whBal[s.equipment] || 0}</td><td class="num"><span class="badge-status available">${s.available}</span></td><td class="num">${s.reserved}</td><td class="num">${s.damaged||0}</td></tr>`).join('')}
       </tbody></table></div>
     </div>`;
 

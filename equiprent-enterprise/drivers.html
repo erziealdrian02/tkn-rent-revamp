@@ -121,7 +121,7 @@
         <td>${d.phone}</td><td>${d.licenseNumber}</td><td>${formatDate(d.licenseExpiry)}</td>
         <td>${statusBadge(d.status)}</td>
         <td>${d.currentDelivery?`<a href="delivery-detail.html?id=${d.currentDelivery}" class="cell-link">${d.currentDelivery}</a>`:'-'}</td>
-        <td><a href="driver-detail.html?id=${d.id}" class="btn-action"><i class="bi bi-eye"></i></a><button class="btn-action"><i class="bi bi-pencil"></i></button></td>
+        <td><a href="driver-detail.html?id=${d.id}" class="btn-action"><i class="bi bi-eye"></i></a>${editButton({ docType: 'Pengemudi', docId: d.id, docLabel: d.name, link: 'driver-detail.html?id=' + d.id }, '<button class="btn-action" title="Ubah" onclick="showToast(\'Form ubah (prototype)\', \'info\')"><i class="bi bi-pencil"></i></button>')}</td>
       </tr>`).join('');
     }
     renderTable();

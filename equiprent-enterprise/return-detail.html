@@ -42,6 +42,7 @@
           <h2>${ret.id} ${statusBadge(ret.status)}</h2>
           <div class="detail-meta">
             <span class="detail-meta-item"><i class="bi bi-file-earmark-text"></i><a href="rental-detail.html?id=${ret.rentalId}">${ret.rentalId}</a></span>
+            ${ret.pickupId ? `<span class="detail-meta-item"><i class="bi bi-truck"></i>Surat jalan pemulangan <a href="delivery-detail.html?id=${ret.pickupId}">${ret.sjNo}</a></span>` : ''}
             <span class="detail-meta-item"><i class="bi bi-folder"></i>${ret.projectName}</span>
             <span class="detail-meta-item"><i class="bi bi-people"></i>${ret.customerName}</span>
             <span class="detail-meta-item"><i class="bi bi-calendar"></i>${formatDate(ret.returnDate)}</span>

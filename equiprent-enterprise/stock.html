@@ -52,7 +52,7 @@
                 <select class="filter-select" id="whFilter" onchange="renderCondition(); renderCards();"><option value="">Semua Gudang</option></select>
               </div></div>
               <div class="er-table-wrapper"><table class="er-table">
-                <thead><tr><th>Nama Alat</th><th>Gudang</th><th class="num">Stok Fisik</th><th class="num">Tersedia</th><th class="num">Dipesan</th><th class="num">Rusak</th><th class="num">Perawatan</th></tr></thead>
+                <thead><tr><th>Nama Alat</th><th>Gudang</th><th class="num">Stok Fisik</th><th class="num">Tersedia</th><th class="num">Dipesan</th><th class="num">Rusak</th><th></th></tr></thead>
                 <tbody id="condBody"></tbody>
               </table></div>
             </div>
@@ -158,10 +158,21 @@
           <td class="num"><span class="badge-status available">${s.available}</span></td>
           ${cell(s.reserved || 0)}
           <td class="num">${s.damaged ? `<span class="badge-status damaged">${s.damaged}</span>` : '<span class="text-muted">0</span>'}</td>
-          <td class="num">${s.maintenance ? `<span class="badge-status maintenance">${s.maintenance}</span>` : '<span class="text-muted">0</span>'}</td>
+          <td class="text-end">${s.damaged && canDo('Stock', 'Update') ? `<button class="btn btn-outline-success btn-sm py-0" onclick="markRepaired('${eq.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', '${w.id}', ${s.damaged})" title="Alat rusak sudah diperbaiki, kembali ke stok tersedia"><i class="bi bi-check2 me-1"></i>Sudah baik</button>` : ''}</td>
         </tr>`);
       }));
       document.getElementById('condBody').innerHTML = rows.join('') || '<tr><td colspan="7" class="text-center text-muted py-4">Tidak ada data</td></tr>';
+    }
+
+    // Modul perbaikan dihapus: alat rusak yang sudah dibetulkan langsung dikembalikan ke stok tersedia (yang tidak bisa → Afkir di Perpindahan Stok)
+    function markRepaired(eq, wh, max) {
+      const q = parseInt(prompt(eq + ': berapa unit sudah baik? (maks ' + max + ')', max), 10);
+      if (!q) return;
+      if (q < 1 || q > max) { showToast('Qty 1 - ' + max, 'error'); return; }
+      BizLogic.Stock.repairComplete(eq, wh, q);
+      BizLogic.Activity.log(q + ' unit ' + eq + ' rusak sudah baik, kembali tersedia', 'success');
+      showToast(q + ' unit ' + eq + ' kembali tersedia', 'success');
+      location.reload();
     }
 
     function exportCSV() {

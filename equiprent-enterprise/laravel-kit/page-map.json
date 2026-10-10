@@ -36,9 +36,27 @@
       ]
     },
     {
-      "key": "rental",
-      "label": "PENYEWAAN",
+      "key": "orders",
+      "label": "PELANGGAN & ORDER",
       "pages": [
+        {
+          "html": "customers.html",
+          "view": "customers.index",
+          "uri": "/customers",
+          "route": "customers.index",
+          "layout": "app",
+          "title": "Pelanggan",
+          "permission": "Customers"
+        },
+        {
+          "html": "customer-detail.html",
+          "view": "customers.show",
+          "uri": "/customer-detail",
+          "route": "customers.show",
+          "layout": "app",
+          "title": "Detail Pelanggan",
+          "permission": "Customers"
+        },
         {
           "html": "rentals.html",
           "view": "rentals.index",
@@ -94,6 +112,33 @@
           "permission": "Projects"
         },
         {
+          "html": "sales.html",
+          "view": "sales.index",
+          "uri": "/sales",
+          "route": "sales.index",
+          "layout": "app",
+          "title": "Penjualan",
+          "permission": "Sales"
+        },
+        {
+          "html": "sale-create.html",
+          "view": "sales.create",
+          "uri": "/sale-create",
+          "route": "sales.create",
+          "layout": "app",
+          "title": "Penjualan Baru",
+          "permission": "Sales"
+        },
+        {
+          "html": "sale-detail.html",
+          "view": "sales.show",
+          "uri": "/sale-detail",
+          "route": "sales.show",
+          "layout": "app",
+          "title": "Detail Penjualan",
+          "permission": "Sales"
+        },
+        {
           "html": "claims.html",
           "view": "claims.index",
           "uri": "/claims",
@@ -115,7 +160,7 @@
     },
     {
       "key": "stock-recap",
-      "label": "REKAP STOK",
+      "label": "LOGISTIK & STOK",
       "pages": [
         {
           "html": "deliveries.html",
@@ -123,7 +168,7 @@
           "uri": "/deliveries",
           "route": "deliveries.index",
           "layout": "app",
-          "title": "Pengiriman",
+          "title": "Surat Jalan & Pengiriman",
           "permission": "Deliveries"
         },
         {
@@ -132,7 +177,7 @@
           "uri": "/delivery-detail",
           "route": "deliveries.show",
           "layout": "app",
-          "title": "Detail Pengiriman",
+          "title": "Detail Surat Jalan",
           "permission": "Deliveries"
         },
         {
@@ -302,42 +347,6 @@
           "layout": "app",
           "title": "Detail Penerimaan Barang",
           "permission": "Purchases"
-        },
-        {
-          "html": "repairs.html",
-          "view": "repairs.index",
-          "uri": "/repairs",
-          "route": "repairs.index",
-          "layout": "app",
-          "title": "Perbaikan",
-          "permission": "Equipment"
-        },
-        {
-          "html": "repair-detail.html",
-          "view": "repairs.show",
-          "uri": "/repair-detail",
-          "route": "repairs.show",
-          "layout": "app",
-          "title": "Detail Perbaikan",
-          "permission": "Equipment"
-        },
-        {
-          "html": "maintenance.html",
-          "view": "maintenance.index",
-          "uri": "/maintenance",
-          "route": "maintenance.index",
-          "layout": "app",
-          "title": "Perawatan",
-          "permission": "Equipment"
-        },
-        {
-          "html": "maintenance-detail.html",
-          "view": "maintenance.show",
-          "uri": "/maintenance-detail",
-          "route": "maintenance.show",
-          "layout": "app",
-          "title": "Detail Perawatan",
-          "permission": "Equipment"
         }
       ]
     },
@@ -345,24 +354,6 @@
       "key": "master",
       "label": "DATA MASTER",
       "pages": [
-        {
-          "html": "customers.html",
-          "view": "master.customers.index",
-          "uri": "/customers",
-          "route": "master.customers.index",
-          "layout": "app",
-          "title": "Pelanggan",
-          "permission": "Customers"
-        },
-        {
-          "html": "customer-detail.html",
-          "view": "master.customers.show",
-          "uri": "/customer-detail",
-          "route": "master.customers.show",
-          "layout": "app",
-          "title": "Detail Pelanggan",
-          "permission": "Customers"
-        },
         {
           "html": "drivers.html",
           "view": "master.drivers.index",
@@ -411,63 +402,78 @@
       ]
     },
     {
-      "key": "finance",
-      "label": "PIUTANG & KEUANGAN",
+      "key": "receivables",
+      "label": "PIUTANG",
       "pages": [
         {
+          "html": "approvals.html",
+          "view": "receivables.approvals",
+          "uri": "/approvals",
+          "route": "receivables.approvals",
+          "layout": "app",
+          "title": "Persetujuan Order",
+          "permission": "Approvals"
+        },
+        {
           "html": "billing.html",
-          "view": "finance.billing",
+          "view": "receivables.billing",
           "uri": "/billing",
-          "route": "finance.billing",
+          "route": "receivables.billing",
           "layout": "app",
           "title": "Rekap Tagihan",
           "permission": "Invoices"
         },
         {
           "html": "invoices.html",
-          "view": "finance.invoices.index",
+          "view": "receivables.invoices.index",
           "uri": "/invoices",
-          "route": "finance.invoices.index",
+          "route": "receivables.invoices.index",
           "layout": "app",
           "title": "Invoice",
           "permission": "Invoices"
         },
         {
           "html": "invoice-detail.html",
-          "view": "finance.invoices.show",
+          "view": "receivables.invoices.show",
           "uri": "/invoice-detail",
-          "route": "finance.invoices.show",
+          "route": "receivables.invoices.show",
           "layout": "app",
           "title": "Detail Invoice",
           "permission": "Invoices"
         },
         {
           "html": "invoice-shadow.html",
-          "view": "finance.invoices.shadow",
+          "view": "receivables.invoices.shadow",
           "uri": "/invoice-shadow",
-          "route": "finance.invoices.shadow",
+          "route": "receivables.invoices.shadow",
           "layout": "app",
           "title": "Invoice Bayangan",
           "permission": "Invoices"
         },
         {
           "html": "payments.html",
-          "view": "finance.payments",
+          "view": "receivables.payments",
           "uri": "/payments",
-          "route": "finance.payments",
+          "route": "receivables.payments",
           "layout": "app",
           "title": "Pembayaran Tagihan",
-          "permission": "Invoices"
+          "permission": "Payments"
         },
         {
           "html": "receivables.html",
-          "view": "finance.receivables",
+          "view": "receivables.report",
           "uri": "/receivables",
-          "route": "finance.receivables",
+          "route": "receivables.report",
           "layout": "app",
           "title": "Laporan Piutang",
           "permission": "Invoices"
-        },
+        }
+      ]
+    },
+    {
+      "key": "finance",
+      "label": "KEUANGAN",
+      "pages": [
         {
           "html": "finance-ledger.html",
           "view": "finance.cash-bank-ledger",
@@ -594,6 +600,15 @@
       "key": "admin",
       "label": "ADMINISTRASI",
       "pages": [
+        {
+          "html": "edit-requests.html",
+          "view": "admin.edit-requests",
+          "uri": "/edit-requests",
+          "route": "admin.edit-requests",
+          "layout": "app",
+          "title": "Permintaan Perubahan",
+          "permission": null
+        },
         {
           "html": "users.html",
           "view": "admin.users.index",

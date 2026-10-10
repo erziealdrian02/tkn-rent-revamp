@@ -33,11 +33,11 @@
               <div class="kpi-label">Alat di Sewa</div>
             </div>
           </div>
-          <div class="kpi-card">
+          <div class="kpi-card" role="button" onclick="location.href='approvals.html'">
             <div class="kpi-icon warning"><i class="bi bi-clock-history"></i></div>
             <div class="kpi-content">
               <div class="kpi-value" id="kpiPendingApproval">0</div>
-              <div class="kpi-label">Menunggu Persetujuan</div>
+              <div class="kpi-label">Order Menunggu ACC Piutang</div>
             </div>
           </div>
           <div class="kpi-card">
@@ -165,7 +165,7 @@
                 <div class="er-table-wrapper">
                   <table class="er-table">
                     <thead>
-                      <tr><th>Gudang</th><th>Stok Fisik</th><th>Tersedia</th><th>Dipesan</th><th>Perawatan</th><th>Rusak</th></tr>
+                      <tr><th>Gudang</th><th>Stok Fisik</th><th>Tersedia</th><th>Dipesan</th><th>Rusak</th></tr>
                     </thead>
                     <tbody id="equipmentAvailabilityBody">
                     </tbody>
@@ -201,7 +201,7 @@
 
     // Calculate live KPIs
     const activeRentals = MockData.rentals.filter(r => ['Approved', 'Preparing', 'Partially Delivered', 'On Rental', 'Partially Returned'].includes(r.status));
-    const pendingApproval = MockData.rentals.filter(r => r.status === 'Pending Approval' || r.status === 'Waiting Approval');
+    const pendingApproval = MockData.rentals.filter(r => r.status === 'Pending Approval' || r.status === 'Waiting Approval').concat((MockData.sales || []).filter(s => s.status === 'Pending Approval'));
     
     // Find all overdue rentals using business logic engine
     const overdueRentals = MockData.rentals.filter(r => BizLogic.Rental.isOverdue(r));
@@ -264,7 +264,7 @@
     document.getElementById('equipmentAvailabilityBody').innerHTML = branches.map(b => {
       let tot = 0, av = 0, or = 0, mt = 0, oth = 0;
       MockData.stock.filter(s => s.branch === b).forEach(s => {
-        tot += s.total; av += s.available; or += (s.reserved || 0); mt += (s.maintenance || 0);
+        tot += s.total; av += s.available; or += (s.reserved || 0);
         oth += (s.damaged || 0);
       });
       return `<tr>
@@ -272,7 +272,6 @@
         <td>${tot}</td>
         <td><span class="badge-status available">${av}</span></td>
         <td><span class="badge-status reserved">${or}</span></td>
-        <td><span class="text-warning fw-bold">${mt}</span></td>
         <td>${oth > 0 ? '<span class="text-danger">' + oth + '</span>' : oth}</td>
       </tr>`;
     }).join('');

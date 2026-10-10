@@ -15,14 +15,14 @@
     <main class="app-main">
       <header class="app-header" id="appHeader"></header>
       <div class="app-content">
-        <div class="page-header"><div class="page-header-left"><h2 class="page-header-title">Pelanggan</h2><p class="page-header-subtitle">Kelola database dan relasi pelanggan</p></div>
-        <div class="page-header-actions"><button class="btn btn-primary btn-sm" onclick="showToast('Add customer form','info')"><i class="bi bi-plus-lg me-1"></i>Tambah Pelanggan</button></div></div>
+        <div class="page-header"><div class="page-header-left"><h2 class="page-header-title">Pelanggan</h2><p class="page-header-subtitle">Master pelanggan: satu pelanggan bisa punya banyak proyek, sewa dan penjualan</p></div>
+        <div class="page-header-actions"></div></div>
         <div class="er-card"><div class="er-card-body">
           <div class="table-toolbar"><div class="table-toolbar-left">
             <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Cari pelanggan..." id="searchInput" oninput="filterData()"></div>
             <select class="filter-select" id="statusFilter" onchange="filterData()"><option value="">Semua Status</option><option value="Active">Aktif</option><option value="Inactive">Tidak Aktif</option></select>
           </div></div>
-          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>ID Pelanggan</th><th>Kode Perusahaan</th><th>Nama Perusahaan</th><th>PIC</th><th>Kontak</th><th>Status</th><th>Aksi</th></tr></thead>
+          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Pelanggan</th><th>PIC / Kontak</th><th>Proyek</th><th class="num">Sewa Aktif</th><th class="num">Penjualan</th><th class="num">Piutang</th><th>Status</th><th>Aksi</th></tr></thead>
           <tbody id="tableBody"></tbody></table></div>
         </div></div>
       </div>
@@ -97,66 +97,81 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
-    initApp('customers.html',[{label:'Data Master',href:'#'},{label:'Pelanggan'}],'Pelanggan');
+    initApp('customers.html',[{label:'Pelanggan & Order',href:'#'},{label:'Pelanggan'}],'Pelanggan');
+    const esc = v => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const modal = () => bootstrap.Modal.getOrCreateInstance(document.getElementById('addCustomerModal'));
+    let editId = null;
+    const F = ['Name', 'Code', 'Pic', 'Phone', 'Email', 'Address', 'TaxId', 'Status'];
+    if (canDo('Customers', 'Create')) document.querySelector('.page-header-actions').innerHTML = '<button class="btn btn-primary btn-sm" onclick="openCustomer()"><i class="bi bi-plus-lg me-1"></i>Tambah Pelanggan</button>';
 
-    document.querySelector('.page-header-actions .btn-primary').setAttribute('data-bs-toggle', 'modal');
-    document.querySelector('.page-header-actions .btn-primary').setAttribute('data-bs-target', '#addCustomerModal');
-    document.querySelector('.page-header-actions .btn-primary').removeAttribute('onclick');
-
-    document.getElementById('cusId').value = MockData.generateId('CUS', 'customers');
+    // Tambah (role dengan hak Create) / ubah (hanya Admin; role lain lewat Permintaan Perubahan)
+    function openCustomer(id) {
+      editId = id || null;
+      const c = id ? MockData.customers.find(x => x.id === id) : null;
+      const form = document.getElementById('customerForm');
+      form.reset(); form.classList.remove('was-validated');
+      document.querySelector('#addCustomerModal .modal-title').textContent = c ? 'Ubah Pelanggan ' + c.id : 'Tambah Pelanggan Baru';
+      document.getElementById('cusId').value = c ? c.id : MockData.generateId('CUS', 'customers');
+      if (c) F.forEach(k => document.getElementById('cus' + k).value = c[k.charAt(0).toLowerCase() + k.slice(1)] || (k === 'Status' ? 'Active' : ''));
+      modal().show();
+    }
 
     document.getElementById('customerForm').addEventListener('submit', function(e) {
       e.preventDefault();
-      if (!this.checkValidity()) {
-        e.stopPropagation();
-        this.classList.add('was-validated');
-        return;
-      }
-
-      const newCus = {
-        id: document.getElementById('cusId').value,
-        code: document.getElementById('cusCode').value.toUpperCase(),
-        name: document.getElementById('cusName').value,
-        pic: document.getElementById('cusPic').value,
-        phone: document.getElementById('cusPhone').value,
-        email: document.getElementById('cusEmail').value,
-        address: document.getElementById('cusAddress').value,
-        taxId: document.getElementById('cusTaxId').value.trim(),
-        status: document.getElementById('cusStatus').value
+      if (!this.checkValidity()) { e.stopPropagation(); this.classList.add('was-validated'); return; }
+      const data = {
+        code: document.getElementById('cusCode').value.toUpperCase(), name: document.getElementById('cusName').value,
+        pic: document.getElementById('cusPic').value, phone: document.getElementById('cusPhone').value,
+        email: document.getElementById('cusEmail').value, address: document.getElementById('cusAddress').value,
+        taxId: document.getElementById('cusTaxId').value.trim(), status: document.getElementById('cusStatus').value
       };
-
-      MockData.customers.push(newCus);
+      if (editId) {
+        if (!isAdmin()) { showToast('Hanya Admin yang boleh mengubah data', 'error'); return; }
+        const c = MockData.customers.find(x => x.id === editId);
+        Object.assign(c, data);
+        // nama pelanggan disalin di proyek/sewa/jual/invoice → ikut diperbarui
+        ['projects', 'rentals', 'sales', 'invoices', 'deliveries', 'returns', 'claims'].forEach(k => {
+          (MockData[k] || []).forEach(r => { if (r.customerId === c.id) r.customerName = c.name; });
+          MockData.save(k);
+        });
+        showToast('Pelanggan ' + c.id + ' diperbarui', 'success');
+      } else {
+        MockData.customers.push(Object.assign({ id: document.getElementById('cusId').value }, data));
+        showToast('Pelanggan berhasil ditambahkan', 'success');
+      }
       MockData.save('customers');
-
-      bootstrap.Modal.getInstance(document.getElementById('addCustomerModal')).hide();
-      showToast('Customer berhasil ditambahkan.', 'success');
-      
-      this.reset();
-      this.classList.remove('was-validated');
-      document.getElementById('cusId').value = MockData.generateId('CUS', 'customers');
-      
+      modal().hide();
       filterData();
     });
 
     function filterData(){
-      const q=document.getElementById('searchInput').value.toLowerCase();
-      const s=document.getElementById('statusFilter').value;
-      const data=MockData.customers.filter(c=>{
-        if(q&&!c.id.toLowerCase().includes(q)&&!c.name.toLowerCase().includes(q)&&!c.code.toLowerCase().includes(q)&&!c.pic.toLowerCase().includes(q))return false;
-        if(s&&c.status!==s)return false;return true;
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const st = document.getElementById('statusFilter').value;
+      const data = MockData.customers.filter(c => {
+        const projects = MockData.projects.filter(p => p.customerId === c.id).map(p => p.name).join(' ');
+        if (q && !`${c.id} ${c.name} ${c.code} ${c.pic} ${projects}`.toLowerCase().includes(q)) return false;
+        return !st || c.status === st;
       });
-      document.getElementById('tableBody').innerHTML=data.map(c=>`<tr>
-        <td><a href="customer-detail.html?id=${c.id}" class="cell-link text-mono">${c.id}</a></td>
-        <td><span class="badge bg-light text-dark border">${c.code}</span></td>
-        <td class="fw-500">${c.name}</td><td>${c.pic}</td>
-        <td><div class="fs-13"><i class="bi bi-telephone text-muted me-1"></i>${c.phone}<br><i class="bi bi-envelope text-muted me-1"></i>${c.email}</div></td>
-        <td>${statusBadge(c.status)}</td>
-        <td><a href="customer-detail.html?id=${c.id}" class="btn-action"><i class="bi bi-eye"></i></a><button class="btn-action"><i class="bi bi-pencil"></i></button></td>
-      </tr>`).join('')||'<tr><td colspan="7" class="text-center text-muted py-4">Tidak ada pelanggan ditemukan</td></tr>';
+      document.getElementById('tableBody').innerHTML = data.map(c => {
+        const sm = BizLogic.Customer.summary(c.id);
+        const proj = sm.projects.map(p => `<a href="project-detail.html?id=${p.id}" class="badge ${p.status === 'Active' ? 'bg-primary-subtle text-primary' : 'bg-light text-muted border'} fw-normal text-decoration-none me-1 mb-1 text-wrap text-start" title="${esc(p.status)}">${esc(p.name)}</a>`).join('');
+        return `<tr>
+          <td><a href="customer-detail.html?id=${c.id}" class="cell-link fw-600">${esc(c.name)}</a><div class="fs-12 text-muted"><span class="text-mono">${c.id}</span> · ${esc(c.code)}</div></td>
+          <td class="fs-13">${esc(c.pic)}<div class="text-muted fs-12"><i class="bi bi-telephone me-1"></i>${esc(c.phone)}</div></td>
+          <td style="max-width:280px">${proj || '<span class="text-muted fs-12">Belum ada proyek</span>'}</td>
+          <td class="num">${sm.activeRentals.length || '-'}</td>
+          <td class="num">${sm.sales.length || '-'}</td>
+          <td class="num">${sm.outstanding ? `<span class="fw-600">${formatRupiah(sm.outstanding)}</span>${sm.overdue ? `<div class="fs-11 text-danger">${formatRupiah(sm.overdue)} lewat JT</div>` : ''}` : '<span class="text-muted">-</span>'}</td>
+          <td>${statusBadge(c.status)}</td>
+          <td class="text-nowrap"><a href="customer-detail.html?id=${c.id}" class="btn-action"><i class="bi bi-eye"></i></a>${editButton({ docType: 'Pelanggan', docId: c.id, docLabel: c.name, link: 'customer-detail.html?id=' + c.id }, `<button class="btn-action" title="Ubah" onclick="openCustomer('${c.id}')"><i class="bi bi-pencil"></i></button>`)}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="8" class="text-center text-muted py-4">Tidak ada pelanggan ditemukan</td></tr>';
     }
     filterData();
+    if (getUrlParam('edit')) openCustomer(getUrlParam('edit'));
   </script>
 </body>
 </html>

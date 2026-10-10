@@ -29,12 +29,13 @@ Cara baca diagram:
 | 2 | [Penyewaan & Persetujuan](#2-penyewaan--persetujuan) | Buat sewa, submit, setujui / tolak / resubmit / batal |
 | 3 | [Pengiriman](#3-pengiriman-sjk) | DLV, driver, serah terima, gagal kirim, SJK manual |
 | 4 | [Pengembalian & Klaim](#4-pengembalian-inspeksi--klaim) | Inspeksi Baik / Rusak / Lost / Missing, klaim ke customer |
-| 5 | [Perbaikan & Perawatan](#5-perbaikan--perawatan) | Repair barang rusak, maintenance rutin |
+| 5 | ~~Perbaikan & Perawatan~~ | **Dihapus** (catatan user Okt 2026). Alat rusak tetap di stok "rusak" → "Sudah baik" di Stok Gudang / Afkir |
 | 6 | [Rekap Tagihan & Invoice](#6-rekap-tagihan--invoice) | Hitung tagihan sewa, invoice bayangan, batal |
 | 7 | [Pembayaran & Piutang](#7-pembayaran-piutang--arus-kas) | Cicilan / lunas, laporan piutang |
 | 8 | [Pembelian & Stok](#8-pembelian--perpindahan-stok) | Alat baru, PO, penerimaan, perpindahan stok |
 | 9 | [Kas & Bank](#9-kas--bank-laporan-kas--rekonsiliasi-bank) | Bon Biru / Bon Merah, pindah dana, Laporan Kas, Rekonsiliasi Bank |
 | 10 | [Akuntansi & Pajak](#10-akuntansi--pajak) | COA, jurnal Laporan Kas, buku besar, kertas kerja, penyesuaian, laba rugi, neraca, PPN & PPh 23 (XML Coretax) |
+| 11 | [Role, ACC Piutang, Penjualan, Ekspedisi & Permintaan Perubahan](#11-role-acc-piutang-penjualan-ekspedisi--permintaan-perubahan) | Alur terbaru dari catatan user Okt 2026 |
 
 ---
 
@@ -425,6 +426,8 @@ note right of Stok:Langsung posting SJR. Tanpa RET, tanpa perbaikan,\ntanpa klai
 ---
 
 ## 5. Perbaikan & Perawatan
+
+> **Dihapus** sesuai catatan user (Okt 2026). Halaman `repairs.html`, `repair-detail.html`, `maintenance.html`, `maintenance-detail.html` tidak ada lagi dan inspeksi pengembalian tidak membuat data perbaikan. Alat rusak masuk stok kondisi *rusak*; kalau sudah dibetulkan klik **"Sudah baik"** di Stok Gudang, kalau tidak bisa → **Afkir** di Perpindahan Stok. Diagram di bawah hanya arsip.
 
 Halaman: `repairs.html` → `repair-detail.html`, `maintenance.html` → `maintenance-detail.html`
 
@@ -829,16 +832,83 @@ Finance->TAX:PPh 23: pilih masa → "Export XML Coretax" (bukti potong)
 
 ---
 
+## 11. Role, ACC Piutang, Penjualan, Ekspedisi & Permintaan Perubahan
+
+Dari catatan user (Okt 2026). Halaman baru: `approvals.html` (Persetujuan Order), `sales.html` / `sale-create.html` / `sale-detail.html` (Penjualan), `edit-requests.html` (Permintaan Perubahan).
+
+**Role**: Admin · Account Receivable (Staff Piutang) · Finance · Accounting & Tax · Purchase · Logistik · Administrasi · Ekspedisi · Driver (portal driver). Demo login: `admin`, `piutang`, `finance`, `accounting`, `purchase`, `logistik`, `administrasi`, `ekspedisi`, `driver` (password `demo`).
+
+Prinsip:
+- **Customer = master.** Halaman pelanggan langsung menampilkan proyek, sewa aktif, penjualan dan piutang. Satu customer bisa banyak proyek, satu proyek bisa banyak sewa / jual.
+- **Order sewa & jual di-ACC Staff Piutang** (bukan Manager) di *Persetujuan Order*, sambil melihat piutang & yang lewat jatuh tempo. Setelah ACC stok dipesan dan Logistik boleh membuat surat jalan.
+- **Surat jalan 3 jenis**: Sewa (SJK), Jual (PJ), Pemulangan (SJR). Pemulangan = jemput alat dari proyek; tiba di gudang → otomatis jadi Pengembalian untuk diinspeksi.
+- **Ekspedisi** (internal, koordinasi driver): mengisi *estimasi kirim & kembali* saat penyewaan dibuat, mengisi *estimasi berangkat/tiba* di tiap surat jalan, dan *update posisi* manual dari info driver (WA). **Surat jalan tidak bisa dicetak / berangkat sebelum ada estimasi.**
+- **Biaya keterlambatan ke customer**: alat yang pulang (SJR) melewati estimasi kembali dikenai biaya per hari = tarif sewa harian × `settings.lateFeeRate` (default 1), muncul sebagai baris terpisah di Rekap Tagihan (bisa dimatikan).
+- **Rekap Tagihan 2 mode**: *Dari Stok (SJ)* otomatis, atau *Manual* (tarik dari stok / kebutuhan proyek lalu edit bebas, tambah baris).
+- **Invoice**: Sewa (dari rekap), **Jual** (tinggal tarik dari order jual), Klaim.
+- **Tenggat proyek** wajib saat buat proyek, bisa diubah di detail proyek dengan alasan (riwayat tersimpan).
+- **Stok masuk**: A. Pembelian, **F. Produksi / Rakit Sendiri**, **G. Kelebihan Alat** (selisih lebih stock opname → pendapatan lain-lain).
+- **Ubah / hapus data hanya Admin.** Role lain klik *Ajukan Perubahan* + catatan → **ACC Accounting** → Admin mengubah & menandai selesai.
+
+```
+title 11 - ACC Piutang, Penjualan, Ekspedisi & Permintaan Perubahan
+
+actor Administrasi
+actor "Staff Piutang" as AR
+actor Ekspedisi
+actor Logistik
+actor Accounting
+actor Admin
+participant "Sistem" as Sys
+
+==ORDER==
+Administrasi->Sys:Pelanggan → Proyek (tenggat) → Penyewaan / Penjualan → "Ajukan ACC"
+Ekspedisi->Sys:Penyewaan: "Isi Estimasi Ekspedisi" (kirim & jemput)
+AR->Sys:Persetujuan Order: cek piutang customer → "ACC" / "Tolak"
+Sys-->Logistik:stok dipesan, boleh buat surat jalan
+
+==SURAT JALAN (SEWA / JUAL / PEMULANGAN)==
+Logistik->Sys:"Surat Jalan Kirim" / "Surat Jalan Jual" / "Surat Jalan Pemulangan"
+Ekspedisi->Sys:"Isi Estimasi" (berangkat & tiba)
+alt belum ada estimasi
+  Sys-->Logistik:tidak bisa "Cetak Surat Jalan" / "Berangkat"
+end
+Ekspedisi->Sys:"Update Posisi" (dari WA driver)
+Logistik->Sys:Berangkat → Sampai → "Serah Terima" / "Terima di Gudang & Inspeksi"
+alt pemulangan
+  Sys->Logistik:Pengembalian dibuat → inspeksi (baik / rusak / hilang) → SJR
+end
+
+==TAGIHAN==
+AR->Sys:Rekap Tagihan (Dari Stok / Manual) → Buat Invoice
+note right of Sys:lewat estimasi kembali → baris biaya keterlambatan
+AR->Sys:Penjualan → "Buat Invoice Jual"
+
+==PERUBAHAN DATA==
+Logistik->Sys:"Ajukan Perubahan" + catatan
+Accounting->Sys:Permintaan Perubahan → "ACC" / "Tolak"
+Admin->Sys:ubah datanya → "Selesai"
+```
+
+---
+
 ## Lampiran A - Peta Menu Sidebar
 
 | Grup | Menu | File |
 |---|---|---|
 | - | Dasbor | `dashboard.html` |
-| PENYEWAAN | Penyewaan | `rentals.html`, `rental-create.html`, `rental-detail.html` |
+| PELANGGAN & ORDER | Pelanggan (master) | `customers.html`, `customer-detail.html` |
 | | Proyek | `projects.html`, `project-create.html`, `project-detail.html` |
+| | Penyewaan | `rentals.html`, `rental-create.html`, `rental-detail.html` |
+| | Penjualan | `sales.html`, `sale-create.html`, `sale-detail.html` |
 | | Klaim | `claims.html`, `claim-detail.html` |
-| REKAP STOK | Pengiriman | `deliveries.html`, `delivery-detail.html` |
-| | Pengembalian | `returns.html`, `return-detail.html` |
+| PIUTANG | Persetujuan Order | `approvals.html` |
+| | Rekap Tagihan | `billing.html` |
+| | Invoice | `invoices.html`, `invoice-detail.html`, `invoice-shadow.html` |
+| | Pembayaran Tagihan | `payments.html` |
+| | Laporan Piutang | `receivables.html` |
+| LOGISTIK & STOK | Surat Jalan & Pengiriman | `deliveries.html`, `delivery-detail.html` |
+| | Pengembalian (Inspeksi) | `returns.html`, `return-detail.html` |
 | | Stok Gudang | `stock.html` |
 | | Perpindahan Stok | `stock-mutations.html` |
 | | Stok Proyek | `project-stock.html` |
@@ -848,17 +918,10 @@ Finance->TAX:PPh 23: pilih masa → "Export XML Coretax" (bukti potong)
 | | Log Pergerakan Aset | `movements.html`, `movement-detail.html` |
 | | Pembelian | `purchases.html`, `purchase-create.html`, `purchase-detail.html` |
 | | Penerimaan Barang | `goods-receipts.html`, `goods-receipt-detail.html` |
-| | Perbaikan | `repairs.html`, `repair-detail.html` |
-| | Perawatan | `maintenance.html`, `maintenance-detail.html` |
-| DATA MASTER | Pelanggan | `customers.html`, `customer-detail.html` |
-| | Pengemudi | `drivers.html`, `driver-detail.html` |
+| DATA MASTER | Pengemudi | `drivers.html`, `driver-detail.html` |
 | | Kendaraan | `vehicles.html`, `vehicle-detail.html` |
 | | Rekening Perusahaan | `accounts.html` |
-| PIUTANG & KEUANGAN | Rekap Tagihan | `billing.html` |
-| | Invoice | `invoices.html`, `invoice-detail.html`, `invoice-shadow.html` |
-| | Pembayaran Tagihan | `payments.html` |
-| | Laporan Piutang | `receivables.html` |
-| | Buku Kas & Bank | `finance-ledger.html` |
+| KEUANGAN | Buku Kas & Bank | `finance-ledger.html` |
 | | Laporan Kas | `cash-report.html` |
 | | Rekonsiliasi Bank | `bank-reconciliation.html` |
 | AKUNTANSI | Bagan Akun (COA) | `coa.html` |
@@ -870,8 +933,9 @@ Finance->TAX:PPh 23: pilih masa → "Export XML Coretax" (bukti potong)
 | | Neraca | `balance-sheet.html` |
 | PAJAK | PPN | `tax-ppn.html` |
 | | PPh 23 | `tax-pph23.html` |
-| ADMINISTRASI | Pengguna / Peran | `users.html`, `roles.html`, `role-create.html` |
-| Driver (login Driver) | Dashboard / Pengiriman Saya | `driver-dashboard.html`, `driver-deliveries.html`, `driver-delivery-detail.html` |
+| ADMINISTRASI | Permintaan Perubahan | `edit-requests.html` |
+| | Pengguna / Peran | `users.html`, `roles.html`, `role-create.html` |
+| Portal Driver (login Driver) | Dasbor / Pengiriman Saya | `driver-dashboard.html`, `driver-deliveries.html`, `driver-delivery-detail.html` |
 
 ## Lampiran B - Daftar Status
 
@@ -893,7 +957,9 @@ Finance->TAX:PPh 23: pilih masa → "Export XML Coretax" (bukti potong)
 | Kode | Arti | Efek |
 |---|---|---|
 | SA | Saldo Awal | + stok gudang (saat daftar alat baru) |
-| PB | Pembelian / Produksi | + stok gudang |
+| PB | Pembelian (supplier) | + stok gudang |
+| PR | Produksi / Rakit Sendiri | + stok gudang |
+| LB | Kelebihan Alat (selisih lebih) | + stok gudang |
 | TG | Transit Antar Gudang | − gudang asal, + gudang tujuan |
 | SJK | Surat Jalan Kirim | gudang → proyek (**mulai sewa**) |
 | SJR | Surat Jalan Pulang | proyek → gudang (**berhenti sewa**) |

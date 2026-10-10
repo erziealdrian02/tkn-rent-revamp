@@ -137,7 +137,7 @@
       const taxBadge = a.tax ? ` <span class="badge bg-warning-subtle text-warning fw-normal">${a.tax === 'PPN' ? 'PPN' : 'PPh 23'}</span>` : '';
       const actions = a.cashAccountId
         ? `<a href="accounts.html" class="btn-action" title="Kelola di Rekening Perusahaan"><i class="bi bi-bank"></i></a>`
-        : a.system ? '' : `<button class="btn-action" onclick="openAccount('${a.id}')" title="Ubah"><i class="bi bi-pencil"></i></button>`;
+        : a.system ? '' : editButton({ docType: 'Akun COA', docId: a.code, docLabel: a.name, link: 'coa.html' }, `<button class="btn-action" onclick="openAccount('${a.id}')" title="Ubah"><i class="bi bi-pencil"></i></button>`);
       return `<tr class="lvl-${lvl}">
         <td><span class="acc-code">${a.code}</span><a href="general-ledger.html?account=${encodeURIComponent(a.id)}" class="cell-link">${esc(a.name)}</a>${taxBadge}${a.inactive ? ' <span class="text-muted fs-12">(nonaktif)</span>' : ''}${a.system && !a.cashAccountId ? ' <span class="text-muted fs-12">(otomatis)</span>' : ''}</td>
         <td>${AC.normalOf(a) === 'D' ? 'Debet' : 'Kredit'}</td>

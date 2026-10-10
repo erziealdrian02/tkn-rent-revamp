@@ -180,6 +180,8 @@
         const o = document.createElement('option'); o.value = p.id; o.textContent = p.name; ps.appendChild(o);
       });
     }
+    if (getUrlParam('customer')) { cs.value = getUrlParam('customer'); updateProjects(); }
+    if (getUrlParam('project')) { const pj = MockData.projects.find(p => p.id === getUrlParam('project')); if (pj) { cs.value = pj.customerId; updateProjects(); document.getElementById('projectSelect').value = pj.id; } }
 
     let rowCount = 0;
     

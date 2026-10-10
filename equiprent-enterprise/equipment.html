@@ -235,7 +235,7 @@
         <td>${statusBadge(e.condition)}</td><td>${e.branch}</td><td>${statusBadge(e.availability)}</td>
         <td>${e.project?`<a href="project-detail.html?id=${e.project}" class="cell-link fs-12">${e.project}</a>`:'-'}</td>
         <td>${statusBadge(e.status)}</td>
-        <td><a href="equipment-detail.html?id=${e.id}" class="btn-action"><i class="bi bi-eye"></i></a><button class="btn-action"><i class="bi bi-pencil"></i></button></td>
+        <td><a href="equipment-detail.html?id=${e.id}" class="btn-action"><i class="bi bi-eye"></i></a>${editButton({ docType: 'Alat', docId: e.id, docLabel: e.name, link: 'equipment-detail.html?id=' + e.id }, '<button class="btn-action" title="Ubah" onclick="showToast(\'Form ubah (prototype)\', \'info\')"><i class="bi bi-pencil"></i></button>')}</td>
       </tr>`).join('')||'<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada alat ditemukan</td></tr>';
       document.getElementById('pagination').innerHTML=renderPagination(total,currentPage,pageSize,'changePage');
     }

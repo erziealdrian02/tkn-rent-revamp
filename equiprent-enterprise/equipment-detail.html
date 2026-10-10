@@ -49,10 +49,10 @@
         </div>
       </div>
       <div class="detail-header-actions">
-        <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Edit</button>
+        ${editButton({ docType: 'Alat', docId: equip.id, docLabel: equip.name, link: 'equipment-detail.html?id=' + equip.id }, '<button class="btn btn-outline-secondary btn-sm" onclick="showToast(\'Form ubah (prototype)\', \'info\')"><i class="bi bi-pencil me-1"></i>Ubah</button>', { label: 'Ajukan Perubahan' })}
       </div>`;
 
-    const tabs = ['General','Stock','Condition','Rental History','Movements','Maintenance','Timeline'];
+    const tabs = ['General','Stock','Condition','Rental History','Movements','Timeline'];
     document.getElementById('detailTabs').innerHTML = tabs.map((t,i) =>
       `<button class="er-tab ${i===0?'active':''}" data-tab="${t.toLowerCase().replace(/\s/g,'-')}" onclick="switchTab('${t.toLowerCase().replace(/\s/g,'-')}')">${t}${t==='Movements'?`<span class="er-tab-count">${movements.length}</span>`:''}</button>`
     ).join('');
@@ -105,16 +105,6 @@
       ${movements.map(m=>`<tr><td class="text-mono">${m.id}</td><td>${formatDate(m.date)}</td><td>${m.from}</td><td>${m.to}</td><td>${statusBadge(m.type)}</td><td class="text-mono">${m.reference}</td><td>${statusBadge(m.status)}</td></tr>`).join('')||'<tr><td colspan="7" class="text-center text-muted py-3">No movements</td></tr>'}
       </tbody></table></div>
     </div>`;
-
-    // Perawatan & perbaikan untuk jenis alat ini
-    const mts = (MockData.maintenance || []).filter(m => m.equipment === equip.name);
-    const reps = (MockData.repairs || []).filter(r => r.equipmentName === equip.name);
-    const svcRows = mts.map(m => ({ id: m.id, href: 'maintenance-detail.html?id=' + m.id, kind: 'Perawatan · ' + m.type, branch: m.branch, qty: m.quantity, date: m.startDate, status: m.status, note: m.resolution || m.notes }))
-      .concat(reps.map(r => ({ id: r.id, href: 'repair-detail.html?id=' + r.id, kind: 'Perbaikan', branch: r.branch, qty: r.quantity, date: r.createdDate, status: r.status, note: r.notes || r.problem })))
-      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    tc += `<div class="er-tab-content" id="tab-maintenance">${svcRows.length ? `<div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No.</th><th>Jenis</th><th>Cabang</th><th class="num">Qty</th><th>Tanggal</th><th>Status</th><th>Catatan</th></tr></thead><tbody>
-      ${svcRows.map(r => `<tr><td><a href="${r.href}" class="cell-link text-mono">${r.id}</a></td><td>${r.kind}</td><td>${r.branch}</td><td class="num">${r.qty}</td><td>${formatDate(r.date)}</td><td>${statusBadge(r.status)}</td><td class="fs-12">${r.note || '-'}</td></tr>`).join('')}
-      </tbody></table></div>` : '<div class="empty-state"><i class="bi bi-wrench"></i><h5>Belum Ada Perawatan / Perbaikan</h5><p>Belum ada riwayat perawatan atau perbaikan untuk alat ini.</p></div>'}</div>`;
 
     // Timeline
     tc += `<div class="er-tab-content" id="tab-timeline">

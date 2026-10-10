@@ -156,7 +156,7 @@
             <td class="${l.k ? 'jr-credit' : ''}"><span class="acc-code">${a.code}</span><a href="general-ledger.html?account=${encodeURIComponent(l.acc)}" class="text-reset">${esc(a.name)}</a></td>
             <td class="fs-12">${i === 0 ? `<span class="fw-600">${esc(j.desc)}</span>${j.ref ? ` <span class="text-muted">· ${esc(j.ref)}</span>` : ''}${j.projectId ? ` <span class="badge bg-light text-muted border fw-normal">${j.projectId}</span>` : ''}${j.tax ? ` <span class="badge bg-warning-subtle text-warning fw-normal">Bupot PPh 23</span>` : ''}` : `<span class="text-muted">${esc(l.memo)}</span>`}</td>
             <td class="num">${l.d ? formatRupiah(l.d) : ''}</td><td class="num">${l.k ? formatRupiah(l.k) : ''}</td>
-            <td class="text-end">${i === 0 ? `<button class="btn-action" title="Hapus" onclick="removeJournal('${j.id}')"><i class="bi bi-trash"></i></button>` : ''}</td></tr>`; }).join('');
+            <td class="text-end">${i === 0 ? editButton({ docType: 'Jurnal', docId: j.no, docLabel: j.desc, link: 'adjustments.html' }, `<button class="btn-action" title="Hapus" onclick="removeJournal('${j.id}')"><i class="bi bi-trash"></i></button>`, { action: 'Hapus' }) : ''}</td></tr>`; }).join('');
       }).join('') || '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada jurnal penyesuaian</td></tr>';
     }
 

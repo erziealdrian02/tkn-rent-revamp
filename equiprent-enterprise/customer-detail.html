@@ -26,57 +26,93 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
-    const cid = getUrlParam('id') || 'CUST-001';
+    const cid = getUrlParam('id') || 'CUS-001';
     const cust = MockData.customers.find(c => c.id === cid) || MockData.customers[0];
-    initApp('customers.html',[{label:'Data Master',href:'#'},{label:'Pelanggan',href:'customers.html'},{label:cust.name}],cust.name);
-
-    const projects = MockData.projects.filter(p => p.customerId === cust.id);
-    const rentals = MockData.rentals.filter(r => r.customerId === cust.id || r.customerName === cust.name);
+    initApp('customers.html', [{label:'Pelanggan & Order',href:'#'},{label:'Pelanggan',href:'customers.html'},{label:cust.name}], cust.name);
+    const esc = v => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const sm = BizLogic.Customer.summary(cust.id);
+    const { projects, rentals, sales, invoices } = sm;
 
     document.getElementById('detailHeader').innerHTML = `
       <div class="detail-header-left">
         <div class="detail-header-icon"><i class="bi bi-building"></i></div>
         <div class="detail-header-info">
-          <h2>${cust.name} ${statusBadge(cust.status)}</h2>
+          <h2>${esc(cust.name)} ${statusBadge(cust.status)}</h2>
           <div class="detail-meta">
             <span class="detail-meta-item"><i class="bi bi-hash"></i>${cust.id}</span>
-            <span class="detail-meta-item"><i class="bi bi-person"></i>${cust.pic}</span>
-            <span class="detail-meta-item"><i class="bi bi-telephone"></i>${cust.phone}</span>
+            <span class="detail-meta-item"><i class="bi bi-person"></i>${esc(cust.pic)}</span>
+            <span class="detail-meta-item"><i class="bi bi-telephone"></i>${esc(cust.phone)}</span>
           </div>
         </div>
       </div>
       <div class="detail-header-actions">
-        <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Edit Profile</button>
+        ${canDo('Projects', 'Create') ? `<a href="project-create.html?customer=${cust.id}" class="btn btn-outline-primary btn-sm"><i class="bi bi-folder-plus me-1"></i>Proyek Baru</a>` : ''}
+        ${canDo('Rentals', 'Create') ? `<a href="rental-create.html?customer=${cust.id}" class="btn btn-outline-primary btn-sm"><i class="bi bi-file-earmark-plus me-1"></i>Sewa Baru</a>` : ''}
+        ${canDo('Sales', 'Create') ? `<a href="sale-create.html?customer=${cust.id}" class="btn btn-outline-primary btn-sm"><i class="bi bi-bag-plus me-1"></i>Jual Baru</a>` : ''}
+        ${editButton({ docType: 'Pelanggan', docId: cust.id, docLabel: cust.name, link: 'customer-detail.html?id=' + cust.id }, `<a href="customers.html?edit=${cust.id}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Ubah Profil</a>`, { label: 'Ajukan Perubahan' })}
       </div>`;
 
-    const tabs = ['Profile','Projects','Rentals'];
-    document.getElementById('detailTabs').innerHTML = tabs.map((t,i) => `<button class="er-tab ${i===0?'active':''}" data-tab="${t.toLowerCase()}" onclick="switchTab('${t.toLowerCase()}')">${t}${t==='Projects'?`<span class="er-tab-count">${projects.length}</span>`:t==='Rentals'?`<span class="er-tab-count">${rentals.length}</span>`:''}</button>`).join('');
+    const tabs = [['overview', 'Ringkasan'], ['projects', 'Proyek', projects.length], ['rentals', 'Penyewaan', rentals.length], ['sales', 'Penjualan', sales.length], ['invoices', 'Invoice & Piutang', invoices.length], ['profile', 'Profil']];
+    document.getElementById('detailTabs').innerHTML = tabs.map(([k, l, n], i) => `<button class="er-tab ${i === 0 ? 'active' : ''}" data-tab="${k}" onclick="switchTab('${k}')">${l}${n != null ? `<span class="er-tab-count">${n}</span>` : ''}</button>`).join('');
 
-    let tc = '';
-    tc += `<div class="er-tab-content active" id="tab-profile">
-      <div class="info-grid">
-        <div class="info-item"><span class="info-label">ID Pelanggan</span><span class="info-value text-mono">${cust.id}</span></div>
-        <div class="info-item"><span class="info-label">Company Name</span><span class="info-value fw-600">${cust.name}</span></div>
-        <div class="info-item"><span class="info-label">Person In Charge (PIC)</span><span class="info-value">${cust.pic}</span></div>
-        <div class="info-item"><span class="info-label">Phone</span><span class="info-value">${cust.phone}</span></div>
-        <div class="info-item"><span class="info-label">Email</span><span class="info-value"><a href="mailto:${cust.email}">${cust.email}</a></span></div>
-        <div class="info-item"><span class="info-label">Tax ID (NPWP)</span><span class="info-value">${cust.taxId || '<span class="text-danger">Belum diisi</span>'}</span></div>
-        <div class="info-item" style="grid-column:1/-1"><span class="info-label">Address</span><span class="info-value">${cust.address}</span></div>
+    const kpi = (c, i, l, v) => `<div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon ${c}"><i class="bi ${i}"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${v}</div><div class="kpi-label">${l}</div></div></div></div>`;
+    const projStat = p => ({
+      r: rentals.filter(x => x.projectId === p.id), s2: sales.filter(x => x.projectId === p.id), days: BizLogic.Project.daysLeft(p),
+      inv: invoices.filter(i => i.projectId === p.id).reduce((a, i) => a + BizLogic.Invoice.outstanding(i), 0)
+    });
+    const daysText = (p, d) => d == null || p.status !== 'Active' ? '' : ` <span class="${d < 0 ? 'text-danger' : d <= 14 ? 'text-warning' : ''}">(${d < 0 ? 'lewat ' + (-d) + ' hari' : d + ' hari lagi'})</span>`;
+
+    let tc = `<div class="er-tab-content active" id="tab-overview">
+      ${editRequestBanner('Pelanggan', cust.id)}
+      <div class="row g-3 mb-4">
+        ${kpi('blue', 'bi-folder', 'Proyek (' + projects.filter(p => p.status === 'Active').length + ' aktif)', projects.length)}
+        ${kpi('purple', 'bi-file-earmark-text', 'Sewa aktif', sm.activeRentals.length)}
+        ${kpi('green', 'bi-bag-check', 'Penjualan', sales.length)}
+        ${kpi(sm.overdue ? 'red' : 'orange', 'bi-journal-text', sm.overdue ? 'Piutang (' + formatRupiah(sm.overdue) + ' lewat JT)' : 'Piutang', formatRupiah(sm.outstanding))}
       </div>
+      <h6 class="fw-600 mb-2">Proyek pelanggan ini</h6>
+      <div class="row g-3">${projects.map(p => { const st = projStat(p); return `<div class="col-md-6 col-xl-4"><div class="border rounded p-3 h-100">
+        <div class="d-flex justify-content-between align-items-start gap-2"><a href="project-detail.html?id=${p.id}" class="fw-600 cell-link">${esc(p.name)}</a>${statusBadge(p.status)}</div>
+        <div class="fs-12 text-muted mb-2">${p.id} · ${formatDate(p.startDate)} – tenggat <strong>${formatDate(p.endDate)}</strong>${daysText(p, st.days)}</div>
+        <div class="fs-13">${st.r.length} sewa · ${st.s2.length} jual · piutang ${formatRupiah(st.inv)}</div>
+        <div class="fs-12 mt-1">${st.r.map(x => `<a href="rental-detail.html?id=${x.id}" class="me-2">${x.id}</a>`).join('')}${st.s2.map(x => `<a href="sale-detail.html?id=${x.id}" class="me-2">${x.id}</a>`).join('')}</div>
+      </div></div>`; }).join('') || '<div class="col-12 text-muted fs-13">Belum ada proyek.</div>'}</div>
     </div>`;
 
     tc += `<div class="er-tab-content" id="tab-projects">
-      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Project #</th><th>Project Name</th><th>Dates</th><th>Total Rentals</th><th>Status</th></tr></thead><tbody>
-      ${projects.map(p=>`<tr><td><a href="project-detail.html?id=${p.id}" class="cell-link text-mono">${p.id}</a></td><td>${p.name}</td><td>${formatDate(p.startDate)} - ${formatDate(p.endDate)}</td><td>${p.totalRentals}</td><td>${statusBadge(p.status)}</td></tr>`).join('')||'<tr><td colspan="5" class="text-center text-muted py-4">No projects</td></tr>'}
-      </tbody></table></div>
-    </div>`;
+      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Proyek</th><th>Mulai</th><th>Tenggat</th><th class="num">Sewa</th><th class="num">Jual</th><th class="num">Piutang</th><th>Status</th></tr></thead><tbody>
+      ${projects.map(p => { const st = projStat(p); return `<tr><td><a href="project-detail.html?id=${p.id}" class="cell-link">${esc(p.name)}</a><div class="fs-11 text-muted">${p.id}</div></td><td>${formatDate(p.startDate)}</td><td>${formatDate(p.endDate)}${daysText(p, st.days)}</td><td class="num">${st.r.length}</td><td class="num">${st.s2.length}</td><td class="num">${formatRupiah(st.inv)}</td><td>${statusBadge(p.status)}</td></tr>`; }).join('') || '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada proyek</td></tr>'}
+      </tbody></table></div></div>`;
 
     tc += `<div class="er-tab-content" id="tab-rentals">
-      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No. Penyewaan</th><th>Proyek</th><th>Tanggal</th><th>Jumlah</th><th>Status</th></tr></thead><tbody>
-      ${rentals.map(r=>`<tr><td><a href="rental-detail.html?id=${r.id}" class="cell-link text-mono">${r.id}</a></td><td><a href="project-detail.html?id=${r.projectId}" class="cell-link">${r.projectName}</a></td><td>${formatDate(r.rentalDate)}</td><td class="fw-600">${formatRupiah(r.total)}</td><td>${statusBadge(r.status)}</td></tr>`).join('')||'<tr><td colspan="5" class="text-center text-muted py-4">No rentals</td></tr>'}
-      </tbody></table></div>
+      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No. Penyewaan</th><th>Proyek</th><th>Tanggal</th><th>Estimasi Kembali</th><th class="num">Nilai</th><th>Status</th></tr></thead><tbody>
+      ${rentals.map(r => `<tr><td><a href="rental-detail.html?id=${r.id}" class="cell-link text-mono">${r.id}</a></td><td><a href="project-detail.html?id=${r.projectId}" class="cell-link">${esc(r.projectName)}</a></td><td>${formatDate(r.rentalDate)}</td><td>${formatDate(BizLogic.Rental.estimatedReturn(r))}</td><td class="num fw-600">${formatRupiah(r.total)}</td><td>${statusBadge(r.status)}</td></tr>`).join('') || '<tr><td colspan="6" class="text-center text-muted py-4">Belum ada penyewaan</td></tr>'}
+      </tbody></table></div></div>`;
+
+    tc += `<div class="er-tab-content" id="tab-sales">
+      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No. Order</th><th>Proyek</th><th>Tanggal</th><th class="num">Nilai</th><th>Status</th><th>Invoice</th></tr></thead><tbody>
+      ${sales.map(x => `<tr><td><a href="sale-detail.html?id=${x.id}" class="cell-link text-mono">${x.id}</a></td><td>${esc(x.projectName || '-')}</td><td>${formatDate(x.date)}</td><td class="num fw-600">${formatRupiah(Math.round(x.subtotal * (1 + (x.taxRate || 0))))}</td><td>${statusBadge(x.status)}</td><td>${x.invoiceId ? `<a href="invoice-detail.html?id=${x.invoiceId}" class="cell-link">${x.invoiceId}</a>` : '-'}</td></tr>`).join('') || '<tr><td colspan="6" class="text-center text-muted py-4">Belum ada penjualan</td></tr>'}
+      </tbody></table></div></div>`;
+
+    tc += `<div class="er-tab-content" id="tab-invoices">
+      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No. Invoice</th><th>Tipe</th><th>Proyek</th><th>Tanggal</th><th>Jatuh Tempo</th><th class="num">Total</th><th class="num">Sisa</th><th>Status</th></tr></thead><tbody>
+      ${invoices.slice().sort((a, b) => b.invoiceDate.localeCompare(a.invoiceDate)).map(i => `<tr><td><a href="invoice-detail.html?id=${i.id}" class="cell-link text-mono">${i.id}</a></td><td>${i.type}</td><td>${esc(i.projectName || '-')}</td><td>${formatDate(i.invoiceDate)}</td><td>${formatDate(i.dueDate)}</td><td class="num">${formatRupiah(i.amount)}</td><td class="num fw-600">${formatRupiah(BizLogic.Invoice.outstanding(i))}</td><td>${invoiceStatusBadge(BizLogic.Invoice.statusOf(i))}</td></tr>`).join('') || '<tr><td colspan="8" class="text-center text-muted py-4">Belum ada invoice</td></tr>'}
+      </tbody><tfoot><tr><td colspan="6">Total piutang</td><td class="num">${formatRupiah(sm.outstanding)}</td><td></td></tr></tfoot></table></div></div>`;
+
+    tc += `<div class="er-tab-content" id="tab-profile">
+      <div class="info-grid">
+        <div class="info-item"><span class="info-label">ID Pelanggan</span><span class="info-value text-mono">${cust.id}</span></div>
+        <div class="info-item"><span class="info-label">Nama Perusahaan</span><span class="info-value fw-600">${esc(cust.name)}</span></div>
+        <div class="info-item"><span class="info-label">Kode</span><span class="info-value">${esc(cust.code)}</span></div>
+        <div class="info-item"><span class="info-label">PIC</span><span class="info-value">${esc(cust.pic)}</span></div>
+        <div class="info-item"><span class="info-label">Telepon</span><span class="info-value">${esc(cust.phone)}</span></div>
+        <div class="info-item"><span class="info-label">Email</span><span class="info-value"><a href="mailto:${esc(cust.email)}">${esc(cust.email)}</a></span></div>
+        <div class="info-item"><span class="info-label">NPWP</span><span class="info-value">${cust.taxId ? esc(cust.taxId) : '<span class="text-danger">Belum diisi</span>'}</span></div>
+        <div class="info-item" style="grid-column:1/-1"><span class="info-label">Alamat</span><span class="info-value">${esc(cust.address)}</span></div>
+      </div>
     </div>`;
 
     document.getElementById('tabContents').innerHTML = tc;

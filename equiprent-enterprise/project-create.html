@@ -63,8 +63,9 @@
                       <div class="invalid-feedback">Start date is required.</div>
                     </div>
                     <div class="col-md-4">
-                      <label class="form-label form-label-er">Target Completion</label>
-                      <input type="date" class="form-control" id="endDate" onchange="updateSummary()">
+                      <label class="form-label form-label-er">Tenggat Waktu (End Date) <span class="text-danger">*</span></label>
+                      <input type="date" class="form-control" id="endDate" required onchange="updateSummary()">
+                      <div class="fs-12 text-muted mt-1">Bisa disesuaikan nanti di detail proyek (riwayat tersimpan)</div>
                     </div>
                     <div class="col-md-4">
                       <label class="form-label form-label-er">Project Status</label>
@@ -187,6 +188,7 @@
       opt.textContent = `${c.name} (${c.code})`;
       custSelect.appendChild(opt);
     });
+    if (getUrlParam('customer')) custSelect.value = getUrlParam('customer');
 
     let formDirty = false;
     document.getElementById('projectForm').addEventListener('input', () => formDirty = true);

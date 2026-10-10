@@ -127,7 +127,7 @@
         <td class="num"><span class="badge-status available">${formatNumber(avail)}</span></td>
         <td class="num">${qty.filter(v => v > 0).length}</td>
         <td>${statusBadge(b.status)}</td>
-        <td><a href="branch-detail.html?id=${b.id}" class="btn-action"><i class="bi bi-eye"></i></a><button class="btn-action"><i class="bi bi-pencil"></i></button></td>
+        <td><a href="branch-detail.html?id=${b.id}" class="btn-action"><i class="bi bi-eye"></i></a>${editButton({ docType: 'Gudang', docId: b.id, docLabel: b.name, link: 'branch-detail.html?id=' + b.id }, '<button class="btn-action" title="Ubah" onclick="showToast(\'Form ubah (prototype)\', \'info\')"><i class="bi bi-pencil"></i></button>')}</td>
       </tr>`;}).join('');
     }
     renderTable();

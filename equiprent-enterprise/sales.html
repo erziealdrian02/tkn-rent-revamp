@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Penjualan - EquipRent Enterprise</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar" id="appSidebar"></aside>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    <main class="app-main">
+      <header class="app-header" id="appHeader"></header>
+      <div class="app-content">
+        <div class="page-header">
+          <div class="page-header-left"><h2 class="page-header-title">Penjualan</h2><p class="page-header-subtitle">Order jual alat ke customer: ACC Staff Piutang → surat jalan jual → invoice jual</p></div>
+          <div class="page-header-actions" id="headerActions"></div>
+        </div>
+        <div class="row g-3 mb-4" id="kpis"></div>
+        <div class="er-card"><div class="er-card-body">
+          <div class="table-toolbar"><div class="table-toolbar-left flex-wrap">
+            <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Cari no. order, pelanggan, proyek..." id="searchInput" oninput="render()"></div>
+            <select class="filter-select" id="statusFilter" onchange="render()">
+              <option value="">Semua Status</option><option value="Draft">Draft</option><option value="Pending Approval">Menunggu ACC</option><option value="Approved">Disetujui</option>
+              <option value="Partially Delivered">Sebagian Dikirim</option><option value="Delivered">Terkirim</option><option value="Rejected">Ditolak</option><option value="Cancelled">Dibatalkan</option>
+            </select>
+            <select class="filter-select" id="customerFilter" onchange="render()"><option value="">Semua Pelanggan</option></select>
+          </div></div>
+          <div class="er-table-wrapper"><table class="er-table">
+            <thead><tr><th>No. Order</th><th>Tanggal</th><th>Pelanggan</th><th>Proyek</th><th>Gudang</th><th class="num">Item</th><th class="num">Total</th><th>Status</th><th>Invoice</th><th></th></tr></thead>
+            <tbody id="tableBody"></tbody>
+          </table></div>
+        </div></div>
+      </div>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    initApp('sales.html', [{label:'Pelanggan & Order',href:'#'},{label:'Penjualan'}], 'Penjualan');
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const sales = () => MockData.sales || [];
+    const total = s => Math.round(s.subtotal * (1 + (s.taxRate || 0)));
+    if (canDo('Sales', 'Create')) document.getElementById('headerActions').innerHTML = '<a href="sale-create.html" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Penjualan Baru</a>';
+    document.getElementById('customerFilter').innerHTML += [...new Set(sales().map(s => s.customerName))].map(n => `<option>${esc(n)}</option>`).join('');
+    if (getUrlParam('status')) document.getElementById('statusFilter').value = getUrlParam('status');
+
+    function renderKpis() {
+      const list = sales();
+      const card = (c, i, l, v) => `<div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon ${c}"><i class="bi ${i}"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${v}</div><div class="kpi-label">${l}</div></div></div></div>`;
+      document.getElementById('kpis').innerHTML =
+        card('orange', 'bi-hourglass-split', 'Menunggu ACC Staff Piutang', list.filter(s => s.status === 'Pending Approval').length) +
+        card('blue', 'bi-truck', 'Siap / sedang dikirim', list.filter(s => BizLogic.Sale.ACTIVE.includes(s.status)).length) +
+        card('purple', 'bi-receipt', 'Belum ada invoice', list.filter(s => ['Approved', 'Partially Delivered', 'Delivered'].includes(s.status) && !s.invoiceId).length) +
+        card('green', 'bi-cash-stack', 'Nilai penjualan (non batal)', formatRupiah(list.filter(s => !['Cancelled', 'Rejected'].includes(s.status)).reduce((a, s) => a + total(s), 0)));
+    }
+
+    function render() {
+      const q = document.getElementById('searchInput').value.toLowerCase(), st = document.getElementById('statusFilter').value, cu = document.getElementById('customerFilter').value;
+      const data = sales().filter(s => (!q || `${s.id} ${s.customerName} ${s.projectName || ''}`.toLowerCase().includes(q)) && (!st || s.status === st) && (!cu || s.customerName === cu))
+        .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+      document.getElementById('tableBody').innerHTML = data.map(s => {
+        const inv = s.invoiceId && MockData.invoices.find(i => i.id === s.invoiceId);
+        return `<tr>
+          <td><a href="sale-detail.html?id=${s.id}" class="cell-link text-mono">${s.id}</a></td>
+          <td>${formatDate(s.date)}</td>
+          <td><a href="customer-detail.html?id=${s.customerId}" class="cell-link">${esc(s.customerName)}</a></td>
+          <td>${s.projectId ? `<a href="project-detail.html?id=${s.projectId}" class="cell-link">${esc(s.projectName)}</a>` : '<span class="text-muted">-</span>'}</td>
+          <td>${esc(s.branch)}</td><td class="num">${s.items.length}</td><td class="num fw-600">${formatRupiah(total(s))}</td>
+          <td>${statusBadge(s.status)}</td>
+          <td>${inv ? `<a href="invoice-detail.html?id=${inv.id}" class="cell-link text-mono">${inv.id}</a>` : '<span class="text-muted">-</span>'}</td>
+          <td><a href="sale-detail.html?id=${s.id}" class="btn-action"><i class="bi bi-eye"></i></a></td></tr>`;
+      }).join('') || '<tr><td colspan="10" class="text-center text-muted py-4">Belum ada penjualan</td></tr>';
+    }
+    renderKpis(); render();
+  </script>
+</body>
+</html>
