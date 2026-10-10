@@ -247,7 +247,6 @@ BizLogic.StockLedger = {
     DELIVERY: { label: 'Pengiriman ke Proyek',   prefix: 'SJK', icon: 'bi-truck',             color: 'on-rental',  effect: '− Stok gudang', code: 'C' },
     RETURN:   { label: 'Pemulangan dari Proyek', prefix: 'SJR', icon: 'bi-box-arrow-in-left', color: 'returned',   effect: '+ Stok gudang', code: 'D' },
     SALE:     { label: 'Penjualan ke Customer',  prefix: 'PJ',  icon: 'bi-bag-check',         color: 'overdue',    effect: '− Stok gudang', code: 'E' },
-    LOST:     { label: 'Hilang di Proyek',       prefix: 'HL',  icon: 'bi-question-octagon',  color: 'lost',       effect: '− Stok proyek' },
     DISPOSAL: { label: 'Afkir / Dihapus',        prefix: 'AF',  icon: 'bi-trash',             color: 'damaged',    effect: '− Stok gudang' }
   },
 
@@ -345,12 +344,13 @@ BizLogic.StockLedger = {
     return b[equipmentName] || 0;
   },
 
-  // Rekap stok proyek per alat: kebutuhan (A), terkirim (B), sisa (A-B), dipulangkan (D), hilang, di lokasi
+  // Rekap stok proyek per alat: kebutuhan (A), terkirim (B), sisa (A-B), dipulangkan (D), di lokasi.
+  // Alat hilang di proyek tidak dicatat terpisah: dipulangkan (administratif) lalu dijual ke pelanggan.
   projectSummary: function(projectId, asOf) {
     var project = MockData.projects.find(function(p) { return p.id === projectId; });
     var rows = {};
     function row(eq) {
-      if (!rows[eq]) rows[eq] = { equipment: eq, required: 0, unitPrice: 0, delivered: 0, returned: 0, lost: 0 };
+      if (!rows[eq]) rows[eq] = { equipment: eq, required: 0, unitPrice: 0, delivered: 0, returned: 0 };
       return rows[eq];
     }
     ((project && project.requirements) || []).forEach(function(r) {
@@ -362,13 +362,12 @@ BizLogic.StockLedger = {
       d.items.forEach(function(it) {
         if (d.type === 'DELIVERY' && d.to.type === 'project' && d.to.id === projectId) row(it.equipment).delivered += it.qty;
         if (d.type === 'RETURN' && d.from.type === 'project' && d.from.id === projectId) row(it.equipment).returned += it.qty;
-        if (d.type === 'LOST' && d.from.type === 'project' && d.from.id === projectId) row(it.equipment).lost += it.qty;
       });
     });
     return Object.keys(rows).map(function(k) {
       var x = rows[k];
       x.remaining = x.required - x.delivered;
-      x.onSite = x.delivered - x.returned - x.lost;
+      x.onSite = x.delivered - x.returned;
       return x;
     });
   },
@@ -743,6 +742,41 @@ BizLogic.Rental = {
     return (rental && ((rental.logisticsEstimate && rental.logisticsEstimate.returnDate) || rental.returnDate)) || null;
   },
 
+  // Rekap Project per alat: kebutuhan (qty order), terkirim (SJ kirim selesai), di jalan, kepulangan, di proyek + persentase
+  recap: function(rental) {
+    var D = BizLogic.Delivery;
+    var dels = MockData.deliveries.filter(function(d) { return d.rentalId === rental.id; });
+    var rets = MockData.returns.filter(function(r) { return r.rentalId === rental.id; });
+    var moving = function(d) { return D.TRANSIT.indexOf(d.status) >= 0; };
+    var qty = function(list, name) {
+      return list.reduce(function(s, d) { var di = d.items.find(function(i) { return i.name === name; }); return s + (di ? Number(di.qty != null ? di.qty : di.sent) || 0 : 0); }, 0);
+    };
+    var sewaDone = dels.filter(function(d) { return D.kindOf(d) === 'SEWA' && d.status === 'Completed'; });
+    var sewaMoving = dels.filter(function(d) { return D.kindOf(d) === 'SEWA' && moving(d); });
+    var backMoving = dels.filter(function(d) { return D.kindOf(d) === 'PEMULANGAN' && moving(d); });
+    var pct = function(a, b) { return b ? Math.min(100, Math.round(a / b * 100)) : 0; };
+    var rows = rental.items.map(function(item) {
+      var r = { name: item.name, need: Number(item.quantity) || 0, sent: qty(sewaDone, item.name), goingOut: qty(sewaMoving, item.name),
+        back: qty(rets, item.name), goingBack: qty(backMoving, item.name) };
+      r.onSite = r.sent - r.back; r.pctSent = pct(r.sent, r.need); r.pctBack = pct(r.back, r.sent);
+      return r;
+    });
+    var t = { need: 0, sent: 0, goingOut: 0, back: 0, goingBack: 0, onSite: 0 };
+    rows.forEach(function(r) { Object.keys(t).forEach(function(k) { t[k] += r[k]; }); });
+    t.pctSent = pct(t.sent, t.need); t.pctBack = pct(t.back, t.sent);
+    t.inTransit = sewaMoving.length + backMoving.length;
+    return { rows: rows, total: t, transit: sewaMoving.concat(backMoving) };
+  },
+
+  // On Progress = masih ada surat jalan kirim / pemulangan yang sedang di jalan
+  displayStatus: function(rental) {
+    if (['Completed', 'Cancelled', 'Rejected', 'Draft', 'Pending Approval', 'Waiting Approval'].indexOf(rental.status) < 0) {
+      var D = BizLogic.Delivery;
+      if (MockData.deliveries.some(function(d) { return d.rentalId === rental.id && D.kindOf(d) !== 'JUAL' && D.TRANSIT.indexOf(d.status) >= 0; })) return 'On Progress';
+    }
+    return this.isOverdue(rental) ? 'Overdue' : rental.status;
+  },
+
   isOverdue: function(rental) {
     if (['Completed', 'Cancelled', 'Rejected', 'Draft'].includes(rental.status)) return false;
     if (!rental.returnDate) return false;
@@ -775,6 +809,7 @@ BizLogic.Delivery = {
     PEMULANGAN: { label: 'Pemulangan', title: 'SURAT JALAN PEMULANGAN',        sjType: 'RETURN',   icon: 'bi-box-arrow-in-left', color: 'warning' }
   },
   kindOf: function(d) { return (d && d.kind) || 'SEWA'; },
+  TRANSIT: ['Departed', 'Arrived'], // surat jalan yang masih di jalan (belum diterima / dibongkar)
   now: function() { return new Date().toISOString().replace('T', ' ').substring(0, 16); },
 
   // Buat record surat jalan + tugaskan driver/kendaraan (dipakai semua jenis)
@@ -1315,7 +1350,27 @@ BizLogic.Sale = {
   ACTIVE: ['Approved', 'Partially Delivered'],
   subtotal: function(items) { return (items || []).reduce(function(s, i) { return s + Math.round((Number(i.qty) || 0) * (Number(i.unitPrice) || 0)); }, 0); },
 
-  // data: { customerId, projectId, branch, date, items:[{name, qty, unitPrice}], notes, taxRate }
+  // Alat di proyek yang bisa dijual ke pelanggan (hilang / dibeli di lokasi):
+  // stok di proyek − yang sedang dijemput / menunggu inspeksi − order jual dari proyek yang belum di-ACC
+  projectAvailable: function(projectId, exceptSaleId) {
+    var D = BizLogic.Delivery, rows = {};
+    BizLogic.StockLedger.projectSummary(projectId).forEach(function(r) { if (r.onSite > 0) rows[r.equipment] = { name: r.equipment, onSite: r.onSite, available: r.onSite }; });
+    var minus = function(name, q) { if (rows[name]) rows[name].available = Math.max(0, rows[name].available - q); };
+    MockData.deliveries.forEach(function(d) {
+      if (d.projectId === projectId && D.kindOf(d) === 'PEMULANGAN' && ['Completed', 'Failed'].indexOf(d.status) < 0) d.items.forEach(function(i) { minus(i.name, i.qty); });
+    });
+    // sudah tiba di gudang tapi belum selesai diinspeksi (stok masih tercatat di proyek)
+    MockData.returns.forEach(function(r) {
+      if (r.projectId === projectId && r.status !== 'Completed') r.items.forEach(function(i) { minus(i.name, i.sent); });
+    });
+    (MockData.sales || []).forEach(function(x) {
+      if (x.id !== exceptSaleId && x.source === 'project' && x.projectId === projectId && ['Draft', 'Pending Approval', 'Rejected'].indexOf(x.status) >= 0) x.items.forEach(function(i) { minus(i.name, i.qty); });
+    });
+    return Object.keys(rows).map(function(k) { return rows[k]; });
+  },
+
+  // data: { customerId, projectId, branch, date, items:[{name, qty, unitPrice}], notes, taxRate,
+  //         source: 'warehouse' | 'project', sourceReason }  (project = alat di lokasi proyek, dipulangkan dulu saat di-ACC)
   create: function(data, submit) {
     data = data || {};
     var c = MockData.customers.find(function(x) { return x.id === data.customerId; });
@@ -1326,6 +1381,15 @@ BizLogic.Sale = {
       .map(function(i) { return { name: i.name, qty: Number(i.qty), unitPrice: Math.round(Number(i.unitPrice) || 0) }; });
     if (!items.length) return { success: false, error: 'Tambahkan minimal satu alat' };
     if (items.some(function(i) { return i.unitPrice <= 0; })) return { success: false, error: 'Harga satuan harus lebih dari 0' };
+    var fromProject = data.source === 'project';
+    if (fromProject) {
+      if (!p) return { success: false, error: 'Pilih proyek tempat alat berada' };
+      var avail = this.projectAvailable(p.id);
+      for (var n = 0; n < items.length; n++) {
+        var a = avail.find(function(x) { return x.name === items[n].name; });
+        if (!a || items[n].qty > a.available) return { success: false, error: items[n].name + ': di proyek hanya ' + (a ? a.available : 0) + ' unit yang bisa dijual' };
+      }
+    }
     var branch = String(data.branch || 'Cileungsi').replace(' Warehouse', '');
     var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
     var sale = {
@@ -1335,7 +1399,8 @@ BizLogic.Sale = {
       date: data.date || new Date().toISOString().split('T')[0], status: 'Draft', deliveryStatus: 'Pending',
       notes: data.notes || '', taxRate: data.taxRate != null ? Number(data.taxRate) : ((MockData.settings && MockData.settings.taxRate) || 0),
       items: items, subtotal: this.subtotal(items), createdBy: user.name || 'System',
-      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16), invoiceId: null
+      createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16), invoiceId: null,
+      source: fromProject ? 'project' : 'warehouse', sourceReason: fromProject ? String(data.sourceReason || '').trim() : ''
     };
     MockData.sales = MockData.sales || [];
     MockData.sales.push(sale);
@@ -1362,6 +1427,11 @@ BizLogic.Sale = {
     if (!s) return { success: false, error: 'Penjualan tidak ditemukan' };
     if (typeof canDo === 'function' && !canDo('Sales', 'Approve')) return { success: false, error: 'Order jual di-ACC oleh Staff Piutang (Account Receivable)' };
     if (s.status !== 'Pending Approval') return { success: false, error: 'Status ' + s.status + ' tidak bisa di-ACC' };
+    // Alat dari lokasi proyek harus dipulangkan dulu (surat jalan pemulangan administratif) baru bisa dijual
+    if (s.source === 'project' && !s.returnSjNo) {
+      var back = this._returnFromProject(s);
+      if (!back.success) return back;
+    }
     var errors = [];
     s.items.forEach(function(i) { var a = BizLogic.Stock.getAvailable(i.name, s.branch); if (a < i.qty) errors.push(i.name + ': butuh ' + i.qty + ', tersedia ' + a); });
     if (errors.length) return { success: false, error: 'Stok tidak cukup:\n' + errors.join('\n') };
@@ -1394,6 +1464,56 @@ BizLogic.Sale = {
     s.status = 'Cancelled'; s.cancellationReason = reason || '';
     MockData.save('sales');
     return { success: true };
+  },
+
+  // Pemulangan administratif: stok proyek → gudang penjualan, dialokasikan ke order sewa proyek
+  // supaya Rekap Project mencatat alatnya sudah kembali (sewa berhenti dihitung di tanggal ini).
+  _returnFromProject: function(s) {
+    var avail = this.projectAvailable(s.projectId, s.id);
+    for (var n = 0; n < s.items.length; n++) {
+      var a = avail.find(function(x) { return x.name === s.items[n].name; });
+      if (!a || s.items[n].qty > a.available) return { success: false, error: s.items[n].name + ': di proyek hanya ' + (a ? a.available : 0) + ' unit' };
+    }
+    var today = new Date().toISOString().split('T')[0], now = BizLogic.Delivery.now();
+    var posted = BizLogic.StockLedger.post({
+      type: 'RETURN', date: today, from: { type: 'project', id: s.projectId }, to: { type: 'warehouse', id: s.branchId },
+      reference: s.id + ' (dipulangkan untuk dijual)', notes: 'Pemulangan administratif sebelum dijual' + (s.sourceReason ? ': ' + s.sourceReason : ''),
+      items: s.items.map(function(i) { return { equipment: i.name, qty: i.qty }; })
+    });
+    if (!posted.success) return posted;
+    var sjNo = posted.mutation.no, left = {}, groups = {}, order = [];
+    s.items.forEach(function(i) { left[i.name] = (left[i.name] || 0) + i.qty; });
+    MockData.rentals.filter(function(r) { return r.projectId === s.projectId; }).forEach(function(r) {
+      BizLogic.Delivery.pickupRemaining(r).forEach(function(x) {
+        var take = Math.min(left[x.name] || 0, x.remaining);
+        if (take <= 0) return;
+        if (!groups[r.id]) { groups[r.id] = []; order.push(r.id); }
+        groups[r.id].push({ name: x.name, qty: take });
+        left[x.name] -= take;
+      });
+    });
+    var rest = Object.keys(left).filter(function(k) { return left[k] > 0; }).map(function(k) { return { name: k, qty: left[k] }; });
+    if (rest.length) { groups[''] = rest; order.push(''); }
+    var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
+    s.returnSjNo = sjNo; s.returnIds = [];
+    order.forEach(function(rid) {
+      var rental = rid ? MockData.rentals.find(function(r) { return r.id === rid; }) : null;
+      var d = { id: MockData.generateId('DLV', 'deliveries'), kind: 'PEMULANGAN', sjNo: sjNo, rentalId: rid || null,
+        projectId: s.projectId, projectName: s.projectName, customerId: s.customerId, customerName: s.customerName, branch: s.branch,
+        items: groups[rid], status: 'Completed', administrative: true, forSaleId: s.id, deliveryDate: today,
+        destination: 'Gudang ' + s.branch + ' (administratif)', notes: 'Dipulangkan untuk dijual ke pelanggan (' + s.id + ')' + (s.sourceReason ? ' - ' + s.sourceReason : ''),
+        driverId: null, driverName: null, vehicleId: null, vehiclePlate: null, proofOfDelivery: null, failureInfo: null, tracking: [], createdAt: now, completedAt: now };
+      MockData.deliveries.push(d);
+      var ret = { id: MockData.generateId('RET', 'returns'), sjNo: sjNo, pickupId: d.id, rentalId: rid || null, projectId: s.projectId, projectName: s.projectName,
+        customerId: s.customerId, customerName: s.customerName, returnDate: today, status: 'Completed', inspectedBy: user.name || 'System', completedDate: now,
+        forSaleId: s.id, items: groups[rid].map(function(i) { return { name: i.name, sent: i.qty, good: i.qty, damaged: 0, damageNotes: 'Dipulangkan untuk dijual' }; }) };
+      MockData.returns.push(ret);
+      d.returnId = ret.id; s.returnIds.push(ret.id);
+      if (rental) BizLogic.Return._updateRentalReturnStatus(rental);
+    });
+    MockData.save('deliveries'); MockData.save('returns'); MockData.save('sales');
+    BizLogic.Activity.log('Pemulangan ' + sjNo + ' (administratif) untuk penjualan ' + s.id + ' dari ' + s.projectName, 'info');
+    return { success: true, sjNo: sjNo };
   },
 
   remaining: function(sale) {
@@ -1434,12 +1554,15 @@ BizLogic.Return = {
     var warehouseId = (rental && rental.branchId) || BizLogic.StockLedger.warehouseIdOf(branch);
 
     // Validasi dulu semua baris sebelum ada stok yang berubah
-    var backItems = [], lostItems = [];
+    // Hasil inspeksi hanya Baik / Rusak. Alat yang tidak ikut kembali tidak dicatat "hilang":
+    // kurangi qty di pengembalian (sisanya tetap di proyek), lalu jual ke pelanggan lewat Penjualan dari proyek.
+    var backItems = [];
     for (var v = 0; v < ret.items.length; v++) {
       var c = classifiedItems[v];
-      var sum = c.good + c.damaged + c.lost + c.missing;
+      c.good = Number(c.good) || 0; c.damaged = Number(c.damaged) || 0;
+      var sum = c.good + c.damaged;
       if (sum !== ret.items[v].sent) {
-        return { success: false, error: ret.items[v].name + ': classified total (' + sum + ') does not match sent (' + ret.items[v].sent + ')' };
+        return { success: false, error: ret.items[v].name + ': baik + rusak (' + sum + ') harus sama dengan qty dijemput (' + ret.items[v].sent + ')' };
       }
       var onSite = BizLogic.StockLedger.projectBalance(ret.items[v].name, ret.projectId);
       if (ret.projectId && onSite < sum) {
@@ -1447,7 +1570,6 @@ BizLogic.Return = {
       }
       if (c.good > 0) backItems.push({ equipment: ret.items[v].name, qty: c.good });
       if (c.damaged > 0) backItems.push({ equipment: ret.items[v].name, qty: c.damaged, condition: 'damaged' });
-      if (c.lost + c.missing > 0) lostItems.push({ equipment: ret.items[v].name, qty: c.lost + c.missing });
     }
 
     // Surat Jalan pulang: stok proyek → stok gudang (rusak masuk ke kondisi "rusak")
@@ -1463,16 +1585,6 @@ BizLogic.Return = {
       if (!back.success) return back;
       ret.sjNo = back.mutation.no;
     }
-    if (ret.projectId && lostItems.length) {
-      BizLogic.StockLedger.post({
-        type: 'LOST', date: today,
-        from: { type: 'project', id: ret.projectId },
-        to: { type: 'lost' },
-        reference: ret.id,
-        notes: 'Hilang / belum kembali saat inspeksi pengembalian',
-        items: lostItems
-      });
-    }
 
     for (var i = 0; i < ret.items.length; i++) {
       var item = ret.items[i];
@@ -1480,8 +1592,7 @@ BizLogic.Return = {
 
       item.good = classified.good;
       item.damaged = classified.damaged;
-      item.lost = classified.lost;
-      item.missing = classified.missing;
+      delete item.lost; delete item.missing;
       item.damageNotes = classified.damageNotes || '';
 
       if (classified.good > 0) {
@@ -1490,9 +1601,6 @@ BizLogic.Return = {
       if (classified.damaged > 0) {
         BizLogic.Movement.create('Return (Damaged)', item.name, classified.damaged, ret.projectName || 'Project', branch + ' Warehouse (Damaged)', ret.id);
 
-      }
-      if (classified.lost > 0) {
-        BizLogic.Movement.create('Lost', item.name, classified.lost, ret.projectName || 'Project', 'Lost', ret.id);
       }
     }
 
@@ -1509,6 +1617,19 @@ BizLogic.Return = {
 
     BizLogic.Activity.log('Return ' + returnId + ' inspection completed', 'success');
 
+    return { success: true };
+  },
+
+  // Alat yang ternyata tidak ikut dijemput: kurangi qty di pengembalian yang belum diinspeksi (sisanya tetap di proyek)
+  adjustQty: function(returnId, name, qty) {
+    var ret = MockData.returns.find(function(r) { return r.id === returnId; });
+    if (!ret || ret.status === 'Completed') return { success: false, error: 'Pengembalian sudah selesai diinspeksi' };
+    var it = ret.items.find(function(i) { return i.name === name; });
+    qty = Math.round(Number(qty));
+    if (!it || isNaN(qty) || qty < 0 || qty > it.sent) return { success: false, error: 'Qty tidak valid' };
+    it.sent = qty; it.good = qty; it.damaged = 0;
+    ret.items = ret.items.filter(function(i) { return i.sent > 0; });
+    MockData.save('returns');
     return { success: true };
   },
 
@@ -1630,7 +1751,8 @@ BizLogic.Claim = {
     return { success: true };
   },
 
-  // Nilai klaim default per unit: hilang = nilai ganti (harga sewa/bulan × 10), rusak = 30% nilai ganti (biaya perbaikan).
+  // Nilai klaim default per unit alat rusak = 30% nilai ganti (harga sewa/bulan × 10) sebagai biaya perbaikan.
+  // Alat hilang tidak diklaim: dipulangkan administratif lalu dijual ke pelanggan (Penjualan dari proyek).
   // Nilai bisa diubah di claim-detail sebelum invoice dibuat.
   REPLACEMENT_FACTOR: 10,
   DAMAGE_RATE: 0.3,
@@ -1639,7 +1761,7 @@ BizLogic.Claim = {
     return { lost: replace, damaged: Math.round(replace * this.DAMAGE_RATE) };
   },
 
-  // Buat klaim dari hasil inspeksi pengembalian (1 klaim per alat yang rusak / hilang / missing)
+  // Buat klaim dari hasil inspeksi pengembalian (1 klaim per alat yang rusak)
   createFromReturn: function(returnId) {
     var ret = MockData.returns.find(function(r) { return r.id === returnId; });
     if (!ret) return { success: false, error: 'Return not found' };
@@ -1647,13 +1769,11 @@ BizLogic.Claim = {
     if (MockData.claims.some(function(c) { return c.returnId === ret.id; })) return { success: false, error: 'Klaim untuk ' + ret.id + ' sudah dibuat' };
     var self = this, created = [];
     ret.items.forEach(function(item) {
-      var lost = (item.lost || 0) + (item.missing || 0), dmg = item.damaged || 0;
-      if (!lost && !dmg) return;
+      var lost = 0, dmg = item.damaged || 0;
+      if (!dmg) return;
       var v = self.unitValues(ret.projectId, item.name);
       var parts = [];
       if (dmg) parts.push('Rusak ' + dmg + (item.damageNotes ? ' (' + item.damageNotes + ')' : ''));
-      if (item.lost) parts.push('Hilang ' + item.lost);
-      if (item.missing) parts.push('Missing ' + item.missing);
       var claim = {
         id: MockData.generateId('CLM', 'claims'),
         returnId: ret.id, rentalId: ret.rentalId,
@@ -1662,7 +1782,7 @@ BizLogic.Claim = {
         equipment: item.name, quantity: lost + dmg,
         damagedQty: dmg, lostQty: lost,
         reason: parts.join(', '),
-        claimAmount: dmg * v.damaged + lost * v.lost,
+        claimAmount: dmg * v.damaged,
         customerConfirmation: 'Waiting', status: 'Draft', invoiceId: null, invoiceStatus: null,
         createdDate: new Date().toISOString().split('T')[0]
       };
@@ -1670,7 +1790,7 @@ BizLogic.Claim = {
       created.push(claim);
       BizLogic.Activity.log('Claim ' + claim.id + ' created for ' + item.name, 'warning');
     });
-    if (!created.length) return { success: false, error: 'Tidak ada barang rusak / hilang untuk diklaim' };
+    if (!created.length) return { success: false, error: 'Tidak ada alat rusak untuk diklaim' };
     MockData.save('claims');
     return { success: true, claims: created };
   },
@@ -1985,7 +2105,7 @@ BizLogic.Billing = {
       d.items.forEach(function(it) {
         var e = byEq[it.equipment] = byEq[it.equipment] || { ins: [], outs: [] };
         if (d.type === 'DELIVERY' && d.to.type === 'project') e.ins.push({ date: d.date, qty: it.qty, no: d.no });
-        if ((d.type === 'RETURN' || d.type === 'LOST') && d.from.type === 'project') e.outs.push({ date: d.date, qty: it.qty, no: d.no, type: d.type });
+        if (d.type === 'RETURN' && d.from.type === 'project') e.outs.push({ date: d.date, qty: it.qty, no: d.no, type: d.type });
       });
     });
     var segs = [];
@@ -2456,7 +2576,8 @@ BizLogic.Payment = {
       category: BizLogic.CashBank.kindOf(acc) === 'Kas' ? 'kas_in_ar' : 'bank_in_ar',
       reference: pay.id + ' / ' + inv.id,
       description: 'Pembayaran ' + pay.kind.toLowerCase() + ' ' + inv.id + ' - ' + inv.customerName,
-      amount: amt, source: 'payment'
+      amount: amt, source: 'payment', method: pay.method === 'Cash' || pay.method === 'Debit' ? pay.method : (BizLogic.CashBank.kindOf(acc) === 'Kas' ? 'Cash' : 'Transfer'),
+      projectId: inv.projectId || null, party: inv.customerName
     });
     MockData.save('ledger');
 
@@ -2504,8 +2625,66 @@ BizLogic.CashBank = {
     bank_out_transfer: { kind: 'Bank', type: 'OUT', label: 'Pindah Dana ke Bank Lain Perusahaan', transferOnly: true }
   },
 
+  METHODS: { Cash: 'Cash / Tunai', Debit: 'Debit (kartu / EDC)', Transfer: 'Transfer' },
+  // Baris Laporan Kas default kalau kategori jurnal tidak menentukan
+  DEFAULT_CASH: { Kas_IN: 'kas_in_other', Kas_OUT: 'kas_out_opex', Bank_IN: 'bank_in_refund', Bank_OUT: 'bank_out_supplier' },
+
   kindOf: function(acc) { return acc && acc.kind === 'Kas' ? 'Kas' : 'Bank'; },
   account: function(id) { return MockData.accounts.find(function(a) { return a.id === id; }); },
+
+  // ---------- Kategori jurnal (mis. ATK, Pakan Hewan, BBM) ----------
+  // { id, name, type: IN|OUT, acc: akun COA lawan, cash: { Kas: kategori Laporan Kas, Bank: ... } }
+  jcats: function(type) {
+    return (MockData.journalCategories || []).filter(function(c) { return c.active !== false && (!type || c.type === type); });
+  },
+  jcat: function(id) { return (MockData.journalCategories || []).find(function(c) { return c.id === id; }); },
+  jcatName: function(id) { var c = this.jcat(id); return c ? c.name : ''; },
+  // Baris Laporan Kas dari kategori jurnal, sesuai jenis akun (Kas / Bank) & arah
+  cashCategoryOf: function(jc, kind, type) {
+    var k = jc && jc.cash && jc.cash[kind], c = k && this.CATEGORIES[k];
+    return c && c.kind === kind && c.type === type && !c.transferOnly ? k : this.DEFAULT_CASH[kind + '_' + type];
+  },
+  saveJcat: function(data, id) {
+    data = data || {};
+    var name = String(data.name || '').trim();
+    if (!name) return { success: false, error: 'Nama kategori wajib diisi' };
+    if (data.type !== 'IN' && data.type !== 'OUT') return { success: false, error: 'Pilih arah: uang masuk / keluar' };
+    if (!BizLogic.Accounting || !BizLogic.Accounting.account(data.acc)) return { success: false, error: 'Pilih akun COA' };
+    var list = MockData.journalCategories = MockData.journalCategories || [];
+    if (list.some(function(c) { return c.name.toLowerCase() === name.toLowerCase() && c.id !== id; })) return { success: false, error: 'Nama kategori sudah ada' };
+    var rec = id ? this.jcat(id) : null;
+    if (id && !rec) return { success: false, error: 'Kategori tidak ditemukan' };
+    if (!rec) { rec = { id: MockData.generateId('JC', 'journalCategories') }; list.push(rec); }
+    rec.name = name; rec.type = data.type; rec.acc = data.acc;
+    rec.cash = { Kas: data.cashKas || this.DEFAULT_CASH['Kas_' + data.type], Bank: data.cashBank || this.DEFAULT_CASH['Bank_' + data.type] };
+    rec.active = data.active !== false;
+    MockData.save('journalCategories');
+    return { success: true, category: rec };
+  },
+
+  // Finance & Accounting langsung masuk jurnal; input kasir (role lain) menunggu di-generate Accounting
+  autoPost: function() {
+    var u = JSON.parse(sessionStorage.getItem('er_user') || '{}');
+    return ['Finance', 'Accounting & Tax'].indexOf(u.role) >= 0;
+  },
+  isPosted: function(e) { return e.posted !== false; },
+  pending: function(from, to) {
+    return (MockData.ledger || []).filter(function(e) { return e.posted === false && (!from || e.date >= from) && (!to || e.date <= to); });
+  },
+  // Generate Laporan Kas ke jurnal (Accounting). Setelah ini transaksi masuk Jurnal → Buku Besar → COA.
+  generate: function(from, to) {
+    if (typeof canDo === 'function' && !canDo('Accounting', 'Create')) return { success: false, error: 'Generate ke jurnal dilakukan oleh Accounting' };
+    var list = this.pending(from, to);
+    if (!list.length) return { success: false, error: 'Tidak ada transaksi kas yang menunggu di-generate' };
+    var user = JSON.parse(sessionStorage.getItem('er_user') || '{}'), now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    var prefix = 'GEN-' + now.substr(2, 5).replace('-', '') + '-', max = 0;
+    (MockData.ledger || []).forEach(function(e) { if (e.batch && e.batch.indexOf(prefix) === 0) max = Math.max(max, parseInt(e.batch.substr(prefix.length), 10) || 0); });
+    var batch = prefix + String(max + 1).padStart(3, '0'), total = 0;
+    list.forEach(function(e) { e.posted = true; e.postedAt = now; e.postedBy = user.name || 'Accounting'; e.batch = batch; total += e.amount; });
+    MockData.save('ledger');
+    BizLogic.Activity.log('Generate Laporan Kas ke jurnal ' + batch + ': ' + list.length + ' transaksi', 'success');
+    return { success: true, count: list.length, total: total, batch: batch };
+  },
   categoryLabel: function(key) { var c = this.CATEGORIES[key]; return c ? c.label : (key || '-'); },
 
   // Kategori untuk dropdown Bon: sesuai jenis akun & arah, tanpa yang khusus pindah dana
@@ -2540,8 +2719,10 @@ BizLogic.CashBank = {
     return bal;
   },
 
-  nextVoucher: function(type, date) {
-    var prefix = (type === 'IN' ? 'BB' : 'BM') + '-' + (date || new Date().toISOString().split('T')[0]).substr(2, 5).replace('-', '') + '-';
+  // Kode transaksi dari rekeningnya: KODE REKENING-BB/BM-yymm-urut (BB = Bon Biru / debet, BM = Bon Merah / kredit)
+  nextVoucher: function(type, date, accountId) {
+    var acc = accountId ? this.account(accountId) : null;
+    var prefix = (acc && acc.code ? acc.code + '-' : '') + (type === 'IN' ? 'BB' : 'BM') + '-' + (date || new Date().toISOString().split('T')[0]).substr(2, 5).replace('-', '') + '-';
     var max = 0;
     (MockData.ledger || []).forEach(function(e) {
       if (e.voucherNo && e.voucherNo.indexOf(prefix) === 0) max = Math.max(max, parseInt(e.voucherNo.substr(prefix.length), 10) || 0);
@@ -2552,14 +2733,18 @@ BizLogic.CashBank = {
   _push: function(d) {
     if (!MockData.ledger) MockData.ledger = [];
     var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
+    var acc = this.account(d.accountId), posted = d.posted != null ? !!d.posted : this.autoPost();
     var e = {
       id: MockData.generateId('TRX', 'ledger'),
-      voucherNo: this.nextVoucher(d.type, d.date),
+      voucherNo: this.nextVoucher(d.type, d.date, d.accountId),
       date: d.date, bankAccountId: d.accountId, type: d.type, category: d.category,
+      jcat: d.jcat || null, method: d.method || (this.kindOf(acc) === 'Kas' ? 'Cash' : 'Transfer'), projectId: d.projectId || null,
       reference: d.reference || '', description: d.description || '', party: d.party || '',
       amount: d.amount, source: d.source || 'manual', transferId: d.transferId || null,
-      reconciled: false, user: user.name || 'System', createdAt: new Date().toISOString()
+      correctionOf: d.correctionOf || null, reversal: !!d.reversal,
+      reconciled: false, user: user.name || 'System', createdAt: new Date().toISOString(), posted: posted
     };
+    if (posted) { e.postedAt = e.createdAt.replace('T', ' ').substring(0, 16); e.postedBy = (user.name || 'System') + ' (langsung)'; }
     MockData.ledger.push(e);
     return e;
   },
@@ -2572,26 +2757,105 @@ BizLogic.CashBank = {
     return null;
   },
 
-  // Bon Biru / Bon Merah manual. data: { type, date, accountId, category, amount, reference, description, party }
-  addEntry: function(data) {
-    data = data || {};
+  // Validasi input transaksi kas. data: { date, accountId, projectId, jcat | category, method, debit / credit (atau type + amount),
+  //   reference, description (notes), party }. opts.skipFunds = tanpa cek saldo
+  _validate: function(data, opts) {
+    data = data || {}; opts = opts || {};
     var acc = this.account(data.accountId);
-    if (!acc) return { success: false, error: 'Pilih akun kas / bank' };
-    var type = data.type === 'OUT' ? 'OUT' : 'IN';
-    var cat = this.CATEGORIES[data.category];
-    if (!cat || cat.kind !== this.kindOf(acc) || cat.type !== type) return { success: false, error: 'Pilih kategori yang sesuai' };
-    if (cat.transferOnly) return { success: false, error: 'Kategori ini dicatat lewat "Pindah Dana"' };
-    var amt = Math.round(Number(data.amount));
-    if (isNaN(amt) || amt <= 0) return { success: false, error: 'Jumlah harus lebih dari 0' };
-    if (!String(data.description || '').trim()) return { success: false, error: 'Keterangan wajib diisi' };
+    if (!acc) return { error: 'Pilih rekening kas / bank' };
+    var kind = this.kindOf(acc), type, amt;
+    if (data.debit != null || data.credit != null) {
+      var dv = Math.round(Number(data.debit) || 0), kv = Math.round(Number(data.credit) || 0);
+      if (dv < 0 || kv < 0 || (dv > 0) === (kv > 0)) return { error: 'Isi nominal di Debet (uang masuk) ATAU Kredit (uang keluar)' };
+      type = dv > 0 ? 'IN' : 'OUT'; amt = dv || kv;
+    } else {
+      type = data.type === 'OUT' ? 'OUT' : 'IN'; amt = Math.round(Number(data.amount));
+      if (isNaN(amt) || amt <= 0) return { error: 'Jumlah harus lebih dari 0' };
+    }
+    var category = data.category, jc = null;
+    if (data.jcat) {
+      jc = this.jcat(data.jcat);
+      if (!jc) return { error: 'Kategori jurnal tidak ditemukan' };
+      if (jc.type !== type) return { error: 'Kategori "' + jc.name + '" untuk uang ' + (jc.type === 'IN' ? 'masuk (Debet)' : 'keluar (Kredit)') };
+      category = this.cashCategoryOf(jc, kind, type);
+    }
+    var cat = this.CATEGORIES[category];
+    if (!cat || cat.kind !== kind || cat.type !== type) return { error: 'Pilih kategori yang sesuai' };
+    if (cat.transferOnly) return { error: 'Kategori ini dicatat lewat "Pindah Dana"' };
+    if (data.method && !this.METHODS[data.method]) return { error: 'Pilih metode: Cash / Debit / Transfer' };
+    if (data.projectId && !MockData.projects.some(function(p) { return p.id === data.projectId; })) return { error: 'Proyek tidak ditemukan' };
+    if (!String(data.description || '').trim()) return { error: 'Keterangan / notes wajib diisi' };
     var date = data.date || new Date().toISOString().split('T')[0];
-    if (type === 'OUT') { var err = this._checkFunds(acc, amt, date); if (err) return { success: false, error: err }; }
+    if (type === 'OUT' && !opts.skipFunds) { var err = this._checkFunds(acc, amt, date); if (err) return { error: err }; }
+    return { date: date, accountId: acc.id, type: type, amount: amt, category: category, jcat: jc ? jc.id : null,
+      method: data.method || (kind === 'Kas' ? 'Cash' : 'Transfer'), projectId: data.projectId || null,
+      reference: String(data.reference || '').trim(), description: String(data.description).trim(), party: String(data.party || '').trim() };
+  },
 
-    var e = this._push({ date: date, accountId: acc.id, type: type, category: data.category, amount: amt,
-      reference: String(data.reference || '').trim(), description: String(data.description).trim(), party: String(data.party || '').trim() });
+  // Input transaksi kas (kasir) / Bon Biru / Bon Merah manual
+  addEntry: function(data) {
+    var v = this._validate(data);
+    if (v.error) return { success: false, error: v.error };
+    var e = this._push(v);
     MockData.save('ledger');
-    BizLogic.Activity.log((type === 'IN' ? 'Bon Biru ' : 'Bon Merah ') + e.voucherNo + ' - ' + acc.name + ': Rp ' + amt.toLocaleString('id-ID'), type === 'IN' ? 'success' : 'warning');
+    BizLogic.Activity.log((v.type === 'IN' ? 'Bon Biru ' : 'Bon Merah ') + e.voucherNo + ' - ' + this.account(v.accountId).name + ': Rp ' + v.amount.toLocaleString('id-ID') + (e.posted ? '' : ' (menunggu generate)'), v.type === 'IN' ? 'success' : 'warning');
     return { success: true, entry: e };
+  },
+
+  // Belum di-generate ke jurnal → boleh diubah langsung. Sudah masuk jurnal → lewat Koreksi.
+  canEdit: function(e) { return !!e && e.source === 'manual' && !e.transferId && e.posted === false && !e.reconciled; },
+  canCorrect: function(e) { return !!e && e.source === 'manual' && !e.transferId && e.posted !== false && !e.reversedBy && !e.reversal && !e.reconciled; },
+
+  update: function(entryId, data) {
+    var e = (MockData.ledger || []).find(function(x) { return x.id === entryId; });
+    if (!this.canEdit(e)) return { success: false, error: 'Hanya transaksi yang belum di-generate ke jurnal yang bisa diubah langsung. Yang sudah masuk jurnal pakai Koreksi.' };
+    var idx = MockData.ledger.indexOf(e);
+    MockData.ledger.splice(idx, 1); // saldo dicek tanpa transaksi ini
+    var v = this._validate(data);
+    MockData.ledger.splice(idx, 0, e);
+    if (v.error) return { success: false, error: v.error };
+    var renumber = v.accountId !== e.bankAccountId || v.type !== e.type || v.date.substr(0, 7) !== e.date.substr(0, 7);
+    if (renumber) e.voucherNo = this.nextVoucher(v.type, v.date, v.accountId);
+    e.date = v.date; e.bankAccountId = v.accountId; e.type = v.type; e.amount = v.amount; e.category = v.category; e.jcat = v.jcat;
+    e.method = v.method; e.projectId = v.projectId; e.reference = v.reference; e.description = v.description; e.party = v.party;
+    delete e.coaId;
+    var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
+    e.editedBy = user.name || 'System'; e.editedAt = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    MockData.save('ledger');
+    BizLogic.Activity.log('Transaksi kas ' + e.voucherNo + ' diubah', 'info');
+    return { success: true, entry: e };
+  },
+
+  // Koreksi transaksi yang sudah masuk jurnal: bon pembalik (nilai sama, arah berlawanan) + transaksi pengganti (opsional)
+  correct: function(entryId, data) {
+    data = data || {};
+    var e = (MockData.ledger || []).find(function(x) { return x.id === entryId; });
+    if (!e) return { success: false, error: 'Transaksi tidak ditemukan' };
+    if (e.posted === false) return { success: false, error: 'Transaksi belum masuk jurnal, ubah langsung saja' };
+    if (!this.canCorrect(e)) return { success: false, error: e.reversedBy ? 'Transaksi ini sudah dikoreksi' : 'Hanya transaksi input manual yang bisa dikoreksi di sini' };
+    var reason = String(data.reason || '').trim();
+    if (!reason) return { success: false, error: 'Alasan koreksi wajib diisi' };
+    var v = null;
+    if (!data.cancelOnly) {
+      v = this._validate(Object.assign({}, data, { accountId: data.accountId || e.bankAccountId }), { skipFunds: true });
+      if (v.error) return { success: false, error: v.error };
+    }
+    var date = data.date || new Date().toISOString().split('T')[0];
+    var rev = this._push({ date: date, accountId: e.bankAccountId, type: e.type === 'IN' ? 'OUT' : 'IN', category: e.category, jcat: e.jcat,
+      method: e.method, projectId: e.projectId, amount: e.amount, reference: e.voucherNo, party: e.party,
+      description: 'Koreksi (pembalik) ' + e.voucherNo + ': ' + reason, correctionOf: e.id, reversal: true });
+    if (e.coaId) rev.coaId = e.coaId;
+    e.reversedBy = rev.id;
+    var repl = null;
+    if (v) {
+      v.date = date; v.correctionOf = e.id;
+      v.description = v.description + ' (koreksi ' + e.voucherNo + ')';
+      repl = this._push(v);
+      e.correctedBy = repl.id;
+    }
+    MockData.save('ledger');
+    BizLogic.Activity.log('Koreksi ' + e.voucherNo + ': ' + reason, 'warning');
+    return { success: true, reversal: rev, replacement: repl };
   },
 
   // Pindah dana: Bank → Kas (penarikan tunai) atau Bank → Bank lain perusahaan
@@ -2626,6 +2890,8 @@ BizLogic.CashBank = {
     if (e.source === 'payment') return { success: false, error: 'Transaksi dari pembayaran invoice tidak bisa dihapus di sini' };
     var group = e.transferId ? MockData.ledger.filter(function(x) { return x.transferId === e.transferId; }) : [e];
     if (group.some(function(x) { return x.reconciled; })) return { success: false, error: 'Transaksi sudah direkonsiliasi, tidak bisa dihapus' };
+    if (group.some(function(x) { return x.posted !== false; })) return { success: false, error: 'Transaksi sudah masuk jurnal. Pakai Koreksi supaya jejaknya tetap ada.' };
+    if (e.reversal) return { success: false, error: 'Bon pembalik koreksi tidak bisa dihapus' };
     MockData.ledger = MockData.ledger.filter(function(x) { return group.indexOf(x) < 0; });
     MockData.save('ledger');
     BizLogic.Activity.log('Transaksi ' + group.map(function(x) { return x.voucherNo; }).join(' & ') + ' dihapus', 'danger');
@@ -2646,8 +2912,9 @@ BizLogic.CashBank = {
         if (ids.indexOf(e.bankAccountId) < 0 || e.date < start || e.date > end) return;
         var k = self.categoryOf(e);
         var r = sec.rows[k] = sec.rows[k] || { amount: 0, count: 0 };
-        r.amount += e.amount; r.count++;
-        if (e.type === 'IN') sec.totalIn += e.amount; else sec.totalOut += e.amount;
+        var amt = e.reversal ? -e.amount : e.amount, origType = e.reversal ? (e.type === 'IN' ? 'OUT' : 'IN') : e.type;
+        r.amount += amt; r.count++;
+        if (origType === 'IN') sec.totalIn += amt; else sec.totalOut += amt;
       });
       sec.closing = sec.opening + sec.totalIn - sec.totalOut;
       out[kind] = sec;

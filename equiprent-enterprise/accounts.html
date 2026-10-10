@@ -18,7 +18,7 @@
         <div class="page-header"><div class="page-header-left"><h2 class="page-header-title">Rekening Perusahaan</h2><p class="page-header-subtitle">Akun Kas (tunai) dan Bank perusahaan beserta saldo awalnya</p></div>
         <div class="page-header-actions"><button class="btn btn-primary btn-sm" onclick="showToast('Add account','info')"><i class="bi bi-plus-lg me-1"></i>Tambah Akun</button></div></div>
         <div class="er-card"><div class="er-card-body">
-          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>ID</th><th>Jenis</th><th>Nama Akun</th><th>Bank</th><th>No. Rekening</th><th>Atas Nama / Pemegang</th><th class="num">Saldo Awal</th><th class="num">Saldo Saat Ini</th><th>Status</th><th>Aksi</th></tr></thead>
+          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>ID</th><th>Kode</th><th>Jenis</th><th>Nama Akun</th><th>Bank</th><th>No. Rekening</th><th>Atas Nama / Pemegang</th><th class="num">Saldo Awal</th><th class="num">Saldo Saat Ini</th><th>Status</th><th>Aksi</th></tr></thead>
           <tbody id="tableBody"></tbody></table></div>
         </div></div>
       </div>
@@ -47,7 +47,11 @@
                 <label class="form-label form-label-er">Saldo Awal</label>
                 <div class="input-group"><span class="input-group-text">Rp</span><input type="number" class="form-control text-end" id="accOpening" value="0"></div>
               </div>
-              <div class="col-md-6">
+              <div class="col-md-2">
+                <label class="form-label form-label-er">Kode <span class="text-danger">*</span></label>
+                <input type="text" class="form-control text-mono text-uppercase" id="accCode" required maxlength="4" placeholder="BCA">
+              </div>
+              <div class="col-md-4">
                 <label class="form-label form-label-er">Account Name <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="accName" required placeholder="e.g. BCA Operational / Kas Kantor">
               </div>
@@ -134,8 +138,10 @@
       }
 
       const kas = document.getElementById('accKind').value === 'Kas';
+      const code = document.getElementById('accCode').value.trim().toUpperCase();
+      if (MockData.accounts.some(a => a.code === code)) { showToast('Kode ' + code + ' sudah dipakai rekening lain', 'error'); return; }
       const newAcc = {
-        id: MockData.generateId('ACC', 'accounts'),
+        id: MockData.generateId('ACC', 'accounts'), code: code,
         name: document.getElementById('accName').value,
         kind: kas ? 'Kas' : 'Bank',
         bank: kas ? '-' : document.getElementById('accBank').value,
@@ -163,6 +169,7 @@
     function renderTable() {
       document.getElementById('tableBody').innerHTML=MockData.accounts.map(a=>`<tr>
         <td class="text-mono">${a.id}</td>
+        <td class="text-mono fw-600" title="Awalan kode transaksi kas">${a.code || '-'}</td>
         <td><span class="badge ${CB.kindOf(a) === 'Kas' ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary'}"><i class="bi ${CB.kindOf(a) === 'Kas' ? 'bi-cash-stack' : 'bi-bank'} me-1"></i>${CB.kindOf(a)}</span></td>
         <td><a href="finance-ledger.html?account=${a.id}" class="fw-600 cell-link">${a.name}</a></td>
         <td>${a.bank}</td><td class="text-mono">${a.accountNumber}</td><td>${a.accountHolder}</td>

@@ -142,7 +142,7 @@
           <h6 class="fw-600 mb-2">Ditagihkan kepada</h6>
           <p class="fw-600 mb-1">${inv.customerName}</p>
           <p class="text-muted fs-12 mb-1">${customer?.address || '-'}</p>
-          <p class="text-muted fs-12 mb-1">${customer?.pic || ''} ${customer?.phone ? '· ' + customer.phone : ''}</p>
+          <p class="text-muted fs-12 mb-1">${customer?.pic ? 'PM: ' + customer.pic : ''} ${customer?.phone ? '· ' + customer.phone : ''}</p>
         </div>
         <div>
           <table class="w-100 fs-13">

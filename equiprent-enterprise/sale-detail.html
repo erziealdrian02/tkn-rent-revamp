@@ -94,11 +94,14 @@
       }
       document.getElementById('detailBody').innerHTML = `
         ${editRequestBanner('Penjualan', sale.id)}${credit}
+        ${sale.source === 'project' ? `<div class="alert ${sale.returnSjNo ? 'alert-light border' : 'alert-success'} py-2 fs-13"><i class="bi bi-box-arrow-in-left me-1"></i><strong>Alat dari lokasi proyek</strong> (${esc(sale.sourceReason || 'dijual di lokasi')}).
+          ${sale.returnSjNo ? `Sudah dipulangkan dulu lewat surat jalan pemulangan <strong>${sale.returnSjNo}</strong> (administratif${(sale.returnIds || []).length ? ', ' + sale.returnIds.map(id => `<a href="return-detail.html?id=${id}">${id}</a>`).join(', ') : ''}), baru dijual.` : 'Saat di-ACC, sistem membuat surat jalan pemulangan (administratif) dari proyek ke gudang dulu, baru alat bisa dijual.'}</div>` : ''}
         ${s === 'Rejected' ? `<div class="alert alert-danger py-2 fs-13"><strong>Ditolak</strong> oleh ${esc(sale.rejectedBy)} (${esc(sale.rejectedDate)}): ${esc(sale.rejectionReason)}</div>` : ''}
         <div class="info-grid mb-4">
           <div class="info-item"><span class="info-label">No. Order</span><span class="info-value text-mono">${sale.id}</span></div>
           <div class="info-item"><span class="info-label">Pelanggan</span><span class="info-value">${esc(sale.customerName)}</span></div>
           <div class="info-item"><span class="info-label">Proyek</span><span class="info-value">${esc(sale.projectName || '-')}</span></div>
+          <div class="info-item"><span class="info-label">Sumber Alat</span><span class="info-value">${sale.source === 'project' ? 'Lokasi proyek (dipulangkan dulu)' : 'Stok gudang'}</span></div>
           <div class="info-item"><span class="info-label">Gudang Asal</span><span class="info-value">${esc(sale.branch)}</span></div>
           <div class="info-item"><span class="info-label">Dibuat</span><span class="info-value">${esc(sale.createdBy)} · ${esc(sale.createdAt)}</span></div>
           <div class="info-item"><span class="info-label">ACC</span><span class="info-value">${sale.approvedBy ? esc(sale.approvedBy) + ' · ' + esc(sale.approvedDate) : '-'}</span></div>

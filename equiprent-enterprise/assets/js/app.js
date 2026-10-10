@@ -290,6 +290,7 @@ function statusBadge(status) {
     'maintenance-due': 'warning',
     'in-maintenance': 'maintenance',
     'delivered': 'completed',
+    'on-progress': 'in-transit',
     'menunggu-acc': 'waiting', 'disetujui': 'approved', 'ditolak': 'rejected', 'selesai': 'completed',
     'lunas': 'paid', 'uang-muka': 'waiting', 'sebagian': 'partial', 'belum-dibayar': 'issued', 'diajukan': 'waiting', 'dibuat-po': 'completed', 'requested': 'waiting',
   };
@@ -641,7 +642,7 @@ function performGlobalSearch(query) {
   if (customers.length) {
     html += `<div class="search-result-group"><div class="search-result-group-title">${grpCustomers}</div>`;
     customers.slice(0, 5).forEach(c => {
-      html += `<a href="customer-detail.html?id=${c.id}" class="search-result-item"><i class="bi bi-people"></i><div><strong>${c.code}</strong> - ${c.name}<br><span class="text-muted fs-11">${c.pic}</span></div></a>`;
+      html += `<a href="customer-detail.html?id=${c.id}" class="search-result-item"><i class="bi bi-people"></i><div><strong>${c.code}</strong> - ${c.name}<br><span class="text-muted fs-11">PM: ${c.pic}</span></div></a>`;
     });
     html += '</div>';
   }

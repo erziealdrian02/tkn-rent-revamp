@@ -1,7 +1,9 @@
 /* ============================================================
    EquipRent Enterprise - Akuntansi & Pajak
    Mengikuti "excel/1. ALUR COA & TAX.xlsx":
-   A. Jurnal atas Laporan Kas: tiap Bon Biru / Bon Merah diklasifikasikan ke akun COA
+   Alur: transaksi kasir (Buku Kas) → Generate Laporan Kas oleh Accounting → Jurnal → Buku Besar → COA.
+         Input Finance / Accounting langsung masuk jurnal (tanpa generate).
+   A. Jurnal atas Laporan Kas: tiap Bon Biru / Bon Merah diklasifikasikan ke akun COA lewat kategori jurnal
    B. Posting Buku Besar (Kas & Bank global per tanggal, biaya detail per transaksi)
    C. Kertas Kerja: Neraca 2025 (saldo awal) + Mutasi + Penyesuaian → Neraca & Laba Rugi.
       Sumber mutasi: Kas & Bank, Penjualan (AR / invoice), Pembelian & Stok
@@ -63,7 +65,7 @@ BizLogic.Accounting = {
   GENERIC_CATEGORIES: ['kas_out_opex', 'kas_out_payroll', 'kas_out_supplier', 'kas_in_other', 'bank_out_supplier', 'bank_out_admin'],
 
   SOURCES: {
-    kas:         { label: 'Laporan Kas',          icon: 'bi-wallet2',        color: 'primary' },
+    kas:         { label: 'Laporan Kas (Kasir)',  icon: 'bi-wallet2',        color: 'primary' },
     penjualan:   { label: 'Penjualan (AR)',       icon: 'bi-receipt',        color: 'success' },
     pembelian:   { label: 'Pembelian & Stok',     icon: 'bi-cart',           color: 'warning' },
     penyesuaian: { label: 'Jurnal Penyesuaian',   icon: 'bi-pencil-square',  color: 'danger' },
@@ -181,14 +183,16 @@ BizLogic.Accounting = {
     MockData.save('coaCashMap');
     return { success: true };
   },
-  // Akun lawan untuk satu Bon: klasifikasi manual (coaId) > pemetaan kategori > lain-lain
+  // Akun lawan untuk satu Bon: klasifikasi manual (coaId) > kategori jurnal > pemetaan kategori Laporan Kas > lain-lain
   classify: function(e) {
-    return e.coaId || this.mapOf(BizLogic.CashBank.categoryOf(e)) || (e.type === 'IN' ? this.ACC.OTHER_IN : this.ACC.OTHER_OUT);
+    var jc = e.jcat && BizLogic.CashBank.jcat(e.jcat);
+    return e.coaId || (jc && jc.acc) || this.mapOf(BizLogic.CashBank.categoryOf(e)) || (e.type === 'IN' ? this.ACC.OTHER_IN : this.ACC.OTHER_OUT);
   },
-  // manual | mapped | review (kategori campuran, belum diklasifikasikan)
+  // manual | kategori (dari kategori jurnal) | mapped | review (kategori campuran, belum diklasifikasikan)
   classifyStatus: function(e) {
     if (e.transferId) return 'transfer';
     if (e.coaId) return 'manual';
+    if (e.jcat && BizLogic.CashBank.jcat(e.jcat)) return 'kategori';
     return this.GENERIC_CATEGORIES.indexOf(BizLogic.CashBank.categoryOf(e)) >= 0 ? 'review' : 'mapped';
   },
   setClassification: function(ledgerId, coaId, projectId) {
@@ -200,7 +204,8 @@ BizLogic.Accounting = {
       if (!acc || acc.id === this.ACC.CURRENT_PL) return { success: false, error: 'Akun tidak valid' };
       if (acc.cashAccountId) return { success: false, error: 'Gunakan Pindah Dana untuk perpindahan antar Kas/Bank' };
     }
-    if (coaId && coaId !== this.mapOf(BizLogic.CashBank.categoryOf(e))) e.coaId = coaId; else delete e.coaId;
+    var jc = e.jcat && BizLogic.CashBank.jcat(e.jcat), dflt = (jc && jc.acc) || this.mapOf(BizLogic.CashBank.categoryOf(e));
+    if (coaId && coaId !== dflt) e.coaId = coaId; else delete e.coaId;
     if (projectId !== undefined) { if (projectId) e.projectId = projectId; else delete e.projectId; }
     MockData.save('ledger');
     return { success: true };
@@ -269,6 +274,7 @@ BizLogic.Accounting = {
   _cashJournals: function() {
     var self = this, CB = BizLogic.CashBank, ledger = MockData.ledger || [], out = [];
     CB.entries().forEach(function(e) {
+      if (e.posted === false) return; // input kasir masuk jurnal setelah di-generate Accounting
       var acc = 'CB:' + e.bankAccountId, counter;
       if (e.transferId) {
         if (e.type === 'IN') return; // pasangan pindah dana sudah dijurnal dari sisi keluar
@@ -279,7 +285,8 @@ BizLogic.Accounting = {
         ? [{ acc: acc, d: e.amount, k: 0 }, { acc: counter, d: 0, k: e.amount }]
         : [{ acc: counter, d: e.amount, k: 0 }, { acc: acc, d: 0, k: e.amount }];
       out.push({ id: 'KB-' + e.id, no: e.voucherNo, date: e.date, source: 'kas', ref: e.reference, desc: e.description, party: e.party,
-        projectId: e.projectId || null, ledgerId: e.id, link: 'finance-ledger.html?account=' + e.bankAccountId, lines: lines });
+        projectId: e.projectId || null, ledgerId: e.id, jcat: e.jcat || null, method: e.method || null, batch: e.batch || null,
+        link: 'finance-ledger.html?account=' + e.bankAccountId, lines: lines });
     });
     return out;
   },
@@ -434,6 +441,37 @@ BizLogic.Accounting = {
     var opening = net * sign || 0; // || 0: hindari -0
     rows.forEach(function(r) { net += r.d - r.k; r.bal = net * sign || 0; totalD += r.d; totalK += r.k; });
     return { account: acc, opening: opening, rows: rows, totalD: totalD, totalK: totalK, closing: net * sign || 0 };
+  },
+
+  // ---------- COA per periode (bulan) ----------
+  // Per akun: saldo awal periode, mutasi debet / kredit dalam periode, saldo akhir (net debet − kredit).
+  // Tanpa penyesuaian persediaan akhir otomatis (itu dihitung di Kertas Kerja / Laba Rugi).
+  periodSummary: function(from, to) {
+    var self = this, ys = this.yearStart(from), rows = {};
+    this.accounts().forEach(function(a) { rows[a.id] = { open: self.openingNet(a), d: 0, k: 0 }; });
+    this.journals({ from: ys, to: to, noClosing: true }).forEach(function(j) {
+      j.lines.forEach(function(l) {
+        var r = rows[l.acc];
+        if (!r) return;
+        if (j.date < from) r.open += l.d - l.k; else { r.d += l.d; r.k += l.k; }
+      });
+    });
+    Object.keys(rows).forEach(function(id) { rows[id].close = rows[id].open + rows[id].d - rows[id].k; });
+    return rows;
+  },
+
+  // Total biaya / pendapatan per kategori jurnal dalam periode (dari transaksi kas yang sudah masuk jurnal)
+  categoryTotals: function(from, to, type) {
+    var CB = BizLogic.CashBank, out = {};
+    (MockData.ledger || []).forEach(function(e) {
+      if (e.posted === false || e.transferId || e.date < from || e.date > to) return;
+      var origType = e.reversal ? (e.type === 'IN' ? 'OUT' : 'IN') : e.type;
+      if (type && origType !== type) return;
+      var key = e.jcat && CB.jcat(e.jcat) ? CB.jcatName(e.jcat) : CB.categoryLabel(CB.categoryOf(e));
+      out[key] = (out[key] || 0) + (e.reversal ? -e.amount : e.amount);
+    });
+    return Object.keys(out).filter(function(k) { return out[k]; }).map(function(k) { return { name: k, amount: out[k] }; })
+      .sort(function(a, b) { return b.amount - a.amount; });
   },
 
   // ---------- Kertas Kerja ----------

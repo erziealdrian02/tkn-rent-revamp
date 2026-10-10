@@ -1765,6 +1765,7 @@ h1, h2, h3, h4, h5, h6 {
 .progress-thin { height: 6px; background: var(--border-light); border-radius: 999px; overflow: hidden; min-width: 80px; }
 .progress-thin > span { display: block; height: 100%; background: var(--primary); border-radius: 999px; }
 .progress-thin > span.done { background: var(--success); }
+.progress-thin > span.back { background: #0891b2; }
 
 .type-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .type-tab {

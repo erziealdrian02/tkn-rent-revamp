@@ -7,6 +7,12 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="assets/css/style.css" rel="stylesheet">
+  <style>
+    .pie-box { position: relative; height: 260px; }
+    .pie-legend { font-size: 12px; }
+    .pie-legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+    .coa-tree .grp td.num { font-weight: 600; }
+  </style>
 </head>
 <body>
   <div class="app-wrapper">
@@ -16,19 +22,47 @@
       <header class="app-header" id="appHeader"></header>
       <div class="app-content">
         <div class="page-header">
-          <div class="page-header-left"><h2 class="page-header-title">Bagan Akun (Chart of Account)</h2><p class="page-header-subtitle">Pengelompokan akun keuangan perusahaan. Saldo awal 2026 = saldo akhir neraca 2025.</p></div>
+          <div class="page-header-left"><h2 class="page-header-title">Bagan Akun (Chart of Account)</h2><p class="page-header-subtitle">Saldo akun per bulan: masuk transaksi → jurnal → COA. Saldo awal 2026 = saldo akhir neraca 2025.</p></div>
           <div class="page-header-actions">
             <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-download me-1"></i>Export CSV</button>
-            <button class="btn btn-primary btn-sm" onclick="openAccount()"><i class="bi bi-plus-lg me-1"></i>Tambah Akun</button>
+            <button class="btn btn-primary btn-sm need-acc" onclick="openAccount()"><i class="bi bi-plus-lg me-1"></i>Tambah Akun</button>
           </div>
         </div>
         <div id="flowBar"></div>
 
-        <div class="row g-3 mb-4" id="kpis"></div>
+        <div class="er-card mb-3"><div class="er-card-body py-2">
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <label class="fs-13 text-muted"><i class="bi bi-calendar3 me-1"></i>Periode bulan</label>
+            <select class="filter-select" id="pMonth" onchange="refresh()"></select>
+            <select class="filter-select" id="pYear" onchange="refresh()"></select>
+            <span class="fs-12 text-muted ms-2" id="pText"></span>
+            <span class="ms-auto fs-12" id="pendingInfo"></span>
+          </div>
+        </div></div>
+
+        <div class="row g-3 mb-3" id="kpis"></div>
+
+        <div class="er-card mb-3"><div class="er-card-body">
+          <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-2"><h6 class="fw-600 mb-0">Total Semua Akun per Jenis</h6><span class="fs-12" id="typeCheck"></span></div>
+          <div class="er-table-wrapper"><table class="er-table fs-13"><thead id="typeHead"></thead><tbody id="typeBody"></tbody></table></div>
+          <p class="fs-11 text-muted mt-1 mb-0">Saldo akhir akun laba rugi (4–7) = akumulasi sejak 1 Januari. Mutasi sesuai saldo normal: positif = bertambah.</p>
+        </div></div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-6"><div class="er-card h-100"><div class="er-card-body">
+            <h6 class="fw-600 mb-1">Biaya per Kelompok Akun</h6><div class="fs-12 text-muted mb-2">HPP &amp; biaya yang masuk COA bulan ini</div>
+            <div class="pie-box"><canvas id="pieGroup"></canvas></div><div class="pie-legend mt-2" id="legGroup"></div>
+          </div></div></div>
+          <div class="col-md-6"><div class="er-card h-100"><div class="er-card-body">
+            <h6 class="fw-600 mb-1">Biaya per Kategori Jurnal</h6><div class="fs-12 text-muted mb-2">Dari transaksi kas yang sudah masuk jurnal (ATK, BBM, pakan, dll.)</div>
+            <div class="pie-box"><canvas id="pieCat"></canvas></div><div class="pie-legend mt-2" id="legCat"></div>
+          </div></div></div>
+        </div>
 
         <div class="er-card">
           <div class="er-tabs">
             <button class="er-tab active" data-tab="tree" onclick="switchTab('tree')"><i class="bi bi-diagram-3 me-1"></i>Bagan Akun</button>
+            <button class="er-tab" data-tab="jcat" onclick="switchTab('jcat')"><i class="bi bi-tags me-1"></i>Kategori Jurnal</button>
             <button class="er-tab" data-tab="map" onclick="switchTab('map')"><i class="bi bi-arrow-left-right me-1"></i>Pemetaan Laporan Kas → COA</button>
           </div>
 
@@ -36,18 +70,31 @@
             <div class="table-toolbar"><div class="table-toolbar-left flex-wrap">
               <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Cari kode / nama akun..." id="searchInput" oninput="renderTree()"></div>
               <select class="filter-select" id="typeFilter" onchange="renderTree()"></select>
-              <label class="d-flex align-items-center gap-2 fs-13"><input type="checkbox" class="form-check-input m-0" id="onlyActive" onchange="renderTree()"> Hanya akun yang ada saldo / transaksi</label>
+              <label class="d-flex align-items-center gap-2 fs-13"><input type="checkbox" class="form-check-input m-0" id="onlyActive" checked onchange="renderTree()"> Hanya akun yang ada saldo / transaksi</label>
             </div></div>
             <div class="er-table-wrapper"><table class="er-table coa-tree">
-              <thead><tr><th style="min-width:340px">Kode · Nama Akun</th><th>Saldo Normal</th><th class="num">Saldo Awal 2026 Debet</th><th class="num">Saldo Awal 2026 Kredit</th><th class="num">Saldo s/d Hari Ini</th><th style="min-width:220px">Dari Kategori Laporan Kas</th><th></th></tr></thead>
+              <thead><tr><th style="min-width:320px">Kode · Nama Akun</th><th>Normal</th><th class="num">Saldo Awal Bulan</th><th class="num">Debet</th><th class="num">Kredit</th><th class="num">Saldo Akhir Bulan</th><th style="min-width:200px">Dari Kategori</th><th></th></tr></thead>
               <tbody id="treeBody"></tbody>
               <tfoot id="treeFoot"></tfoot>
+            </table></div>
+            <p class="fs-12 text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Saldo ditampilkan sesuai saldo normal akun. Akun laba rugi (4–7) dihitung dari awal tahun.
+              Penyesuaian persediaan akhir otomatis ada di Kertas Kerja &amp; Laba Rugi. Transaksi kasir yang belum di-generate belum masuk di sini.</p>
+          </div>
+
+          <div class="er-tab-content" id="tab-jcat">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+              <div class="fs-13 text-muted">Kategori dipilih kasir saat input transaksi kas. Kategori menentukan <strong>akun COA</strong> di jurnal dan <strong>baris Laporan Kas</strong>.</div>
+              <button class="btn btn-primary btn-sm need-acc" onclick="openJcat()"><i class="bi bi-plus-lg me-1"></i>Tambah Kategori</button>
+            </div>
+            <div class="er-table-wrapper"><table class="er-table">
+              <thead><tr><th>Kategori</th><th>Arah</th><th>Akun COA</th><th>Baris Laporan Kas (Kas / Bank)</th><th class="num">Transaksi Bulan Ini</th><th class="num">Total Bulan Ini</th><th></th></tr></thead>
+              <tbody id="jcatBody"></tbody>
             </table></div>
           </div>
 
           <div class="er-tab-content" id="tab-map">
             <div class="alert alert-light border py-2 fs-13 mb-3"><i class="bi bi-info-circle me-1"></i>
-              Setiap Bon Biru / Bon Merah di Buku Kas & Bank otomatis dijurnal ke akun COA sesuai kategorinya. Kategori yang isinya campur
+              Transaksi kas tanpa kategori jurnal (data lama, pembayaran invoice) dijurnal ke akun COA sesuai baris Laporan Kas-nya. Kategori yang isinya campur
               (mis. <em>Biaya-biaya Operasional</em>) sebaiknya diklasifikasikan per transaksi di menu <a href="journal.html">Jurnal</a>.</div>
             <div class="er-table-wrapper"><table class="er-table fin-report">
               <thead><tr><th style="width:48px">No</th><th>Kategori Laporan Kas</th><th style="width:380px">Akun COA (default)</th><th class="num">Transaksi</th><th class="num">Belum Dicek</th></tr></thead>
@@ -84,7 +131,29 @@
     </div></div>
   </div>
 
+  <!-- Tambah / Ubah Kategori Jurnal -->
+  <div class="modal fade" id="jcatModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" id="jcTitle">Tambah Kategori Jurnal</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-8"><label class="form-label form-label-er">Nama Kategori *</label><input type="text" class="form-control" id="jcName" placeholder="mis. Pakan Hewan, ATK"></div>
+          <div class="col-4"><label class="form-label form-label-er">Arah *</label><select class="form-select" id="jcType" onchange="fillJcCash()"><option value="OUT">Uang keluar</option><option value="IN">Uang masuk</option></select></div>
+          <div class="col-12"><label class="form-label form-label-er">Akun COA (masuk jurnal) *</label><select class="form-select" id="jcAcc"></select></div>
+          <div class="col-6"><label class="form-label form-label-er">Baris Laporan Kas (rekening Kas)</label><select class="form-select" id="jcCashKas"></select></div>
+          <div class="col-6"><label class="form-label form-label-er">Baris Laporan Kas (rekening Bank)</label><select class="form-select" id="jcCashBank"></select></div>
+          <div class="col-12"><label class="d-flex align-items-center gap-2 fs-13"><input type="checkbox" class="form-check-input m-0" id="jcActive" checked> Aktif (muncul di form kasir)</label></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+        <button class="btn btn-primary" onclick="submitJcat()"><i class="bi bi-check-lg me-1"></i>Simpan</button>
+      </div>
+    </div></div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
   <script src="assets/js/business-logic.js"></script>
@@ -95,81 +164,217 @@
     const AC = BizLogic.Accounting, CB = BizLogic.CashBank;
     const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
     const money = v => v ? formatRupiah(v) : '<span class="text-muted">-</span>';
+    const canEditCoa = canDo('Accounting', 'Create');
+    if (!canEditCoa) document.querySelectorAll('.need-acc').forEach(b => b.remove());
+    const PALETTE = ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2', '#db2777', '#65a30d', '#ea580c', '#475569', '#0d9488', '#a16207'];
     document.getElementById('flowBar').innerHTML = AC.flowBar('coa.html');
     document.getElementById('typeFilter').innerHTML = '<option value="">Semua Jenis Akun</option>' + Object.keys(AC.TYPES).map(k => `<option value="${k}">${k} · ${AC.TYPES[k].label}</option>`).join('');
     document.getElementById('accTax').innerHTML += Object.keys(AC.TAX_FLAGS).map(k => `<option value="${k}">${AC.TAX_FLAGS[k]}</option>`).join('');
     document.getElementById('accGroup').innerHTML = AC.GROUPS.filter(g => !g.cashBank).map(g => `<option value="${g.code}">${g.code} · ${esc(g.name)} (${AC.TYPES[g.code.charAt(0)].label})</option>`).join('');
 
-    let editId = null, balances = {}, usage = {}, catCount = {};
+    // Periode per bulan
+    const now = new Date(AC.today());
+    document.getElementById('pMonth').innerHTML = Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}"${i === now.getMonth() ? ' selected' : ''}>${AC.monthName(i + 1)}</option>`).join('');
+    document.getElementById('pYear').innerHTML = [2026, now.getFullYear()].filter((v, i, a) => a.indexOf(v) === i).map(y => `<option${y === now.getFullYear() ? ' selected' : ''}>${y}</option>`).join('');
+    if (getUrlParam('month')) document.getElementById('pMonth').value = Number(getUrlParam('month'));
+    const period = () => { const y = Number(document.getElementById('pYear').value), m = Number(document.getElementById('pMonth').value);
+      return { from: `${y}-${String(m).padStart(2, '0')}-01`, to: AC.monthEnd(y, m), y, m }; };
 
-    function computeUsage() {
-      balances = AC.balances(AC.today());
-      usage = {};
-      AC.journals({ noClosing: true }).forEach(j => j.lines.forEach(l => usage[l.acc] = (usage[l.acc] || 0) + 1));
+    let P = null, sum = {}, catCount = {}, charts = {};
+    const shown = (a, net) => (net || 0) * (AC.normalOf(a) === 'D' ? 1 : -1) || 0; // sesuai saldo normal
+
+    function compute() {
+      P = period();
+      sum = AC.periodSummary(P.from, P.to);
       catCount = {};
       (MockData.ledger || []).forEach(e => {
+        if (e.posted === false) return;
         const k = CB.categoryOf(e), c = catCount[k] = catCount[k] || { all: 0, review: 0 };
         c.all++; if (AC.classifyStatus(e) === 'review') c.review++;
       });
+      document.getElementById('pText').textContent = `${formatDate(P.from)} s/d ${formatDate(P.to)}`;
+      const pend = CB.pending(null, P.to);
+      document.getElementById('pendingInfo').innerHTML = pend.length ? `<span class="text-warning"><i class="bi bi-hourglass-split me-1"></i>${pend.length} transaksi kasir belum di-generate · <a href="cash-report.html">Laporan Kas</a></span>` : '<span class="text-success"><i class="bi bi-check2 me-1"></i>Semua transaksi kas sudah masuk jurnal</span>';
+    }
+
+    // Mutasi bulan per jenis akun (sesuai saldo normal) & saldo akhir
+    function typeTotals() {
+      const t = {};
+      Object.keys(AC.TYPES).forEach(k => t[k] = { mut: 0, close: 0 });
+      AC.accounts().forEach(a => {
+        if (a.id === AC.ACC.CURRENT_PL) return;
+        const r = sum[a.id], k = AC.typeOf(a), sign = AC.TYPES[k].normal === 'D' ? 1 : -1;
+        if (!r) return;
+        t[k].mut += (r.d - r.k) * sign; t[k].close += r.close * sign;
+      });
+      return t;
     }
 
     function renderKpis() {
-      const accs = AC.accounts().filter(a => a.id !== AC.ACC.CURRENT_PL);
+      const t = typeTotals();
+      const revenue = t['4'].mut + t['7'].mut, cost = t['5'].mut + t['6'].mut;
+      const cash = AC.accounts().filter(a => a.cashAccountId).reduce((s, a) => s + (sum[a.id] ? sum[a.id].close : 0), 0);
       let d = 0, k = 0;
-      accs.forEach(a => { const o = AC.openingNet(a); if (o > 0) d += o; else k -= o; });
-      const ok = d === k;
+      AC.accounts().forEach(a => { if (a.id === AC.ACC.CURRENT_PL) return; const o = AC.openingNet(a); if (o > 0) d += o; else k -= o; });
       document.getElementById('kpis').innerHTML = [
-        ['blue', 'bi-list-ol', 'Jumlah Akun', accs.length, false],
-        ['green', 'bi-plus-slash-minus', 'Saldo Awal Debet', d, true],
-        ['orange', 'bi-plus-slash-minus', 'Saldo Awal Kredit', k, true],
-        [ok ? 'green' : 'red', ok ? 'bi-check2-circle' : 'bi-exclamation-triangle', ok ? 'Neraca Awal Seimbang' : 'Selisih Neraca Awal', d - k, true]
-      ].map(([c, i, l, v, rp]) => `<div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon ${c}"><i class="bi ${i}"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${rp ? formatRupiah(v) : v}</div><div class="kpi-label">${l}</div></div></div></div>`).join('');
+        ['green', 'bi-graph-up-arrow', 'Pendapatan Bulan Ini', revenue, 'termasuk pendapatan lain-lain'],
+        ['red', 'bi-graph-down-arrow', 'HPP & Biaya Bulan Ini', cost, 'sebelum penyesuaian persediaan'],
+        [revenue - cost >= 0 ? 'blue' : 'orange', 'bi-calculator', 'Selisih Bulan Ini', revenue - cost, 'pendapatan − HPP & biaya'],
+        ['purple', 'bi-wallet2', 'Saldo Kas & Bank (COA)', cash, d === k ? 'neraca awal seimbang' : 'selisih neraca awal ' + formatRupiah(d - k)]
+      ].map(([c, i, l, v, sub]) => `<div class="col-6 col-lg-3"><div class="kpi-card h-100"><div class="kpi-icon ${c}"><i class="bi ${i}"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${formatRupiah(v)}</div><div class="kpi-label">${l}</div><div class="fs-11 text-muted mt-1">${sub}</div></div></div></div>`).join('');
+      const keys = Object.keys(AC.TYPES);
+      document.getElementById('typeHead').innerHTML = `<tr><th></th>${keys.map(k => `<th class="num"><span class="acc-code">${k}</span>${AC.TYPES[k].label.replace('Pendapatan & Biaya Lain-lain', 'Lain-lain').replace('Harga Pokok Penjualan', 'HPP')}</th>`).join('')}</tr>`;
+      document.getElementById('typeBody').innerHTML = `<tr><td class="text-nowrap">Mutasi ${AC.monthName(P.m)}</td>${keys.map(k => `<td class="num">${money(t[k].mut)}</td>`).join('')}</tr>
+        <tr class="fw-600"><td class="text-nowrap">Saldo akhir</td>${keys.map(k => `<td class="num">${money(t[k].close)}</td>`).join('')}</tr>`;
+      // pendapatan lain (7) dihitung net kredit, jadi ikut menambah laba
+      const assets = t['1'].close, passiva = t['2'].close + t['3'].close + (t['4'].close + t['7'].close - t['5'].close - t['6'].close);
+      document.getElementById('typeCheck').innerHTML = assets === passiva ? '<span class="check-badge ok"><i class="bi bi-check2"></i>Aset = Kewajiban + Ekuitas + Laba berjalan</span>' : `<span class="check-badge bad">Selisih ${formatRupiah(assets - passiva)}</span>`;
+    }
+
+    function pie(id, legId, items) {
+      items = items.filter(x => x.value > 0).sort((a, b) => b.value - a.value);
+      if (items.length > 8) { const rest = items.slice(7).reduce((s, x) => s + x.value, 0); items = items.slice(0, 7).concat([{ label: 'Lainnya', value: rest }]); }
+      const total = items.reduce((s, x) => s + x.value, 0);
+      if (charts[id]) charts[id].destroy();
+      const ctx = document.getElementById(id);
+      if (!items.length || typeof Chart === 'undefined') {
+        ctx.style.display = 'none';
+        const pend = CB.pending(P.from, P.to).length;
+        document.getElementById(legId).innerHTML = `<div class="text-muted text-center py-5">Belum ada biaya yang masuk jurnal di bulan ini.${pend ? `<br><a href="cash-report.html">${pend} transaksi kasir menunggu generate →</a>` : ''}</div>`;
+        return;
+      }
+      ctx.style.display = '';
+      charts[id] = new Chart(ctx, {
+        type: 'pie',
+        data: { labels: items.map(x => x.label), datasets: [{ data: items.map(x => x.value), backgroundColor: PALETTE, borderWidth: 1 }] },
+        options: { maintainAspectRatio: false, animation: { duration: 300 }, plugins: { legend: { display: false },
+          tooltip: { callbacks: { label: c => `${c.label}: ${formatRupiah(c.raw)} (${Math.round(c.raw / total * 100)}%)` } } } }
+      });
+      document.getElementById(legId).innerHTML = items.map((x, i) => `<div class="d-flex justify-content-between gap-2"><span><span class="sw" style="background:${PALETTE[i % PALETTE.length]}"></span>${esc(x.label)}</span><span class="text-nowrap">${formatRupiah(x.value)} <span class="text-muted">${Math.round(x.value / total * 100)}%</span></span></div>`).join('') +
+        `<div class="d-flex justify-content-between border-top mt-1 pt-1 fw-600"><span>Total</span><span>${formatRupiah(total)}</span></div>`;
+    }
+
+    function renderCharts() {
+      // 1. Biaya per kelompok COA (akun 5 & 6, mutasi bulan)
+      const byGroup = {};
+      AC.accounts().forEach(a => {
+        const k = AC.typeOf(a); if (k !== '5' && k !== '6') return;
+        const r = sum[a.id]; if (!r) return;
+        const g = AC.group(a.group), name = g ? g.name : a.group;
+        byGroup[name] = (byGroup[name] || 0) + r.d - r.k;
+      });
+      pie('pieGroup', 'legGroup', Object.keys(byGroup).map(k => ({ label: k, value: byGroup[k] })));
+      // 2. Biaya per kategori jurnal (transaksi kas, akun lawan = biaya)
+      const byCat = {};
+      (MockData.ledger || []).forEach(e => {
+        if (e.posted === false || e.transferId || e.date < P.from || e.date > P.to) return;
+        const acc = AC.account(AC.classify(e));
+        if (!acc || !['5', '6'].includes(AC.typeOf(acc))) return;
+        const key = e.jcat && CB.jcat(e.jcat) ? CB.jcatName(e.jcat) : acc.name;
+        const sign = (e.type === 'OUT') ? 1 : -1; // bon pembalik / pengembalian mengurangi
+        byCat[key] = (byCat[key] || 0) + sign * e.amount;
+      });
+      pie('pieCat', 'legCat', Object.keys(byCat).map(k => ({ label: k, value: byCat[k] })));
     }
 
     function catBadges(accId) {
-      const cats = Object.keys(CB.CATEGORIES).filter(k => AC.mapOf(k) === accId);
-      return cats.map(k => { const c = CB.CATEGORIES[k];
-        return `<span class="badge ${c.type === 'IN' ? 'bg-primary-subtle text-primary' : 'bg-danger-subtle text-danger'} fw-normal me-1 mb-1 text-wrap text-start" title="${esc(c.kind + ' ' + (c.type === 'IN' ? 'Masuk' : 'Keluar'))}">${c.kind} · ${esc(c.label)}</span>`; }).join('');
+      const jcs = CB.jcats().filter(c => c.acc === accId).map(c => `<span class="badge bg-primary-subtle text-primary fw-normal me-1 mb-1" title="Kategori jurnal">${esc(c.name)}</span>`);
+      const cats = Object.keys(CB.CATEGORIES).filter(k => AC.mapOf(k) === accId).map(k => { const c = CB.CATEGORIES[k];
+        return `<span class="badge bg-light text-muted border fw-normal me-1 mb-1 text-wrap text-start" title="Baris Laporan Kas (data tanpa kategori)">${c.kind} · ${esc(c.label)}</span>`; });
+      return jcs.concat(cats).join('');
     }
 
     function accRow(a, lvl) {
-      const o = AC.openingNet(a), bal = (balances[a.id] || 0) * (AC.normalOf(a) === 'D' ? 1 : -1);
+      const r = sum[a.id] || { open: 0, d: 0, k: 0, close: 0 };
       const taxBadge = a.tax ? ` <span class="badge bg-warning-subtle text-warning fw-normal">${a.tax === 'PPN' ? 'PPN' : 'PPh 23'}</span>` : '';
       const actions = a.cashAccountId
         ? `<a href="accounts.html" class="btn-action" title="Kelola di Rekening Perusahaan"><i class="bi bi-bank"></i></a>`
-        : a.system ? '' : editButton({ docType: 'Akun COA', docId: a.code, docLabel: a.name, link: 'coa.html' }, `<button class="btn-action" onclick="openAccount('${a.id}')" title="Ubah"><i class="bi bi-pencil"></i></button>`);
+        : a.system || !canEditCoa ? '' : editButton({ docType: 'Akun COA', docId: a.code, docLabel: a.name, link: 'coa.html' }, `<button class="btn-action" onclick="openAccount('${a.id}')" title="Ubah"><i class="bi bi-pencil"></i></button>`);
+      const cur = a.id === AC.ACC.CURRENT_PL;
       return `<tr class="lvl-${lvl}">
         <td><span class="acc-code">${a.code}</span><a href="general-ledger.html?account=${encodeURIComponent(a.id)}" class="cell-link">${esc(a.name)}</a>${taxBadge}${a.inactive ? ' <span class="text-muted fs-12">(nonaktif)</span>' : ''}${a.system && !a.cashAccountId ? ' <span class="text-muted fs-12">(otomatis)</span>' : ''}</td>
-        <td>${AC.normalOf(a) === 'D' ? 'Debet' : 'Kredit'}</td>
-        <td class="num">${o > 0 ? formatRupiah(o) : ''}</td><td class="num">${o < 0 ? formatRupiah(-o) : ''}</td>
-        <td class="num ${bal < 0 ? 'text-danger' : ''}">${a.id === AC.ACC.CURRENT_PL ? '<span class="fs-12 text-muted">lihat Laba Rugi</span>' : money(bal)}</td>
-        <td class="fs-12">${a.cashAccountId ? '<span class="text-muted">Saldo akun Kas / Bank di Laporan Kas</span>' : catBadges(a.id)}</td>
+        <td class="fs-12">${AC.normalOf(a) === 'D' ? 'Debet' : 'Kredit'}</td>
+        ${cur ? '<td colspan="4" class="fs-12 text-muted text-center">lihat Laba Rugi</td>' : `<td class="num">${money(shown(a, r.open))}</td><td class="num">${money(r.d)}</td><td class="num">${money(r.k)}</td><td class="num fw-600 ${shown(a, r.close) < 0 ? 'text-danger' : ''}">${money(shown(a, r.close))}</td>`}
+        <td class="fs-12">${a.cashAccountId ? '<span class="text-muted">Rekening Kas / Bank</span>' : catBadges(a.id)}</td>
         <td class="text-end text-nowrap">${actions}</td></tr>`;
     }
 
     function renderTree() {
       const q = document.getElementById('searchInput').value.toLowerCase(), type = document.getElementById('typeFilter').value;
       const only = document.getElementById('onlyActive').checked;
-      const show = a => (!type || AC.typeOf(a) === type) && (!q || (a.code + ' ' + a.name).toLowerCase().includes(q)) &&
-        (!only || AC.openingNet(a) || usage[a.id] || balances[a.id]);
+      const has = a => { const r = sum[a.id]; return r && (r.open || r.d || r.k || r.close); };
+      const show = a => (!type || AC.typeOf(a) === type) && (!q || (a.code + ' ' + a.name).toLowerCase().includes(q)) && (!only || has(a));
       const accs = AC.accounts().filter(show);
-      let html = '';
+      let html = '', td = 0, tk = 0;
       Object.keys(AC.TYPES).filter(t => !type || t === type).forEach(t => {
         const groups = AC.GROUPS.filter(g => g.code.charAt(0) === t && !g.parent);
-        // Kelompok bisa bertingkat (mis. 1-1 Aset Lancar → 1-11 Kas & Bank → akun)
+        // Kelompok bertingkat (1-1 Aset Lancar → 1-11 Kas & Bank → akun). Baris kelompok = total saldo akhir
         const groupBlock = (g, lvl) => {
           const kids = AC.GROUPS.filter(c => c.parent === g.code);
-          const body = kids.length ? kids.map(c => groupBlock(c, lvl + 1)).join('') : accs.filter(a => a.group === g.code).map(a => accRow(a, lvl + 1)).join('');
+          const list = kids.length ? [] : accs.filter(a => a.group === g.code);
+          const body = kids.length ? kids.map(c => groupBlock(c, lvl + 1)).join('') : list.map(a => accRow(a, lvl + 1)).join('');
+          if (!body) return '';
+          const members = accs.filter(a => a.group === g.code || AC.GROUPS.some(c => c.parent === g.code && c.code === a.group));
+          const tot = members.reduce((s, a) => s + (a.id === AC.ACC.CURRENT_PL ? 0 : shown(a, (sum[a.id] || {}).close)), 0);
           const link = g.cashBank ? ' <a href="accounts.html" class="fs-12 fw-normal ms-1">kelola di Rekening Perusahaan</a>' : '';
-          return body ? `<tr class="lvl-${lvl} grp"><td colspan="7"><span class="acc-code">${g.code}</span>${esc(g.name)}${link}</td></tr>` + body : '';
+          return `<tr class="lvl-${lvl} grp"><td colspan="5"><span class="acc-code">${g.code}</span>${esc(g.name)}${link}</td><td class="num">${money(tot)}</td><td colspan="2"></td></tr>` + body;
         };
         const blocks = groups.map(g => groupBlock(g, 1)).join('');
-        if (blocks) html += `<tr class="lvl-0"><td colspan="7">${t} · ${AC.TYPES[t].label.toUpperCase()} <span class="fw-normal fs-12 text-muted ms-2">saldo normal ${AC.TYPES[t].normal === 'D' ? 'debet' : 'kredit'} · ${AC.TYPES[t].report === 'NR' ? 'Neraca' : 'Laba Rugi'}</span></td></tr>` + blocks;
+        if (blocks) html += `<tr class="lvl-0"><td colspan="8">${t} · ${AC.TYPES[t].label.toUpperCase()} <span class="fw-normal fs-12 text-muted ms-2">saldo normal ${AC.TYPES[t].normal === 'D' ? 'debet' : 'kredit'} · ${AC.TYPES[t].report === 'NR' ? 'Neraca' : 'Laba Rugi'}</span></td></tr>` + blocks;
       });
-      document.getElementById('treeBody').innerHTML = html || '<tr><td colspan="7" class="text-center text-muted py-4">Tidak ada akun</td></tr>';
-      const tot = accs.reduce((s, a) => { const o = AC.openingNet(a); if (o > 0) s.d += o; else s.k -= o; return s; }, { d: 0, k: 0 });
-      document.getElementById('treeFoot').innerHTML = `<tr><td colspan="2">Total saldo awal${q || type || only ? ' (sesuai filter)' : ''}</td><td class="num">${formatRupiah(tot.d)}</td><td class="num">${formatRupiah(tot.k)}</td>
-        <td colspan="3">${!q && !type && !only ? (tot.d === tot.k ? '<span class="check-badge ok"><i class="bi bi-check2"></i>Seimbang</span>' : `<span class="check-badge bad"><i class="bi bi-x"></i>Selisih ${formatRupiah(tot.d - tot.k)}</span>`) : ''}</td></tr>`;
+      accs.forEach(a => { const r = sum[a.id]; if (r) { td += r.d; tk += r.k; } });
+      document.getElementById('treeBody').innerHTML = html || '<tr><td colspan="8" class="text-center text-muted py-4">Tidak ada akun</td></tr>';
+      document.getElementById('treeFoot').innerHTML = `<tr><td colspan="3">Total mutasi ${AC.monthName(P.m)} ${P.y}${q || type ? ' (sesuai filter)' : ''}</td><td class="num">${formatRupiah(td)}</td><td class="num">${formatRupiah(tk)}</td>
+        <td colspan="3">${!q && !type ? (td === tk ? '<span class="check-badge ok"><i class="bi bi-check2"></i>Debet = Kredit</span>' : `<span class="check-badge bad"><i class="bi bi-x"></i>Selisih ${formatRupiah(td - tk)}</span>`) : ''}</td></tr>`;
+    }
+
+    // ---------- Kategori jurnal ----------
+    function renderJcat() {
+      const stats = {};
+      (MockData.ledger || []).forEach(e => {
+        if (!e.jcat || e.date < P.from || e.date > P.to) return;
+        const s = stats[e.jcat] = stats[e.jcat] || { n: 0, total: 0 };
+        s.n++; s.total += e.reversal ? -e.amount : e.amount;
+      });
+      document.getElementById('jcatBody').innerHTML = [['IN', 'Uang masuk (Debet)'], ['OUT', 'Uang keluar (Kredit)']].map(([t, label]) => {
+        const list = (MockData.journalCategories || []).filter(c => c.type === t);
+        return `<tr class="lvl-0"><td colspan="7" class="fw-600 ${t === 'IN' ? 'text-primary' : 'text-danger'}">${label}</td></tr>` + list.map(c => {
+          const a = AC.account(c.acc), st = stats[c.id] || { n: 0, total: 0 };
+          return `<tr class="${c.active === false ? 'text-muted' : ''}"><td class="fw-600">${esc(c.name)}${c.active === false ? ' <span class="fs-12">(nonaktif)</span>' : ''}</td><td>${t === 'IN' ? 'Masuk' : 'Keluar'}</td>
+            <td>${a ? `<span class="acc-code">${a.code}</span>${esc(a.name)}` : '<span class="text-danger">akun tidak ada</span>'}</td>
+            <td class="fs-12">${esc(CB.categoryLabel((c.cash || {}).Kas))}<div class="text-muted">${esc(CB.categoryLabel((c.cash || {}).Bank))}</div></td>
+            <td class="num">${st.n ? `<a href="finance-ledger.html?jcat=${c.id}&from=${P.from}&to=${P.to}">${st.n}</a>` : '-'}</td><td class="num">${money(st.total)}</td>
+            <td class="text-end">${canEditCoa ? `<button class="btn-action" title="Ubah" onclick="openJcat('${c.id}')"><i class="bi bi-pencil"></i></button>` : ''}</td></tr>`;
+        }).join('');
+      }).join('');
+    }
+    let jcEdit = null;
+    function fillJcCash(sel) {
+      const t = document.getElementById('jcType').value;
+      ['Kas', 'Bank'].forEach(kind => {
+        const el = document.getElementById('jcCash' + kind);
+        el.innerHTML = CB.categoriesFor(kind, t).map(k => `<option value="${k}">${esc(CB.categoryLabel(k))}</option>`).join('');
+        el.value = (sel && sel[kind]) || CB.DEFAULT_CASH[kind + '_' + t];
+      });
+    }
+    function openJcat(id) {
+      jcEdit = id || null;
+      const c = id ? CB.jcat(id) : null;
+      document.getElementById('jcTitle').textContent = c ? 'Ubah Kategori ' + c.name : 'Tambah Kategori Jurnal';
+      document.getElementById('jcName').value = c ? c.name : '';
+      document.getElementById('jcType').value = c ? c.type : 'OUT';
+      document.getElementById('jcAcc').innerHTML = AC.accountOptions(c ? c.acc : '6-9001', { filter: a => !a.cashAccountId });
+      document.getElementById('jcActive').checked = !c || c.active !== false;
+      fillJcCash(c && c.cash);
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('jcatModal')).show();
+    }
+    function submitJcat() {
+      const r = CB.saveJcat({ name: document.getElementById('jcName').value, type: document.getElementById('jcType').value, acc: document.getElementById('jcAcc').value,
+        cashKas: document.getElementById('jcCashKas').value, cashBank: document.getElementById('jcCashBank').value, active: document.getElementById('jcActive').checked }, jcEdit);
+      if (!r.success) { showToast(r.error, 'error'); return; }
+      bootstrap.Modal.getInstance(document.getElementById('jcatModal')).hide();
+      showToast('Kategori ' + r.category.name + ' disimpan', 'success');
+      refresh();
     }
 
     function renderMap() {
@@ -182,7 +387,7 @@
             const c = CB.CATEGORIES[k], cnt = catCount[k] || { all: 0, review: 0 };
             html += `<tr><td></td><td class="ind-1">${esc(c.label)}${AC.GENERIC_CATEGORIES.includes(k) ? ' <span class="badge bg-warning-subtle text-warning fw-normal">campuran</span>' : ''}</td>
               <td>${c.transferOnly ? '<span class="fs-12 text-muted"><i class="bi bi-arrow-left-right me-1"></i>Otomatis: akun Kas / Bank lawan (Pindah Dana)</span>'
-                : `<select class="form-select form-select-sm" onchange="changeMap('${k}', this.value)">${AC.accountOptions(AC.mapOf(k), { empty: '- pilih akun -', filter: a => !a.cashAccountId })}</select>`}</td>
+                : `<select class="form-select form-select-sm" onchange="changeMap('${k}', this.value)" ${canEditCoa ? '' : 'disabled'}>${AC.accountOptions(AC.mapOf(k), { empty: '- pilih akun -', filter: a => !a.cashAccountId })}</select>`}</td>
               <td class="num">${cnt.all || '-'}</td>
               <td class="num">${cnt.review ? `<a href="journal.html?status=review&category=${k}" class="text-warning fw-600">${cnt.review}</a>` : '-'}</td></tr>`;
           });
@@ -198,7 +403,8 @@
       refresh();
     }
 
-    // ---------- Tambah / Ubah ----------
+    // ---------- Tambah / Ubah akun ----------
+    let editId = null;
     function suggestCode() {
       if (editId) return;
       const g = document.getElementById('accGroup').value;
@@ -233,16 +439,17 @@
     }
 
     function exportCSV() {
-      const rows = [['Kode', 'Nama Akun', 'Jenis', 'Kelompok', 'Saldo Normal', 'Saldo Awal Debet', 'Saldo Awal Kredit', 'Akun Pajak', 'Kategori Laporan Kas']];
-      AC.accounts().forEach(a => { const o = AC.openingNet(a), g = AC.group(a.group);
-        rows.push([a.code, a.name, AC.TYPES[AC.typeOf(a)].label, g ? g.name : a.group, AC.normalOf(a) === 'D' ? 'Debet' : 'Kredit', o > 0 ? o : 0, o < 0 ? -o : 0, a.tax || '',
-          Object.keys(CB.CATEGORIES).filter(k => AC.mapOf(k) === a.id).map(k => CB.CATEGORIES[k].label).join('; ')]); });
-      downloadCSV('bagan-akun-coa.csv', rows);
+      const rows = [['Periode', 'Kode', 'Nama Akun', 'Jenis', 'Kelompok', 'Saldo Normal', 'Saldo Awal Bulan', 'Debet', 'Kredit', 'Saldo Akhir Bulan', 'Kategori Jurnal']];
+      AC.accounts().forEach(a => { const g = AC.group(a.group), r = sum[a.id] || { open: 0, d: 0, k: 0, close: 0 };
+        rows.push([`${P.y}-${String(P.m).padStart(2, '0')}`, a.code, a.name, AC.TYPES[AC.typeOf(a)].label, g ? g.name : a.group, AC.normalOf(a) === 'D' ? 'Debet' : 'Kredit',
+          shown(a, r.open), r.d, r.k, shown(a, r.close), CB.jcats().filter(c => c.acc === a.id).map(c => c.name).join('; ')]); });
+      downloadCSV(`coa-${P.y}-${String(P.m).padStart(2, '0')}.csv`, rows);
     }
 
-    function refresh() { computeUsage(); renderKpis(); renderTree(); renderMap(); }
+    function refresh() { compute(); renderKpis(); renderCharts(); renderTree(); renderJcat(); renderMap(); }
     refresh();
     if (getUrlParam('tab') === 'map') switchTab('map');
+    if (getUrlParam('tab') === 'jcat') switchTab('jcat');
   </script>
 </body>
 </html>

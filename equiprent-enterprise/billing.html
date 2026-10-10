@@ -290,7 +290,7 @@
         <td class="text-muted">${i + 1}</td>
         <td class="fw-600 text-nowrap">${l.equipment}</td>
         <td class="text-mono fs-12">${l.sjDelivery}</td>
-        <td class="text-mono fs-12">${l.sjReturn ? `${l.sjReturn}${l.endType === 'LOST' ? ' <span class="badge-status lost">hilang</span>' : ''}` : '<span class="badge-status waiting">belum pulang</span>'}</td>
+        <td class="text-mono fs-12">${l.sjReturn ? `${l.sjReturn}` : '<span class="badge-status waiting">belum pulang</span>'}</td>
         <td class="num">${formatNumber(l.qty)}</td>
         <td class="num">${formatRupiah(l.unitPrice)}</td>
         <td class="text-nowrap">${formatDate(l.start)}</td>

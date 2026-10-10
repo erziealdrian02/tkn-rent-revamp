@@ -28,7 +28,7 @@
             <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Cari alat berat..." id="searchInput" oninput="filterData()"></div>
             <select class="filter-select" id="categoryFilter" onchange="filterData()"><option value="">Semua Kategori</option></select>
             <select class="filter-select" id="branchFilter" onchange="filterData()"><option value="">Semua Gudang</option><option>Balikpapan</option><option>Bekasi</option><option>Cileungsi</option></select>
-            <select class="filter-select" id="statusFilter" onchange="filterData()"><option value="">Semua Status</option><option value="Available">Tersedia</option><option value="Reserved">Dipesan</option><option value="On Rental">Di Sewa</option><option value="Maintenance">Perawatan</option><option value="Damaged">Rusak</option><option value="Lost">Hilang</option></select>
+            <select class="filter-select" id="statusFilter" onchange="filterData()"><option value="">Semua Status</option><option value="Available">Tersedia</option><option value="Reserved">Dipesan</option><option value="On Rental">Di Sewa</option><option value="Maintenance">Perawatan</option><option value="Damaged">Rusak</option><option value="Sold">Terjual</option></select>
           </div></div>
           <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>ID Aset</th><th>Nama Alat</th><th>Kategori</th><th>No. Seri</th><th>Kondisi</th><th>Cabang</th><th>Ketersediaan</th><th>Proyek</th><th>Status</th><th>Aksi</th></tr></thead>
           <tbody id="tableBody"></tbody></table></div>
@@ -111,7 +111,6 @@
                   <option value="Available">Tersedia</option>
                   <option value="Reserved">Dipesan</option>
                   <option value="Maintenance">Perawatan</option>
-                  <option value="Lost">Hilang</option>
                 </select>
               </div>
             </div>

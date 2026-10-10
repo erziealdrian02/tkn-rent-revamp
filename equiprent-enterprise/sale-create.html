@@ -23,9 +23,20 @@
             <div class="er-card mb-4"><div class="er-card-body">
               <div class="row g-3">
                 <div class="col-md-6"><label class="form-label form-label-er">Pelanggan *</label><select class="form-select" id="fCustomer" onchange="onCustomer()"></select></div>
-                <div class="col-md-6"><label class="form-label form-label-er">Proyek <span class="text-muted fw-normal">(opsional)</span></label><select class="form-select" id="fProject"></select></div>
+                <div class="col-md-6"><label class="form-label form-label-er">Proyek <span class="text-muted fw-normal" id="projHint">(opsional)</span></label><select class="form-select" id="fProject" onchange="onProject()"></select></div>
+                <div class="col-12"><label class="form-label form-label-er">Sumber Alat *</label>
+                  <div class="d-flex flex-wrap gap-3">
+                    <label class="d-flex align-items-center gap-2 fs-13"><input type="radio" name="fSource" value="warehouse" class="form-check-input m-0" checked onchange="onSource()"> Stok gudang</label>
+                    <label class="d-flex align-items-center gap-2 fs-13"><input type="radio" name="fSource" value="project" class="form-check-input m-0" onchange="onSource()"> Alat yang ada di lokasi proyek (hilang / dibeli di lokasi)</label>
+                  </div>
+                  <div class="alert alert-success py-2 fs-12 mt-2 mb-0 d-none" id="sourceInfo"><i class="bi bi-info-circle me-1"></i>Alat di proyek <strong>harus dipulangkan dulu</strong> baru bisa dijual:
+                    saat order di-ACC Staff Piutang, sistem otomatis membuat <strong>surat jalan pemulangan (administratif)</strong> dari proyek ke gudang, lalu surat jalan jual dibuat seperti biasa.
+                    Sewa alat tersebut berhenti dihitung di tanggal pemulangan.</div>
+                </div>
+                <div class="col-md-6 d-none" id="reasonWrap"><label class="form-label form-label-er">Alasan *</label>
+                  <select class="form-select" id="fReason"><option>Hilang di lokasi proyek</option><option>Dibeli pelanggan di lokasi</option><option>Rusak berat, dibeli pelanggan</option></select></div>
                 <div class="col-md-4"><label class="form-label form-label-er">Tanggal *</label><input type="date" class="form-control" id="fDate"></div>
-                <div class="col-md-4"><label class="form-label form-label-er">Gudang Asal *</label><select class="form-select" id="fBranch" onchange="renderItems()"></select></div>
+                <div class="col-md-4"><label class="form-label form-label-er" id="branchLabel">Gudang Asal *</label><select class="form-select" id="fBranch" onchange="renderItems()"></select></div>
                 <div class="col-md-4"><label class="form-label form-label-er">PPN</label><select class="form-select" id="fTax" onchange="calc()"><option value="0.11">PPN 11%</option><option value="0">Tanpa PPN</option></select></div>
               </div>
             </div></div>
@@ -68,24 +79,50 @@
     document.getElementById('fCustomer').innerHTML = '<option value="">- Pilih pelanggan -</option>' + MockData.customers.filter(c => c.status === 'Active').map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
     document.getElementById('fBranch').innerHTML = SL.warehouses().map(w => `<option value="${SL.warehouseShort(w)}">${esc(w.name)}</option>`).join('');
     if (getUrlParam('customer')) document.getElementById('fCustomer').value = getUrlParam('customer');
+    if (getUrlParam('source') === 'project') document.querySelector('input[name="fSource"][value="project"]').checked = true;
+    const source = () => document.querySelector('input[name="fSource"]:checked').value;
+    const projectStock = () => { const pid = document.getElementById('fProject').value; return pid ? BizLogic.Sale.projectAvailable(pid) : []; };
 
     function onCustomer() {
       const cid = document.getElementById('fCustomer').value;
       document.getElementById('fProject').innerHTML = '<option value="">- Tanpa proyek -</option>' + MockData.projects.filter(p => p.customerId === cid).map(p => `<option value="${p.id}">${esc(p.id + ' · ' + p.name)}</option>`).join('');
       if (getUrlParam('project')) document.getElementById('fProject').value = getUrlParam('project');
+      onProject(true);
       const box = document.getElementById('creditInfo');
       if (!cid) { box.innerHTML = ''; return; }
       const cs = BizLogic.Customer.summary(cid);
       box.innerHTML = `<div class="alert ${cs.overdue ? 'alert-danger' : 'alert-light border'} py-2 fs-12 mb-0"><strong>Piutang pelanggan:</strong> ${formatRupiah(cs.outstanding)}${cs.overdue ? `<br><strong>${formatRupiah(cs.overdue)} lewat jatuh tempo</strong>` : ''}<br>${cs.projects.length} proyek · ${cs.activeRentals.length} sewa aktif</div>`;
     }
 
+    function onSource() {
+      const fromProject = source() === 'project';
+      ['sourceInfo', 'reasonWrap'].forEach(id => document.getElementById(id).classList.toggle('d-none', !fromProject));
+      document.getElementById('projHint').textContent = fromProject ? '(wajib, tempat alat berada)' : '(opsional)';
+      document.getElementById('branchLabel').textContent = fromProject ? 'Dipulangkan ke Gudang *' : 'Gudang Asal *';
+      document.querySelector('#itemBody') && (rows = rows.filter(r => !fromProject || !r.name || projectStock().some(x => x.name === r.name)), rows.length || rows.push({ name: '', qty: 1, unitPrice: 0 }));
+      onProject(true);
+    }
+    // Gudang tujuan pemulangan default = gudang asal order sewa proyek
+    function onProject(keepRows) {
+      const pid = document.getElementById('fProject').value;
+      if (source() === 'project' && pid) {
+        const rn = MockData.rentals.find(r => r.projectId === pid && r.branch);
+        if (rn) document.getElementById('fBranch').value = String(rn.branch).replace(' Warehouse', '');
+      }
+      if (!keepRows) rows = [{ name: '', qty: 1, unitPrice: 0 }];
+      renderItems();
+    }
+
     function renderItems() {
-      const br = document.getElementById('fBranch').value;
-      document.getElementById('itemBody').innerHTML = rows.map((r, i) => {
-        const avail = r.name ? BizLogic.Stock.getAvailable(r.name, br) : null;
+      const br = document.getElementById('fBranch').value, fromProject = source() === 'project', ps = fromProject ? projectStock() : null;
+      const options = fromProject ? ps.filter(x => x.available > 0).map(x => x.name) : names;
+      document.getElementById('itemBody').innerHTML = (fromProject && !document.getElementById('fProject').value ? '<tr><td colspan="6" class="text-center text-muted py-3">Pilih proyek dulu</td></tr>' : '') +
+        (fromProject && document.getElementById('fProject').value && !options.length ? '<tr><td colspan="6" class="text-center text-muted py-3">Tidak ada alat di lokasi proyek ini yang bisa dijual</td></tr>' : '') +
+        rows.map((r, i) => {
+        const avail = !r.name ? null : fromProject ? ((ps.find(x => x.name === r.name) || {}).available || 0) : BizLogic.Stock.getAvailable(r.name, br);
         return `<tr>
-          <td><select class="form-select form-select-sm" onchange="setRow(${i}, 'name', this.value)"><option value="">- pilih alat -</option>${names.map(n => `<option${n === r.name ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></td>
-          <td class="num ${avail != null && avail < r.qty ? 'text-danger fw-600' : ''}">${avail == null ? '-' : avail}</td>
+          <td><select class="form-select form-select-sm" onchange="setRow(${i}, 'name', this.value)"><option value="">- pilih alat -</option>${options.map(n => `<option${n === r.name ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></td>
+          <td class="num ${avail != null && avail < r.qty ? 'text-danger fw-600' : ''}">${avail == null ? '-' : avail}${avail != null && fromProject ? '<div class="fs-11 text-muted">di proyek</div>' : ''}</td>
           <td><input type="number" min="1" class="form-control form-control-sm" value="${r.qty}" oninput="setRow(${i}, 'qty', this.value, true)"></td>
           <td><input type="number" min="0" class="form-control form-control-sm text-end" value="${r.unitPrice || ''}" oninput="setRow(${i}, 'unitPrice', this.value, true)"></td>
           <td class="num fw-600" id="sub${i}">${formatRupiah(Math.round(r.qty * r.unitPrice))}</td>
@@ -96,6 +133,7 @@
     function setRow(i, k, v, quiet) {
       rows[i][k] = k === 'name' ? v : Number(v) || 0;
       if (k === 'name' && v && !rows[i].unitPrice) rows[i].unitPrice = (SL.defaultRate(v) || 0) * 10; // harga awal = nilai ganti alat
+      if (k === 'name' && v && source() === 'project') { const a = projectStock().find(x => x.name === v); if (a) rows[i].qty = Math.min(rows[i].qty || 1, a.available); }
       if (quiet) { document.getElementById('sub' + i).textContent = formatRupiah(Math.round(rows[i].qty * rows[i].unitPrice)); calc(); }
       else renderItems();
     }
@@ -110,13 +148,14 @@
       const r = BizLogic.Sale.create({
         customerId: document.getElementById('fCustomer').value, projectId: document.getElementById('fProject').value || null,
         branch: document.getElementById('fBranch').value, date: document.getElementById('fDate').value,
-        items: rows, notes: document.getElementById('fNotes').value, taxRate: Number(document.getElementById('fTax').value)
+        items: rows, notes: document.getElementById('fNotes').value, taxRate: Number(document.getElementById('fTax').value),
+        source: source(), sourceReason: source() === 'project' ? document.getElementById('fReason').value : ''
       }, submit);
       if (!r.success) { showToast(r.error, 'error'); return; }
       showToast('Penjualan ' + r.sale.id + (submit ? ' diajukan ke Staff Piutang' : ' disimpan sebagai draft'), 'success');
       setTimeout(() => location.href = 'sale-detail.html?id=' + r.sale.id, 700);
     }
-    onCustomer(); renderItems();
+    onCustomer(); onSource();
   </script>
 </body>
 </html>

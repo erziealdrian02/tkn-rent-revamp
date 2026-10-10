@@ -1,14 +1,16 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Penyewaan - EquipRent Enterprise</title>
+  <title>Rekap Project - EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="assets/css/style.css" rel="stylesheet">
 </head>
+
 <body>
   <div class="app-wrapper">
     <aside class="app-sidebar" id="appSidebar"></aside>
@@ -18,31 +20,49 @@
       <div class="app-content">
         <div class="page-header">
           <div class="page-header-left">
-            <h2 class="page-header-title">Penyewaan</h2>
-            <p class="page-header-subtitle">Kelola transaksi penyewaan alat</p>
+            <h2 class="page-header-title">Rekap Project</h2>
+            <p class="page-header-subtitle">Rekap order sewa per proyek: periode sewa, kebutuhan, pengiriman &amp;
+              kepulangan alat</p>
           </div>
           <div class="page-header-actions">
-            <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i>Ekspor</button>
-            <a href="rental-create.html" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Penyewaan Baru</a>
+            <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i
+                class="bi bi-download me-1"></i>Ekspor</button>
+            <a href="rental-create.html" class="btn btn-primary btn-sm" id="btnNew"><i
+                class="bi bi-plus-lg me-1"></i>Order Sewa Baru</a>
           </div>
         </div>
+
+        <div class="row g-3 mb-4" id="kpis"></div>
 
         <div class="er-card">
           <div class="er-card-body">
             <div class="table-toolbar">
-              <div class="table-toolbar-left">
+              <div class="table-toolbar-left flex-wrap">
                 <div class="table-search">
                   <i class="bi bi-search"></i>
-                  <input type="text" placeholder="Cari penyewaan..." id="searchInput" oninput="filterRentals()">
+                  <input type="text" placeholder="Cari no. rekap, pelanggan, proyek..." id="searchInput"
+                    oninput="filterRentals()">
                 </div>
                 <select class="filter-select" id="statusFilter" onchange="filterRentals()">
                   <option value="">Semua Status</option>
-                  <option value="Draft">Draft</option><option value="Pending Approval">Menunggu Persetujuan</option><option value="Approved">Disetujui</option><option value="Rejected">Ditolak</option>
-                  <option value="Preparing">Mempersiapkan</option><option value="Partially Delivered">Sebagian Dikirim</option><option value="On Rental">Di Sewa</option>
-                  <option value="Partially Returned">Sebagian Kembali</option><option value="Overdue">Terlambat</option><option value="Completed">Selesai</option><option value="Cancelled">Dibatalkan</option>
+                  <option value="Draft">Draft</option>
+                  <option value="Pending Approval">Menunggu ACC</option>
+                  <option value="Approved">Disetujui</option>
+                  <option value="Rejected">Ditolak</option>
+                  <option value="On Progress">On Progress (di jalan)</option>
+                  <option value="Preparing">Mempersiapkan</option>
+                  <option value="Partially Delivered">Sebagian Dikirim</option>
+                  <option value="On Rental">Di Proyek</option>
+                  <option value="Partially Returned">Sebagian Kembali</option>
+                  <option value="Overdue">Terlambat</option>
+                  <option value="Completed">Selesai</option>
+                  <option value="Cancelled">Dibatalkan</option>
                 </select>
                 <select class="filter-select" id="customerFilter" onchange="filterRentals()">
                   <option value="">Semua Pelanggan</option>
+                </select>
+                <select class="filter-select" id="projectFilter" onchange="filterRentals()">
+                  <option value="">Semua Proyek</option>
                 </select>
               </div>
             </div>
@@ -51,14 +71,27 @@
               <table class="er-table">
                 <thead>
                   <tr>
-                    <th>No. Penyewaan</th><th>Pelanggan</th><th>Proyek</th><th>Tgl. Sewa</th>
-                    <th>Tgl. Kembali</th><th>Item</th><th>Pengiriman</th><th>Status</th>
-                    <th>Faktur</th><th>Aksi</th>
+                    <th>No. Rekap</th>
+                    <th>Status</th>
+                    <th>Pelanggan · Proyek</th>
+                    <th>Periode Awal Sewa</th>
+                    <th>Akhir Sewa</th>
+                    <th class="num">Kebutuhan</th>
+                    <th class="num">Terkirim</th>
+                    <th class="num" title="Kebutuhan − Terkirim">Sisa Kebutuhan</th>
+                    <th class="num">Kepulangan</th>
+                    <th class="num">Di Proyek</th>
+                    <th style="min-width:150px">Persentase</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody id="rentalTableBody"></tbody>
               </table>
             </div>
+            <p class="fs-12 text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Kebutuhan = qty alat di order
+              sewa. Terkirim = surat jalan kirim yang sudah diterima di proyek. Sisa Kebutuhan = Kebutuhan − Terkirim (belum dikirim). Kepulangan = alat yang sudah kembali ke
+              gudang.
+              Status <strong>On Progress</strong> = ada surat jalan kirim / pemulangan yang masih di jalan.</p>
             <div class="er-card-footer" id="rentalPagination"></div>
           </div>
         </div>
@@ -72,74 +105,91 @@
   <script src="assets/js/app.js"></script>
   <script src="assets/js/business-logic.js"></script>
   <script>
-    const user = initApp('rentals.html', [{label:'Penyewaan',href:'#'},{label:'Penyewaan'}], 'Penyewaan');
+    const user = initApp('rentals.html', [{ label: 'Pelanggan & Order', href: '#' }, { label: 'Rekap Project' }], 'Rekap Project');
+    const R = BizLogic.Rental;
+    if (!canDo('Rentals', 'Create')) document.getElementById('btnNew').remove();
+    const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 
-    // Populate customer filter
     const custFilter = document.getElementById('customerFilter');
-    const uniqueCustomers = [...new Set(MockData.rentals.map(r => r.customerName))];
-    uniqueCustomers.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; custFilter.appendChild(o); });
+    [...new Set(MockData.rentals.map(r => r.customerName))].forEach(c => custFilter.insertAdjacentHTML('beforeend', `<option>${esc(c)}</option>`));
+    const projFilter = document.getElementById('projectFilter');
+    [...new Map(MockData.rentals.map(r => [r.projectId, r.projectName])).entries()].forEach(([id, n]) => projFilter.insertAdjacentHTML('beforeend', `<option value="${id}">${esc(n)}</option>`));
+    if (getUrlParam('project')) projFilter.value = getUrlParam('project');
 
     let currentPage = 1;
     const pageSize = 10;
-
     function filterRentals() { currentPage = 1; renderRentals(); }
-
     function changePage(p) { currentPage = p; renderRentals(); }
 
-    function renderRentals() {
+    const bar = (pct, cls) => `<div class="progress-thin flex-grow-1"><span class="${cls || (pct >= 100 ? 'done' : '')}" style="width:${pct}%"></span></div>`;
+    const rows = () => MockData.rentals.map(r => ({ r, rc: R.recap(r), status: R.displayStatus(r) }));
+
+    function renderKpis() {
+      const all = rows().filter(x => !['Cancelled', 'Rejected', 'Draft'].includes(x.r.status));
+      const sum = k => all.reduce((s, x) => s + x.rc.total[k], 0);
+      const need = sum('need'), sent = sum('sent'), back = sum('back');
+      document.getElementById('kpis').innerHTML = [
+        ['blue', 'bi-list-check', 'Kebutuhan Alat (unit)', formatNumber(need), ''],
+        ['purple', 'bi-truck', 'Terkirim', formatNumber(sent), need ? Math.round(sent / need * 100) + '% dari kebutuhan' : ''],
+        ['teal', 'bi-box-arrow-in-left', 'Kepulangan', formatNumber(back), sent ? Math.round(back / sent * 100) + '% dari terkirim' : ''],
+        ['orange', 'bi-signpost-split', 'On Progress (di jalan)', all.filter(x => x.status === 'On Progress').length + ' rekap', 'klik untuk filter']
+      ].map(([c, i, l, v, sub], n) => `<div class="col-6 col-lg-3"><div class="kpi-card h-100" ${n === 3 ? 'role="button" onclick="pickProgress()"' : ''}><div class="kpi-icon ${c}"><i class="bi ${i}"></i></div>
+        <div class="kpi-content"><div class="kpi-value">${v}</div><div class="kpi-label">${l}</div>${sub ? `<div class="fs-11 text-muted mt-1">${sub}</div>` : ''}</div></div></div>`).join('');
+    }
+    function pickProgress() { document.getElementById('statusFilter').value = 'On Progress'; filterRentals(); }
+
+    function filtered() {
       const search = document.getElementById('searchInput').value.toLowerCase();
       const status = document.getElementById('statusFilter').value;
-      const customer = document.getElementById('customerFilter').value;
-
-      let data = MockData.rentals.filter(r => {
-        if (search && !r.id.toLowerCase().includes(search) && !r.customerName.toLowerCase().includes(search) && !r.projectName.toLowerCase().includes(search)) return false;
+      const customer = document.getElementById('customerFilter').value, project = projFilter.value;
+      return rows().filter(({ r, status: st }) => {
+        if (search && !`${r.id} ${r.customerName} ${r.projectName}`.toLowerCase().includes(search)) return false;
         if (status) {
-          if (status === 'Overdue') {
-            if (!BizLogic.Rental.isOverdue(r)) return false;
-          } else if (status === 'Pending Approval' && r.status === 'Waiting Approval') {
-            // legacy compat
-          } else if (r.status !== status) return false;
+          if (status === 'Pending Approval') { if (!['Pending Approval', 'Waiting Approval'].includes(r.status)) return false; }
+          else if (status === 'On Progress' || status === 'Overdue') { if (st !== status) return false; }
+          else if (r.status !== status) return false;
         }
         if (customer && r.customerName !== customer) return false;
+        if (project && r.projectId !== project) return false;
         return true;
       });
-
-      const total = data.length;
-      const paged = data.slice((currentPage-1)*pageSize, currentPage*pageSize);
-
-      document.getElementById('rentalTableBody').innerHTML = paged.length ? paged.map(r => {
-        const isOverdue = BizLogic.Rental.isOverdue(r);
-        const overdueDays = BizLogic.Rental.getOverdueDays(r);
-        const displayStatus = isOverdue ? 'Overdue' : r.status;
-        return `<tr${isOverdue ? ' class="table-danger"' : ''}>
-          <td><a href="rental-detail.html?id=${r.id}" class="cell-link text-mono">${r.id}</a></td>
-          <td>${r.customerName}</td>
-          <td><a href="project-detail.html?id=${r.projectId}" class="cell-link">${r.projectName}</a></td>
-          <td>${formatDate(r.rentalDate)}</td>
-          <td>${formatDate(r.returnDate)}${isOverdue ? ' <span class="badge bg-danger ms-1">' + overdueDays + 'd</span>' : ''}</td>
-          <td><span class="badge bg-light text-dark border">${r.items ? r.items.length : r.totalItems}</span></td>
-          <td>${statusBadge(r.deliveryStatus)}</td>
-          <td>${statusBadge(displayStatus)}</td>
-          <td>${statusBadge(r.invoiceStatus)}</td>
-          <td>
-            <a href="rental-detail.html?id=${r.id}" class="btn-action" title="View"><i class="bi bi-eye"></i></a>
-          </td>
-        </tr>`;
-      }).join('') : '<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada penyewaan ditemukan</td></tr>';
-
-      document.getElementById('rentalPagination').innerHTML = renderPagination(total, currentPage, pageSize, 'changePage');
     }
 
+    function renderRentals() {
+      const data = filtered();
+      const paged = data.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+      document.getElementById('rentalTableBody').innerHTML = paged.length ? paged.map(({ r, rc, status }) => {
+        const t = rc.total, overdue = status === 'Overdue';
+        return `<tr${overdue ? ' class="table-danger"' : ''}>
+          <td><a href="rental-detail.html?id=${r.id}" class="cell-link text-mono">${r.id}</a></td>
+          <td>${statusBadge(status)}</td>
+          <td><div>${esc(r.customerName)}</div><a href="project-detail.html?id=${r.projectId}" class="fs-12 cell-link">${esc(r.projectName)}</a></td>
+          <td class="text-nowrap">${formatDate(r.rentalDate)}</td>
+          <td class="text-nowrap">${formatDate(r.returnDate)}${overdue ? ` <span class="badge bg-danger ms-1">${R.getOverdueDays(r)} hr</span>` : ''}</td>
+          <td class="num fw-600">${formatNumber(t.need)}</td>
+          <td class="num">${formatNumber(t.sent)}${t.goingOut ? `<div class="fs-11 text-warning" title="Sedang dikirim">+${t.goingOut} di jalan</div>` : ''}</td>
+          <td class="num ${t.need - t.sent > 0 ? 'qty-warn' : 'zero'}">${formatNumber(Math.max(0, t.need - t.sent))}</td>
+          <td class="num">${formatNumber(t.back)}${t.goingBack ? `<div class="fs-11 text-warning" title="Sedang dipulangkan">+${t.goingBack} di jalan</div>` : ''}</td>
+          <td class="num ${t.onSite ? 'col-strong' : 'zero'}">${formatNumber(t.onSite)}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2" title="Terkirim / kebutuhan">${bar(t.pctSent)}<span class="fs-11 text-muted text-nowrap" style="width:62px">Kirim ${t.pctSent}%</span></div>
+            <div class="d-flex align-items-center gap-2 mt-1" title="Kepulangan / terkirim">${bar(t.pctBack, 'back')}<span class="fs-11 text-muted text-nowrap" style="width:62px">Pulang ${t.pctBack}%</span></div>
+          </td>
+          <td><a href="rental-detail.html?id=${r.id}" class="btn-action" title="Lihat rekap"><i class="bi bi-eye"></i></a></td>
+        </tr>`;
+      }).join('') : '<tr><td colspan="12" class="text-center text-muted py-4">Tidak ada rekap project ditemukan</td></tr>';
+      document.getElementById('rentalPagination').innerHTML = renderPagination(data.length, currentPage, pageSize, 'changePage');
+    }
+
+    function exportCSV() {
+      const out = [['No. Rekap', 'Pelanggan', 'Proyek', 'Periode Awal Sewa', 'Akhir Sewa', 'Alat', 'Kebutuhan', 'Terkirim', 'Sisa Kebutuhan', 'Kepulangan', 'Di Proyek', '% Terkirim', '% Kepulangan', 'Status']];
+      filtered().forEach(({ r, rc, status }) => rc.rows.forEach(x => out.push([r.id, r.customerName, r.projectName, r.rentalDate, r.returnDate, x.name, x.need, x.sent, Math.max(0, x.need - x.sent), x.back, x.onSite, x.pctSent, x.pctBack, status])));
+      downloadCSV('rekap-project-' + new Date().toISOString().split('T')[0] + '.csv', out);
+    }
+
+    renderKpis();
     renderRentals();
   </script>
 </body>
+
 </html>
-
-
-
-
-
-
-
-
-

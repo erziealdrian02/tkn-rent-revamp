@@ -33,7 +33,7 @@
     if (!clm) { location.replace('claims.html'); throw new Error('Klaim tidak ditemukan: ' + cid); }
     const editable = ['Draft', 'Pending Customer Confirmation', 'Waiting Customer Confirmation', 'Disputed'].includes(clm.status);
 
-    initApp('claims.html',[{label:'Penyewaan',href:'#'},{label:'Claims',href:'claims.html'},{label:clm.id}],clm.id);
+    initApp('claims.html',[{label:'Pelanggan & Order',href:'#'},{label:'Claims',href:'claims.html'},{label:clm.id}],clm.id);
 
     document.getElementById('detailHeader').innerHTML = `
       <div class="detail-header-left">
@@ -71,7 +71,7 @@
             <div class="info-item"><span class="info-label">Proyek</span><span class="info-value">${clm.projectId ? `<a href="project-detail.html?id=${clm.projectId}">${clm.projectName}</a>` : '-'}</span></div>
             <div class="info-item"><span class="info-label">Equipment</span><span class="info-value fw-600">${clm.equipment}</span></div>
             <div class="info-item"><span class="info-label">Alasan</span><span class="info-value">${clm.reason || '-'}</span></div>
-            <div class="info-item"><span class="info-label">Qty Rusak / Hilang</span><span class="info-value">${clm.quantity}</span></div>
+            <div class="info-item"><span class="info-label">Qty Rusak</span><span class="info-value">${clm.quantity}</span></div>
             <div class="info-item"><span class="info-label">Claim Amount</span><span class="info-value text-danger fw-700">${formatRupiah(clm.claimAmount)}</span></div>
             ${clm.invoiceId ? `<div class="info-item"><span class="info-label">Generated Invoice</span><span class="info-value"><a href="invoice-detail.html?id=${clm.invoiceId}">${clm.invoiceId}</a> ${(() => { const inv = MockData.invoices.find(i => i.id === clm.invoiceId); return inv ? invoiceStatusBadge(BizLogic.Invoice.statusOf(inv)) : ''; })()}</span></div>` : ''}
             ${clm.paidDate ? `<div class="info-item"><span class="info-label">Lunas</span><span class="info-value">${formatDate(clm.paidDate)}</span></div>` : ''}

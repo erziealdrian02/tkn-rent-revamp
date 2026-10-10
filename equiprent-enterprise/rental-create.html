@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Rental - EquipRent Enterprise</title>
+  <title>Order Sewa Baru - EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -18,41 +18,41 @@
       <div class="app-content">
         <div class="page-header">
           <div class="page-header-left">
-            <h2 class="page-header-title">Create New Rental</h2>
-            <p class="page-header-subtitle">Add a new equipment rental transaction</p>
+            <h2 class="page-header-title">Order Sewa Baru</h2>
+            <p class="page-header-subtitle">Order sewa masuk ke Rekap Project setelah di-ACC Staff Piutang</p>
           </div>
         </div>
 
         <!-- Section 1: Rental Information -->
         <div class="form-section">
-          <h5 class="form-section-title"><i class="bi bi-info-circle me-2"></i>Rental Information</h5>
+          <h5 class="form-section-title"><i class="bi bi-info-circle me-2"></i>Informasi Order Sewa</h5>
           <div class="row g-3">
             <div class="col-md-4">
-              <label class="form-label form-label-er">Rental Number</label>
+              <label class="form-label form-label-er">No. Rekap</label>
               <input type="text" class="form-control" id="rentalId" readonly>
             </div>
             <div class="col-md-4">
-              <label class="form-label form-label-er">Customer *</label>
+              <label class="form-label form-label-er">Pelanggan *</label>
               <select class="form-select" id="customerSelect" onchange="updateProjects()">
                 <option value="">Select Customer</option>
               </select>
             </div>
             <div class="col-md-4">
-              <label class="form-label form-label-er">Project *</label>
+              <label class="form-label form-label-er">Proyek *</label>
               <select class="form-select" id="projectSelect">
                 <option value="">Select Project</option>
               </select>
             </div>
             <div class="col-md-3">
-              <label class="form-label form-label-er">Rental Start Date *</label>
+              <label class="form-label form-label-er">Periode Awal Sewa *</label>
               <input type="date" class="form-control" id="startDate" value="2026-09-05">
             </div>
             <div class="col-md-3">
-              <label class="form-label form-label-er">Expected Return Date *</label>
+              <label class="form-label form-label-er">Akhir Sewa *</label>
               <input type="date" class="form-control" id="endDate" value="2026-12-05">
             </div>
             <div class="col-md-3">
-              <label class="form-label form-label-er">Branch *</label>
+              <label class="form-label form-label-er">Gudang *</label>
               <select class="form-select" id="branchSelect">
                 <option>Cileungsi Warehouse</option>
                 <option>Bekasi Warehouse</option>
@@ -60,11 +60,11 @@
               </select>
             </div>
             <div class="col-md-3">
-              <label class="form-label form-label-er">Duration (months)</label>
+              <label class="form-label form-label-er">Durasi (bulan)</label>
               <input type="number" class="form-control" value="3" id="durationInput">
             </div>
             <div class="col-12">
-              <label class="form-label form-label-er">Notes</label>
+              <label class="form-label form-label-er">Catatan</label>
               <textarea class="form-control" rows="2" placeholder="Additional notes..." id="notesArea"></textarea>
             </div>
           </div>
@@ -73,18 +73,18 @@
         <!-- Section 2: Equipment Items -->
         <div class="form-section">
           <h5 class="form-section-title">
-            <i class="bi bi-tools me-2"></i>Equipment Items
+            <i class="bi bi-tools me-2"></i>Kebutuhan Alat
             <button class="btn btn-primary btn-sm float-end" onclick="addEquipmentRow()"><i class="bi bi-plus-lg me-1"></i>Tambah Alat Berat</button>
           </h5>
           <div class="er-table-wrapper">
             <table class="er-table" id="equipmentTable">
               <thead>
                 <tr>
-                  <th style="width:25%">Equipment</th>
+                  <th style="width:25%">Alat</th>
                   <th>Tersedia</th>
-                  <th style="width:80px">Qty</th>
-                  <th style="width:140px">Rate / Month</th>
-                  <th style="width:80px">Duration</th>
+                  <th style="width:90px">Kebutuhan</th>
+                  <th style="width:140px">Tarif / Bulan</th>
+                  <th style="width:80px">Durasi</th>
                   <th style="width:140px">Subtotal</th>
                   <th style="width:60px"></th>
                 </tr>
@@ -139,7 +139,7 @@
           <h5 class="form-section-title"><i class="bi bi-check2-square me-2"></i>Approval Status</h5>
           <div class="d-flex align-items-center gap-3">
             <span class="badge-status draft">Draft</span>
-            <span class="text-muted fs-12">This rental will need manager approval before delivery</span>
+            <span class="text-muted fs-12">Order sewa perlu di-ACC Staff Piutang sebelum surat jalan dibuat</span>
           </div>
         </div>
 
@@ -147,8 +147,8 @@
         <div class="d-flex justify-content-between align-items-center mt-3">
           <a href="rentals.html" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
           <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary" onclick="submitRental(true)"><i class="bi bi-save me-1"></i>Save Draft</button>
-            <button class="btn btn-primary" onclick="submitRental(false)"><i class="bi bi-send me-1"></i>Submit for Approval</button>
+            <button class="btn btn-outline-secondary" onclick="submitRental(true)"><i class="bi bi-save me-1"></i>Simpan Draft</button>
+            <button class="btn btn-primary" onclick="submitRental(false)"><i class="bi bi-send me-1"></i>Ajukan ACC</button>
           </div>
         </div>
 
@@ -162,7 +162,7 @@
   <script src="assets/js/app.js"></script>
   <script src="assets/js/business-logic.js"></script>
   <script>
-    const user = initApp('rentals.html', [{label:'Penyewaan',href:'#'},{label:'Penyewaan',href:'rentals.html'},{label:'Create'}], 'Create Rental');
+    const user = initApp('rentals.html', [{label:'Pelanggan & Order',href:'#'},{label:'Rekap Project',href:'rentals.html'},{label:'Order Sewa Baru'}], 'Order Sewa Baru');
 
     document.getElementById('rentalId').value = MockData.generateId('RNT', 'rentals');
 

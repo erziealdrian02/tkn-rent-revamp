@@ -4,6 +4,11 @@ Dokumen ini menjelaskan alur aplikasi dari awal sampai akhir: halaman yang dibuk
 
 Semua isi diambil dari kode prototype saat ini (`*.html` + `assets/js/business-logic.js`), bukan rencana.
 
+> **Update catatan user (Okt 2026, batch 3)** — lihat [bagian 13](#13-rekap-project-jual-alat-di-proyek--kasir--jurnal--coa):
+> menu **Penyewaan** sekarang bernama **Rekap Project**; PIC pelanggan jadi **PM**; fitur **Hilang** dihapus
+> (alat hilang dipulangkan administratif lalu dijual); Buku Kas jadi form **kasir** → **Generate** (Accounting) → Jurnal → **COA per bulan** dengan pie chart.
+> Diagram lama di bagian 2–4 & 9 masih memakai istilah lama; aturan di bagian 13 yang berlaku.
+
 ## Cara melihat diagram
 
 1. Buka **https://sequencediagram.org**
@@ -37,6 +42,7 @@ Cara baca diagram:
 | 10 | [Akuntansi & Pajak](#10-akuntansi--pajak) | COA, jurnal Laporan Kas, buku besar, kertas kerja, penyesuaian, laba rugi, neraca, PPN & PPh 23 (XML Coretax) |
 | 11 | [Role, ACC Piutang, Penjualan, Ekspedisi & Permintaan Perubahan](#11-role-acc-piutang-penjualan-ekspedisi--permintaan-perubahan) | Alur terbaru dari catatan user Okt 2026 |
 | 12 | [Purchasing](#12-purchasing-purchase-request-purchase-order-pembayaran-laporan) | Purchase Request, Purchase Order (term & tax), uang muka / pelunasan / tempo, laporan pembelian & hutang dagang |
+| 13 | [Rekap Project, Jual Alat di Proyek & Kasir → Jurnal → COA](#13-rekap-project-jual-alat-di-proyek--kasir--jurnal--coa) | Catatan user batch 3: rekap per proyek + persentase, hapus Hilang, kasir, generate, kategori jurnal, COA bulanan |
 
 ---
 
@@ -930,6 +936,76 @@ Finance->Sys:Laporan Hutang Dagang (umur hutang) · Laporan Pembelian
 
 ---
 
+## 13. Rekap Project, Jual Alat di Proyek & Kasir → Jurnal → COA
+
+Dari catatan user (Okt 2026, batch 3).
+
+### A. Rekap Project (dulu "Penyewaan")
+
+| Catatan user | Di prototype |
+|---|---|
+| PIC di pelanggan ganti PM | Label **PM (Project Manager)** di form & detail pelanggan, proyek, invoice (field data tetap `pic`) |
+| Penyewaan ganti jadi Rekap Project | Menu `rentals.html` = **Rekap Project**. Tombol buat = **Order Sewa Baru** (tetap di-ACC Staff Piutang) |
+| Periode awal & akhir sewa, kebutuhan & kepulangan | Kolom **Periode Awal Sewa**, **Akhir Sewa**, **Kebutuhan**, **Terkirim**, **Kepulangan**, **Di Proyek** di daftar & detail |
+| Persentase di detail | **% Terkirim** = terkirim ÷ kebutuhan, **% Kepulangan** = kepulangan ÷ terkirim (per alat & total, dengan progress bar) |
+| On Progress kalau masih di jalan | Status **On Progress** selama ada surat jalan kirim / pemulangan berstatus Departed / Arrived |
+| Proyek ditambah pengiriman & pemulangan | Detail proyek: tombol **Pengiriman (SJ Kirim)** & **Pemulangan (SJ Pulang)** (pilih rekap), tab **Pengiriman** & **Pemulangan**, ringkasan % |
+
+Kepulangan menghitung alat yang sudah tiba di gudang (termasuk yang masih menunggu inspeksi).
+
+### B. Jual alat yang ada di proyek (hapus fitur Hilang)
+
+- Inspeksi pengembalian hanya **Baik / Rusak**. Kalau ada alat yang tidak ikut kembali, qty pemulangan dikurangi otomatis dan sisanya tetap tercatat di proyek.
+- Alat hilang / dibeli pelanggan di lokasi: **Penjualan → Sumber Alat: lokasi proyek** (tombol **Jual Alat di Proyek** di Rekap Project / Proyek / Inspeksi).
+- Aturan "harus dipulangin dulu baru bisa dijual": saat order jual di-ACC Staff Piutang, sistem membuat **Surat Jalan Pemulangan (administratif)** proyek → gudang (SJR), mencatat kepulangan di Rekap Project (sewa berhenti dihitung), lalu stok dipesan untuk **Surat Jalan Jual** seperti biasa.
+- Klaim sekarang hanya untuk **alat rusak**. Dokumen stok HL (Hilang) tidak dipakai lagi; data contoh lama sudah dikonversi (SO-003, SJR-2608-003, PJ-2608-001, INV-005 jadi invoice Jual).
+
+### C. Kasir → Generate → Jurnal → COA
+
+| Catatan user | Di prototype |
+|---|---|
+| Muaranya dari kasir, form: tanggal, proyek, kode transaksi dari rekening, notes, cash / debit, nominal debet / kredit | **Buku Kas & Bank → Input Transaksi Kas**. Kode transaksi otomatis `KODE REKENING-BB/BM-YYMM-NNN` (mis. `KAS-BM-2610-001`). Kode rekening diisi di Rekening Perusahaan |
+| Jurnal ada kategori (pakan hewan, ATK, dll.) | Master **Kategori Jurnal** (COA → tab Kategori Jurnal). Kategori menentukan **akun COA** di jurnal dan **baris Laporan Kas** |
+| Kas bisa koreksi atau tambah sendiri | Belum di-generate → **Ubah / Hapus** langsung. Sudah masuk jurnal → **Koreksi** (bon pembalik + transaksi pengganti, jejak tetap ada) |
+| Laporan kas masuk accounting setelah di-generate, lalu ke COA | **Laporan Kas → Generate ke Jurnal** (Accounting). Sebelum generate, transaksi kasir belum masuk Jurnal / Buku Besar / COA |
+| Finance langsung masuk jurnal | Input oleh role **Finance** / **Accounting & Tax** langsung berstatus *Masuk jurnal* |
+| COA periode per bulan, total semua, pie chart | **COA**: pilih bulan & tahun → saldo awal bulan, debet, kredit, saldo akhir per akun & kelompok, tabel total per jenis akun, pie **biaya per kelompok akun** & **biaya per kategori jurnal** |
+
+Kasir = role **Administrasi** (hak akses Rekening/Kas: lihat & input).
+
+```
+title 13 - Kasir → Generate → Jurnal → COA
+
+actor "Kasir (Administrasi)" as Kasir
+actor Finance
+actor Accounting
+participant "Buku Kas & Bank" as Kas
+participant "Laporan Kas" as LK
+participant "Jurnal → Buku Besar" as J
+participant "COA (per bulan)" as COA
+
+Kasir->Kas:"Input Transaksi Kas"
+tanggal, rekening (kode otomatis), proyek,
+kategori, cash/debit, debet ATAU kredit, notes
+Kas-->Kasir:status **Menunggu generate** (saldo kas langsung berubah)
+opt salah input
+  Kasir->Kas:"Ubah" / "Hapus" (selama belum di-generate)
+end
+Finance->Kas:"Input Transaksi Kas"
+Kas->J:langsung **Masuk jurnal**
+Accounting->LK:cek Laporan Kas → "Generate N transaksi"
+LK->J:transaksi kasir **Masuk jurnal** (batch GEN-YYMM-NNN)
+akun lawan = akun dari kategori jurnal
+J->COA:saldo awal bulan, debet, kredit, saldo akhir
++ total per jenis akun + pie chart
+opt koreksi setelah masuk jurnal
+  Kasir->Kas:"Koreksi" + alasan
+  Kas->J:bon pembalik + transaksi pengganti
+end
+```
+
+---
+
 ## Lampiran A - Peta Menu Sidebar
 
 | Grup | Menu | File |
@@ -937,7 +1013,7 @@ Finance->Sys:Laporan Hutang Dagang (umur hutang) · Laporan Pembelian
 | - | Dasbor | `dashboard.html` |
 | PELANGGAN & ORDER | Pelanggan (master) | `customers.html`, `customer-detail.html` |
 | | Proyek | `projects.html`, `project-create.html`, `project-detail.html` |
-| | Penyewaan | `rentals.html`, `rental-create.html`, `rental-detail.html` |
+| | Rekap Project (order sewa) | `rentals.html`, `rental-create.html`, `rental-detail.html` |
 | | Penjualan | `sales.html`, `sale-create.html`, `sale-detail.html` |
 | | Klaim | `claims.html`, `claim-detail.html` |
 | PIUTANG | Persetujuan Order | `approvals.html` |
@@ -983,7 +1059,7 @@ Finance->Sys:Laporan Hutang Dagang (umur hutang) · Laporan Pembelian
 
 | Dokumen | Urutan status |
 |---|---|
-| Penyewaan | Draft → Pending Approval → Approved → Preparing → Partially Delivered → On Rental → Partially Returned → Completed. Cabang: Rejected (→ Resubmit), Cancelled. Overdue tampil otomatis. |
+| Rekap Project (order sewa) | Draft → Pending Approval → Approved → Preparing → Partially Delivered → On Rental → Partially Returned → Completed. Cabang: Rejected (→ Resubmit), Cancelled. **On Progress** (ada SJ di jalan) & Overdue tampil otomatis. |
 | Pengiriman (DLV) | Preparing / Assigned → Departed → Arrived → Completed. Cabang: Departed → Failed → Rescheduled |
 | Pengembalian (RET) | Inspection → Completed |
 | Klaim | Draft → Pending Customer Confirmation → Approved → Invoiced → Paid (otomatis saat invoice lunas) → Closed. Cabang: Disputed → (Force Approve) Approved / Closed |
@@ -991,7 +1067,7 @@ Finance->Sys:Laporan Hutang Dagang (umur hutang) · Laporan Pembelian
 | Perawatan (MT) | In Progress → Completed |
 | Invoice | Bayangan → Belum Dibayar → Dibayar Sebagian → Lunas. Jatuh Tempo tampil otomatis. Cabang: Dibatalkan |
 | Pembelian (PO) | Draft / Requested → Approved → Ordered → (In Transit → Arrived) → Partially Received → Received → Completed. Cabang: Cancelled (sebelum ada barang diterima) |
-| Transaksi Kas / Bank | Belum direkonsiliasi → Sudah direkonsiliasi ✓ (terkunci, tidak bisa dihapus). Khusus akun Bank |
+| Transaksi Kas / Bank | Menunggu generate (input kasir) → Masuk jurnal (generate Accounting / input Finance). Koreksi: bon pembalik + pengganti. Rekonsiliasi ✓ khusus akun Bank |
 | Rekonsiliasi Bank (REK) | Cocok (selisih 0) / Ada Selisih |
 
 ## Lampiran C - Kode Dokumen Stok
@@ -1004,8 +1080,7 @@ Finance->Sys:Laporan Hutang Dagang (umur hutang) · Laporan Pembelian
 | LB | Kelebihan Alat (selisih lebih) | + stok gudang |
 | TG | Transit Antar Gudang | − gudang asal, + gudang tujuan |
 | SJK | Surat Jalan Kirim | gudang → proyek (**mulai sewa**) |
-| SJR | Surat Jalan Pulang | proyek → gudang (**berhenti sewa**) |
-| HL | Hilang di Proyek | − stok proyek (**berhenti sewa**) |
+| SJR | Surat Jalan Pulang | proyek → gudang (**berhenti sewa**). Juga dibuat otomatis (administratif) sebelum alat di proyek dijual |
 | AF | Afkir | − stok gudang rusak |
 | PJ | Penjualan ke Customer | − stok gudang |
 
@@ -1020,7 +1095,9 @@ Finance->Sys:Laporan Hutang Dagang (umur hutang) · Laporan Pembelian
 | REK | Rekonsiliasi Bank | "Simpan Rekonsiliasi" |
 | JP | Jurnal Penyesuaian | "Tambah Jurnal Penyesuaian" (`JP-YYMM-NNN`); `JP-STOK` = penyesuaian persediaan otomatis |
 
-Format nomor bon: `BB-YYMM-NNN` / `BM-YYMM-NNN`, urut per bulan.
+Format kode transaksi baru: `KODE REKENING-BB-YYMM-NNN` / `KODE REKENING-BM-YYMM-NNN` (mis. `KAS-BM-2610-001`), urut per rekening per bulan. Data lama tetap `BB-YYMM-NNN` / `BM-YYMM-NNN`.
+
+| GEN | Batch generate Laporan Kas ke jurnal | "Generate" di Laporan Kas (Accounting) |
 
 ## Lampiran D - Batasan Prototype
 
@@ -1032,7 +1109,8 @@ Ini bukan bagian dari flow. Bug yang ditemukan saat memetakan flow sudah diperba
 - Bon Merah ditolak kalau saldo akun tidak cukup.
 - Bon yang berasal dari pembayaran invoice tidak bisa dihapus dari Buku Kas & Bank, dan pembayaran invoice belum bisa dibatalkan.
 - Rekonsiliasi hanya melihat transaksi **di dalam periode** yang dipilih. Transaksi periode sebelumnya yang belum cocok tidak ikut terbawa.
-- Nilai klaim default dihitung dari harga sewa (hilang = ×10, rusak = 30% dari itu), belum dari harga beli alat. Nilainya bisa diubah di detail klaim.
+- Nilai klaim (alat rusak) default = 30% × harga sewa/bulan × 10, belum dari harga beli alat. Nilainya bisa diubah di detail klaim.
+- Generate Laporan Kas memproses semua transaksi kasir sampai tanggal akhir periode yang dipilih (belum bisa pilih per transaksi).
 
 **Akuntansi & pajak**
 - Pembelian diakui saat barang diterima (dokumen PB), dinilai harga PO + PPN Masukan 11% (produksi internal tanpa PPN). Nilai persediaan memakai harga PO terakhir per alat.

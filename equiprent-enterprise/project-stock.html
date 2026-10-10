@@ -79,10 +79,10 @@
 
     function totals(summary) {
       return summary.reduce((t, r) => {
-        t.required += r.required; t.delivered += r.delivered; t.returned += r.returned; t.lost += r.lost; t.onSite += r.onSite;
+        t.required += r.required; t.delivered += r.delivered; t.returned += r.returned; t.onSite += r.onSite;
         t.remaining += Math.max(r.remaining, 0); t.value += r.required * r.unitPrice;
         return t;
-      }, { required: 0, delivered: 0, returned: 0, lost: 0, onSite: 0, remaining: 0, value: 0 });
+      }, { required: 0, delivered: 0, returned: 0, onSite: 0, remaining: 0, value: 0 });
     }
 
     function pct(a, b) { return b ? Math.min(100, Math.round(a / b * 100)) : 0; }
@@ -135,7 +135,6 @@
       const t = totals(summary);
       const deliveries = L.projectDocs(p.id, 'DELIVERY');
       const returns = L.projectDocs(p.id, 'RETURN');
-      const losts = L.projectDocs(p.id, 'LOST');
       const closed = ['Completed', 'Cancelled'].includes(p.status);
 
       el.innerHTML = `
@@ -171,7 +170,7 @@
               <thead><tr>
                 <th>No</th><th>Nama Alat</th><th class="num">Harga Satuan</th>
                 <th class="num">A. Kebutuhan</th><th class="num">B. Terkirim</th><th class="num">C. Sisa (A−B)</th>
-                <th class="num">D. Dipulangkan</th><th class="num">Hilang</th><th class="num">Di Lokasi</th><th>Progress Kirim</th>
+                <th class="num">D. Dipulangkan</th><th class="num">Di Lokasi</th><th>Progress Kirim</th><th>Progress Pulang</th>
               </tr></thead>
               <tbody>${summary.map((r, i) => {
                 const prog = pct(r.delivered, r.required);
@@ -183,15 +182,16 @@
                   <td class="num">${r.unitPrice ? formatRupiah(r.unitPrice) : '-'}</td>
                   ${num(r.required, 'fw-600')}${num(r.delivered)}
                   <td class="num ${remainCls}">${remainText}</td>
-                  ${num(r.returned)}${num(r.lost, r.lost ? 'qty-minus' : '')}${num(r.onSite, 'col-strong')}
+                  ${num(r.returned)}${num(r.onSite, 'col-strong')}
                   <td><div class="d-flex align-items-center gap-2"><div class="progress-thin flex-grow-1"><span class="${prog >= 100 ? 'done' : ''}" style="width:${prog}%"></span></div><span class="fs-11 text-muted">${prog}%</span></div></td>
+                  <td><div class="d-flex align-items-center gap-2"><div class="progress-thin flex-grow-1"><span class="back" style="width:${pct(r.returned, r.delivered)}%"></span></div><span class="fs-11 text-muted">${pct(r.returned, r.delivered)}%</span></div></td>
                 </tr>`;
               }).join('') || '<tr><td colspan="10" class="text-center text-muted py-4">Belum ada kebutuhan alat. Klik <strong>Ubah Kebutuhan</strong> untuk mengisi.</td></tr>'}</tbody>
               <tfoot><tr><td></td><td>TOTAL</td><td class="num">${formatRupiah(t.value)}</td>
                 <td class="num">${formatNumber(t.required)}</td><td class="num">${formatNumber(t.delivered)}</td><td class="num">${formatNumber(t.remaining)}</td>
-                <td class="num">${formatNumber(t.returned)}</td><td class="num">${formatNumber(t.lost)}</td><td class="num">${formatNumber(t.onSite)}</td><td></td></tr></tfoot>
+                <td class="num">${formatNumber(t.returned)}</td><td class="num">${formatNumber(t.onSite)}</td><td class="fw-600">${pct(t.delivered, t.required)}%</td><td class="fw-600">${pct(t.returned, t.delivered)}%</td></tr></tfoot>
             </table></div>
-            <p class="fs-12 text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Di Lokasi = Terkirim − Dipulangkan − Hilang. Harga satuan × kebutuhan = nilai kebutuhan proyek.</p>
+            <p class="fs-12 text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Di Lokasi = Terkirim − Dipulangkan. Alat hilang dijual ke pelanggan (dipulangkan administratif dulu). Harga satuan × kebutuhan = nilai kebutuhan proyek.</p>
           </div>
         </div>
 
@@ -199,11 +199,11 @@
           <div class="er-tabs">
             <button class="er-tab active" data-tab="sjk" onclick="switchTab('sjk')">B. Pengiriman per SJ<span class="er-tab-count">${deliveries.length}</span></button>
             <button class="er-tab" data-tab="sjr" onclick="switchTab('sjr')">D. Pemulangan per SJ<span class="er-tab-count">${returns.length}</span></button>
-            ${losts.length ? `<button class="er-tab" data-tab="lost" onclick="switchTab('lost')">Hilang<span class="er-tab-count">${losts.length}</span></button>` : ''}
+            
           </div>
           <div class="er-tab-content active" id="tab-sjk"><div class="er-card-body">${sjCards(deliveries, 'Belum ada pengiriman ke proyek ini')}</div></div>
           <div class="er-tab-content" id="tab-sjr"><div class="er-card-body">${sjCards(returns, 'Belum ada pemulangan dari proyek ini')}</div></div>
-          ${losts.length ? `<div class="er-tab-content" id="tab-lost"><div class="er-card-body">${sjCards(losts, '')}</div></div>` : ''}
+          
         </div>`;
     }
 
@@ -259,9 +259,9 @@
     }
 
     function exportCSV() {
-      const rows = [['Proyek', 'Customer', 'Nama Alat', 'Harga Satuan', 'A. Kebutuhan', 'B. Terkirim', 'C. Sisa (A-B)', 'D. Dipulangkan', 'Hilang', 'Di Lokasi']];
+      const rows = [['Proyek', 'Customer', 'Nama Alat', 'Harga Satuan', 'A. Kebutuhan', 'B. Terkirim', 'C. Sisa (A-B)', 'D. Dipulangkan', 'Di Lokasi']];
       MockData.projects.forEach(p => L.projectSummary(p.id).forEach(r => rows.push([
-        p.name, p.customerName, r.equipment, r.unitPrice, r.required, r.delivered, r.remaining, r.returned, r.lost, r.onSite
+        p.name, p.customerName, r.equipment, r.unitPrice, r.required, r.delivered, r.remaining, r.returned, r.onSite
       ])));
       downloadCSV('stok-proyek-' + new Date().toISOString().split('T')[0] + '.csv', rows);
     }

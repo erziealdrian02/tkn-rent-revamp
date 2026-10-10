@@ -16,7 +16,7 @@
       <header class="app-header" id="appHeader"></header>
       <div class="app-content">
         <div class="page-header">
-          <div class="page-header-left"><h2 class="page-header-title">Jurnal</h2><p class="page-header-subtitle">A. Jurnal atas Laporan Kas — data kasir ditarik dari Laporan Kas lalu diklasifikasikan ke akun COA</p></div>
+          <div class="page-header-left"><h2 class="page-header-title">Jurnal</h2><p class="page-header-subtitle">Transaksi kas → Jurnal → COA. Data kasir masuk setelah Laporan Kas di-generate; input Finance langsung masuk. Akun COA mengikuti kategori jurnal.</p></div>
           <div class="page-header-actions">
             <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-download me-1"></i>Export CSV</button>
             <a href="cash-report.html" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-bar-graph me-1"></i>Laporan Kas</a>
@@ -40,7 +40,8 @@
               <select class="filter-select" id="cStatus" onchange="renderCash()">
                 <option value="">Semua status</option>
                 <option value="review">Perlu dicek (kategori campuran)</option>
-                <option value="manual">Sudah diklasifikasikan</option>
+                <option value="kategori">Dari kategori jurnal</option>
+                <option value="manual">Diklasifikasikan manual</option>
                 <option value="mapped">Otomatis dari pemetaan</option>
               </select>
               <select class="filter-select" id="cCategory" onchange="renderCash()"></select>
@@ -48,11 +49,12 @@
               <input type="date" class="filter-select" id="cTo" onchange="renderCash()" title="Sampai tanggal">
             </div></div>
             <div class="er-table-wrapper"><table class="er-table">
-              <thead><tr><th>Tanggal</th><th>No. Bon · Kas/Bank</th><th style="min-width:250px">Nama Akun (COA)</th><th style="min-width:160px">Proyek</th><th style="min-width:220px">Uraian</th><th class="num">Debet</th><th class="num">Kredit</th><th class="num">Saldo</th></tr></thead>
+              <thead><tr><th>Tanggal</th><th>Kode Transaksi · Kas/Bank</th><th>Kategori</th><th style="min-width:250px">Nama Akun (COA)</th><th style="min-width:160px">Proyek</th><th style="min-width:220px">Uraian</th><th class="num">Debet</th><th class="num">Kredit</th><th class="num">Saldo</th></tr></thead>
               <tbody id="cashBody"></tbody>
               <tfoot id="cashFoot"></tfoot>
             </table></div>
-            <p class="fs-12 text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Debet = uang masuk (Bon Biru), Kredit = uang keluar (Bon Merah). Saldo = saldo Kas/Bank yang difilter.
+            <div id="pendingNote"></div>
+            <p class="fs-12 text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Debet = uang masuk (Bon Biru), Kredit = uang keluar (Bon Merah). Saldo = saldo Kas/Bank yang sudah masuk jurnal.
               Akun lawan default diambil dari <a href="coa.html?tab=map">pemetaan kategori</a>; ubah per baris bila perlu. Tandai proyek agar biaya ikut di Laba Rugi per proyek.</p>
           </div>
 
@@ -89,7 +91,9 @@
 
     document.getElementById('cAccount').innerHTML = '<option value="">Semua Kas & Bank</option>' +
       ['Kas', 'Bank'].map(k => `<optgroup label="${k}">${MockData.accounts.filter(a => CB.kindOf(a) === k).map(a => `<option value="${a.id}">${esc(a.name)}</option>`).join('')}</optgroup>`).join('');
-    document.getElementById('cCategory').innerHTML = '<option value="">Semua kategori</option>' + Object.keys(CB.CATEGORIES).map(k => `<option value="${k}">${CB.CATEGORIES[k].kind} · ${esc(CB.CATEGORIES[k].label)}</option>`).join('');
+    document.getElementById('cCategory').innerHTML = '<option value="">Semua kategori</option>' +
+      [['IN', 'Kategori jurnal · masuk'], ['OUT', 'Kategori jurnal · keluar']].map(([t, l]) => `<optgroup label="${l}">${CB.jcats(t).map(c => `<option value="jc:${c.id}">${esc(c.name)}</option>`).join('')}</optgroup>`).join('') +
+      `<optgroup label="Baris Laporan Kas">${Object.keys(CB.CATEGORIES).map(k => `<option value="${k}">${CB.CATEGORIES[k].kind} · ${esc(CB.CATEGORIES[k].label)}</option>`).join('')}</optgroup>`;
     document.getElementById('gSource').innerHTML = '<option value="">Semua sumber</option>' + Object.keys(AC.SOURCES).map(k => `<option value="${k}">${AC.SOURCES[k].label}</option>`).join('');
     ['cFrom', 'gFrom'].forEach(id => document.getElementById(id).value = AC.yearStart(today));
     ['cTo', 'gTo'].forEach(id => document.getElementById(id).value = today);
@@ -100,19 +104,20 @@
     const projectOptions = sel => '<option value="">- Umum / tanpa proyek -</option>' + MockData.projects.map(p => `<option value="${p.id}"${p.id === sel ? ' selected' : ''}>${esc(p.id + ' · ' + p.name)}</option>`).join('');
     const statusBadgeOf = st => ({
       review: '<span class="badge bg-warning-subtle text-warning fw-normal" title="Kategori campuran, cek akun COA-nya">Perlu dicek</span>',
-      manual: '<span class="badge bg-success-subtle text-success fw-normal">Diklasifikasikan</span>',
+      manual: '<span class="badge bg-success-subtle text-success fw-normal">Manual</span>',
+      kategori: '<span class="badge bg-primary-subtle text-primary fw-normal" title="Akun dari kategori jurnal">Kategori</span>',
       mapped: '<span class="badge bg-light text-muted border fw-normal">Otomatis</span>',
       transfer: '<span class="badge bg-info-subtle text-info fw-normal">Pindah dana</span>'
     })[st];
 
     function renderKpis() {
-      const list = MockData.ledger || [];
+      const list = (MockData.ledger || []).filter(e => e.posted !== false);
       const n = s => list.filter(e => AC.classifyStatus(e) === s).length;
       const all = AC.journals({ noClosing: true }), bySrc = s => all.filter(j => j.source === s).length;
       document.getElementById('kpis').innerHTML = [
         ['blue', 'bi-wallet2', 'Transaksi Laporan Kas', list.length, ''],
         ['orange', 'bi-exclamation-circle', 'Perlu Dicek Akunnya', n('review'), 'review'],
-        ['green', 'bi-check2-circle', 'Sudah Diklasifikasikan', n('manual'), 'manual'],
+        ['green', 'bi-tags', 'Akun dari Kategori Jurnal', n('kategori'), 'kategori'],
         ['purple', 'bi-journal-bookmark', `Jurnal Otomatis (${bySrc('penjualan')} penjualan · ${bySrc('pembelian')} pembelian)`, all.length, null]
       ].map(([c, i, l, v, st]) => `<div class="col-6 col-lg-3"><div class="kpi-card h-100" ${st != null ? `role="button" onclick="pickStatus('${st}')"` : `role="button" onclick="switchTab('general')"`}>
         <div class="kpi-icon ${c}"><i class="bi ${i}"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${v}</div><div class="kpi-label">${l}</div></div></div></div>`).join('');
@@ -126,19 +131,23 @@
       const st = document.getElementById('cStatus').value, cat = document.getElementById('cCategory').value;
       const from = document.getElementById('cFrom').value, to = document.getElementById('cTo').value;
       const accIds = acc ? [acc] : MockData.accounts.map(a => a.id);
-      let bal = accIds.reduce((s, id) => s + CB.balance(id, from, true), 0);
+      // Hanya transaksi yang sudah masuk jurnal (input kasir setelah di-generate)
+      const posted = CB.entries().filter(e => e.posted !== false && accIds.includes(e.bankAccountId));
+      let bal = accIds.reduce((s, id) => s + (Number((CB.account(id) || {}).openingBalance) || 0), 0) + posted.filter(e => e.date < from).reduce((s, e) => s + (e.type === 'IN' ? e.amount : -e.amount), 0);
       const opening = bal;
       cashRows = [];
-      CB.entries().filter(e => accIds.includes(e.bankAccountId) && e.date >= from && e.date <= to).forEach(e => {
+      const pend = CB.pending(from, to).filter(e => accIds.includes(e.bankAccountId));
+      document.getElementById('pendingNote').innerHTML = pend.length ? `<div class="alert alert-warning py-2 fs-13 mt-2 mb-0"><i class="bi bi-hourglass-split me-1"></i>${pend.length} transaksi kasir (${formatRupiah(pend.reduce((s, e) => s + e.amount, 0))}) belum masuk jurnal. <a href="cash-report.html">Generate di Laporan Kas →</a></div>` : '';
+      posted.filter(e => e.date >= from && e.date <= to).forEach(e => {
         bal += e.type === 'IN' ? e.amount : -e.amount;
         const status = AC.classifyStatus(e), coa = AC.classify(e);
         if (st && status !== st) return;
-        if (cat && CB.categoryOf(e) !== cat) return;
+        if (cat && (cat.startsWith('jc:') ? e.jcat !== cat.slice(3) : CB.categoryOf(e) !== cat)) return;
         if (q && !`${e.voucherNo} ${e.description} ${e.party} ${e.reference}`.toLowerCase().includes(q)) return;
         cashRows.push({ e, status, coa, bal });
       });
       const filtered = q || st || cat;
-      document.getElementById('cashBody').innerHTML = (filtered ? '' : `<tr class="text-muted"><td colspan="7">Saldo awal ${acc ? esc(CB.account(acc).name) : 'Kas & Bank'} per ${formatDate(from)}</td><td class="num fw-600">${formatRupiah(opening)}</td></tr>`) +
+      document.getElementById('cashBody').innerHTML = (filtered ? '' : `<tr class="text-muted"><td colspan="8">Saldo awal ${acc ? esc(CB.account(acc).name) : 'Kas & Bank'} per ${formatDate(from)}</td><td class="num fw-600">${formatRupiah(opening)}</td></tr>`) +
         cashRows.map(({ e, status, coa, bal }) => {
           const transfer = status === 'transfer';
           let coaCell;
@@ -151,16 +160,17 @@
           }
           return `<tr>
             <td class="text-nowrap">${formatDate(e.date)}</td>
-            <td class="text-nowrap"><a href="finance-ledger.html?account=${e.bankAccountId}" class="cell-link text-mono fs-12">${e.voucherNo}</a><div class="fs-11 text-muted">${esc(CB.account(e.bankAccountId).name)}</div></td>
+            <td class="text-nowrap"><a href="finance-ledger.html?account=${e.bankAccountId}" class="cell-link text-mono fs-12">${e.voucherNo}</a><div class="fs-11 text-muted">${esc(CB.account(e.bankAccountId).name)}${e.method ? ' · ' + esc(e.method) : ''}</div></td>
+            <td class="fs-12">${e.jcat && CB.jcat(e.jcat) ? `<span class="badge bg-light text-dark border fw-normal">${esc(CB.jcatName(e.jcat))}</span>` : '<span class="text-muted">-</span>'}${e.batch ? `<div class="fs-11 text-muted">${e.batch}</div>` : ''}</td>
             <td>${coaCell}</td>
             <td>${transfer ? '<span class="text-muted">-</span>' : `<select class="form-select form-select-sm select-compact" style="min-width:150px" onchange="classify('${e.id}', undefined, this.value)">${projectOptions(e.projectId)}</select>`}</td>
             <td>${esc(e.description)}${e.party ? `<div class="fs-12 text-muted">${esc(e.party)}</div>` : ''}</td>
             <td class="num">${e.type === 'IN' ? formatRupiah(e.amount) : ''}</td>
             <td class="num">${e.type === 'OUT' ? formatRupiah(e.amount) : ''}</td>
             <td class="num">${filtered ? '<span class="text-muted">-</span>' : formatRupiah(bal)}</td></tr>`;
-        }).join('') + (cashRows.length ? '' : '<tr><td colspan="8" class="text-center text-muted py-4">Tidak ada transaksi</td></tr>');
+        }).join('') + (cashRows.length ? '' : '<tr><td colspan="9" class="text-center text-muted py-4">Tidak ada transaksi</td></tr>');
       const tin = cashRows.reduce((s, r) => s + (r.e.type === 'IN' ? r.e.amount : 0), 0), tout = cashRows.reduce((s, r) => s + (r.e.type === 'OUT' ? r.e.amount : 0), 0);
-      document.getElementById('cashFoot').innerHTML = `<tr><td colspan="5">Total ${cashRows.length} transaksi</td><td class="num">${formatRupiah(tin)}</td><td class="num">${formatRupiah(tout)}</td><td class="num">${filtered ? '' : formatRupiah(opening + tin - tout)}</td></tr>`;
+      document.getElementById('cashFoot').innerHTML = `<tr><td colspan="6">Total ${cashRows.length} transaksi</td><td class="num">${formatRupiah(tin)}</td><td class="num">${formatRupiah(tout)}</td><td class="num">${filtered ? '' : formatRupiah(opening + tin - tout)}</td></tr>`;
     }
 
     function classify(id, coaId, projectId) {
@@ -190,7 +200,7 @@
             <td class="text-mono fs-12">${i === 0 ? (j.link ? `<a href="${j.link}" class="cell-link">${esc(j.no)}</a>` : esc(j.no)) : ''}</td>
             <td>${i === 0 ? `<span class="badge bg-${s.color}-subtle text-${s.color} fw-normal"><i class="bi ${s.icon} me-1"></i>${s.label}</span>` : ''}</td>
             <td class="${l.k ? 'jr-credit' : ''}"><span class="acc-code">${a ? a.code : ''}</span><a href="general-ledger.html?account=${encodeURIComponent(l.acc)}" class="text-reset">${esc(a ? a.name : l.acc)}</a></td>
-            <td class="fs-12">${i === 0 ? esc(j.desc) + (j.projectId ? ` <span class="badge bg-light text-muted border fw-normal">${j.projectId}</span>` : '') : `<span class="text-muted">${esc(l.memo || '')}</span>`}</td>
+            <td class="fs-12">${i === 0 ? esc(j.desc) + (j.jcat ? ` <span class="badge bg-primary-subtle text-primary fw-normal">${esc(CB.jcatName(j.jcat))}</span>` : '') + (j.projectId ? ` <span class="badge bg-light text-muted border fw-normal">${j.projectId}</span>` : '') : `<span class="text-muted">${esc(l.memo || '')}</span>`}</td>
             <td class="num">${l.d ? formatRupiah(l.d) : ''}</td><td class="num">${l.k ? formatRupiah(l.k) : ''}</td></tr>`;
         }).join('');
       }).join('') || '<tr><td colspan="7" class="text-center text-muted py-4">Tidak ada jurnal</td></tr>';
@@ -200,13 +210,13 @@
     function exportCSV() {
       const general = document.getElementById('tab-general').classList.contains('active');
       if (general) {
-        const map = AC._index(), rows = [['Tanggal', 'No. Bukti', 'Sumber', 'Kode Akun', 'Nama Akun', 'Uraian', 'Proyek', 'Debet', 'Kredit']];
-        genRows.forEach(j => j.lines.forEach(l => rows.push([j.date, j.no, AC.SOURCES[j.source].label, (map[l.acc] || {}).code, (map[l.acc] || {}).name, j.desc + (l.memo ? ' - ' + l.memo : ''), j.projectId || '', l.d, l.k])));
+        const map = AC._index(), rows = [['Tanggal', 'No. Bukti', 'Sumber', 'Kategori', 'Kode Akun', 'Nama Akun', 'Uraian', 'Proyek', 'Debet', 'Kredit']];
+        genRows.forEach(j => j.lines.forEach(l => rows.push([j.date, j.no, AC.SOURCES[j.source].label, CB.jcatName(j.jcat), (map[l.acc] || {}).code, (map[l.acc] || {}).name, j.desc + (l.memo ? ' - ' + l.memo : ''), j.projectId || '', l.d, l.k])));
         downloadCSV('jurnal-umum.csv', rows);
       } else {
-        const rows = [['Tanggal', 'No. Bon', 'Kas/Bank', 'Kode Akun', 'Nama Akun', 'Proyek', 'Uraian', 'Debet', 'Kredit', 'Saldo', 'Status']];
+        const rows = [['Tanggal', 'Kode Transaksi', 'Kas/Bank', 'Metode', 'Kategori', 'Kode Akun', 'Nama Akun', 'Proyek', 'Uraian', 'Debet', 'Kredit', 'Saldo', 'Status', 'Batch Generate']];
         cashRows.forEach(({ e, status, coa, bal }) => { const a = AC.account(coa) || {};
-          rows.push([e.date, e.voucherNo, CB.account(e.bankAccountId).name, a.code, a.name, e.projectId || '', e.description, e.type === 'IN' ? e.amount : '', e.type === 'OUT' ? e.amount : '', bal, status]); });
+          rows.push([e.date, e.voucherNo, CB.account(e.bankAccountId).name, e.method || '', CB.jcatName(e.jcat), a.code, a.name, e.projectId || '', e.description, e.type === 'IN' ? e.amount : '', e.type === 'OUT' ? e.amount : '', bal, status, e.batch || '']); });
         downloadCSV('jurnal-laporan-kas.csv', rows);
       }
     }

@@ -63,7 +63,7 @@
           "uri": "/rentals",
           "route": "rentals.index",
           "layout": "app",
-          "title": "Penyewaan",
+          "title": "Rekap Project",
           "permission": "Rentals"
         },
         {
@@ -72,7 +72,7 @@
           "uri": "/rental-create",
           "route": "rentals.create",
           "layout": "app",
-          "title": "Create Rental",
+          "title": "Order Sewa Baru",
           "permission": "Rentals"
         },
         {
@@ -81,7 +81,7 @@
           "uri": "/rental-detail",
           "route": "rentals.show",
           "layout": "app",
-          "title": "Detail Penyewaan",
+          "title": "Detail Rekap Project",
           "permission": "Rentals"
         },
         {

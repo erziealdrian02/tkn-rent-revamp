@@ -16,29 +16,30 @@
       <header class="app-header" id="appHeader"></header>
       <div class="app-content">
         <div class="page-header">
-          <div class="page-header-left"><h2 class="page-header-title">Buku Kas & Bank</h2><p class="page-header-subtitle">Semua transaksi kas & bank - Bon Biru menambah saldo, Bon Merah mengurangi saldo</p></div>
+          <div class="page-header-left"><h2 class="page-header-title">Buku Kas & Bank (Kasir)</h2><p class="page-header-subtitle">Semua transaksi masuk dari sini: Debet = uang masuk (Bon Biru), Kredit = uang keluar (Bon Merah) → Jurnal → COA</p></div>
           <div class="page-header-actions">
             <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-download me-1"></i>Export CSV</button>
-            <button class="btn btn-outline-secondary btn-sm" onclick="openTransfer()"><i class="bi bi-arrow-left-right me-1"></i>Pindah Dana</button>
-            <button class="btn btn-danger btn-sm" onclick="openBon('OUT')"><i class="bi bi-dash-circle me-1"></i>Bon Merah (Keluar)</button>
-            <button class="btn btn-primary btn-sm" onclick="openBon('IN')"><i class="bi bi-plus-circle me-1"></i>Bon Biru (Masuk)</button>
+            <button class="btn btn-outline-secondary btn-sm need-create" onclick="openTransfer()"><i class="bi bi-arrow-left-right me-1"></i>Pindah Dana</button>
+            <button class="btn btn-primary btn-sm need-create" onclick="openTrx('new')"><i class="bi bi-plus-circle me-1"></i>Input Transaksi Kas</button>
           </div>
         </div>
 
+        <div id="postInfo"></div>
         <div class="row g-3 mb-4" id="accountCards"></div>
 
         <div class="er-card"><div class="er-card-body">
           <div class="table-toolbar"><div class="table-toolbar-left flex-wrap">
-            <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Cari no. bon, keterangan, referensi..." id="searchInput" oninput="render()"></div>
+            <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Cari kode transaksi, notes, referensi..." id="searchInput" oninput="render()"></div>
             <select class="filter-select" id="kindFilter" onchange="onKindFilter()"><option value="">Kas & Bank</option><option value="Kas">Kas (Tunai)</option><option value="Bank">Bank</option></select>
             <select class="filter-select" id="accountFilter" onchange="render()"></select>
-            <select class="filter-select" id="typeFilter" onchange="onKindFilter()"><option value="">Masuk & Keluar</option><option value="IN">Bon Biru (Masuk)</option><option value="OUT">Bon Merah (Keluar)</option></select>
+            <select class="filter-select" id="typeFilter" onchange="onKindFilter()"><option value="">Debet & Kredit</option><option value="IN">Debet (masuk)</option><option value="OUT">Kredit (keluar)</option></select>
             <select class="filter-select" id="categoryFilter" onchange="render()"></select>
+            <select class="filter-select" id="postFilter" onchange="render()"><option value="">Semua status jurnal</option><option value="pending">Menunggu generate</option><option value="posted">Sudah masuk jurnal</option></select>
             <input type="date" class="filter-select" id="fromFilter" onchange="render()" title="Dari tanggal">
             <input type="date" class="filter-select" id="toFilter" onchange="render()" title="Sampai tanggal">
           </div></div>
           <div class="er-table-wrapper"><table class="er-table">
-            <thead><tr><th>Tanggal</th><th>No. Bon</th><th>Akun</th><th>Kategori</th><th>Keterangan</th><th class="num">Masuk</th><th class="num">Keluar</th><th class="num">Saldo Akun</th><th title="Sudah direkonsiliasi dengan rekening koran">Rek.</th><th></th></tr></thead>
+            <thead><tr><th>Tanggal</th><th>Kode Transaksi · Rekening</th><th>Kategori</th><th style="min-width:200px">Notes</th><th class="num">Debet</th><th class="num">Kredit</th><th class="num">Saldo</th><th>Jurnal</th><th title="Sudah direkonsiliasi dengan rekening koran">Rek.</th><th></th></tr></thead>
             <tbody id="tableBody"></tbody>
             <tfoot id="tableFoot"></tfoot>
           </table></div>
@@ -47,26 +48,32 @@
     </main>
   </div>
 
-  <!-- Bon Biru / Bon Merah -->
-  <div class="modal fade" id="bonModal" tabindex="-1">
-    <div class="modal-dialog"><div class="modal-content">
-      <div class="modal-header" id="bonHeader"><h5 class="modal-title" id="bonTitle"></h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+  <!-- Input / Ubah / Koreksi Transaksi Kas -->
+  <div class="modal fade" id="trxModal" tabindex="-1">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+      <div class="modal-header" id="trxHeader"><h5 class="modal-title" id="trxTitle"></h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
       <div class="modal-body">
-        <div class="alert py-2 fs-13" id="bonHint"></div>
+        <div class="alert py-2 fs-13" id="trxHint"></div>
         <div class="row g-3">
-          <div class="col-6"><label class="form-label form-label-er">No. Bon</label><input type="text" class="form-control text-mono" id="bonNo" readonly></div>
-          <div class="col-6"><label class="form-label form-label-er">Tanggal *</label><input type="date" class="form-control" id="bonDate" onchange="refreshBonNo()"></div>
-          <div class="col-12"><label class="form-label form-label-er">Akun Kas / Bank *</label><select class="form-select" id="bonAccount" onchange="onBonAccount()"></select><div class="fs-12 text-muted mt-1" id="bonBalance"></div></div>
-          <div class="col-12"><label class="form-label form-label-er">Kategori *</label><select class="form-select" id="bonCategory"></select></div>
-          <div class="col-6"><label class="form-label form-label-er">Jumlah *</label><div class="input-group"><span class="input-group-text">Rp</span><input type="number" min="0" class="form-control text-end" id="bonAmount"></div></div>
-          <div class="col-6"><label class="form-label form-label-er" id="bonPartyLabel"></label><input type="text" class="form-control" id="bonParty"></div>
-          <div class="col-12"><label class="form-label form-label-er">Referensi</label><input type="text" class="form-control" id="bonRef" placeholder="No. PO / invoice / kuitansi"></div>
-          <div class="col-12"><label class="form-label form-label-er">Keterangan *</label><textarea class="form-control" id="bonDesc" rows="2"></textarea></div>
+          <div class="col-md-4"><label class="form-label form-label-er">Tanggal *</label><input type="date" class="form-control" id="tDate" onchange="refreshCode()"></div>
+          <div class="col-md-4"><label class="form-label form-label-er">Rekening (Kas / Bank) *</label><select class="form-select" id="tAccount" onchange="onAccount()"></select><div class="fs-12 text-muted mt-1" id="tBalance"></div></div>
+          <div class="col-md-4"><label class="form-label form-label-er">Kode Transaksi</label><input type="text" class="form-control text-mono" id="tCode" readonly><div class="fs-11 text-muted mt-1">otomatis dari rekening</div></div>
+          <div class="col-md-6"><label class="form-label form-label-er">Proyek</label><select class="form-select" id="tProject"></select></div>
+          <div class="col-md-6"><label class="form-label form-label-er">Kategori *</label><select class="form-select" id="tCat" onchange="onCat()"></select></div>
+          <div class="col-md-4"><label class="form-label form-label-er">Cash / Debit *</label><select class="form-select" id="tMethod"></select></div>
+          <div class="col-md-4"><label class="form-label form-label-er text-primary">Debet (uang masuk)</label><div class="input-group"><span class="input-group-text">Rp</span><input type="number" min="0" class="form-control text-end" id="tDebit" oninput="onAmount('d')"></div></div>
+          <div class="col-md-4"><label class="form-label form-label-er text-danger">Kredit (uang keluar)</label><div class="input-group"><span class="input-group-text">Rp</span><input type="number" min="0" class="form-control text-end" id="tCredit" oninput="onAmount('k')"></div></div>
+          <div class="col-md-6"><label class="form-label form-label-er">Diterima dari / Dibayar kepada</label><input type="text" class="form-control" id="tParty"></div>
+          <div class="col-md-6"><label class="form-label form-label-er">Referensi</label><input type="text" class="form-control" id="tRef" placeholder="No. nota / PO / invoice"></div>
+          <div class="col-12"><label class="form-label form-label-er">Notes *</label><textarea class="form-control" id="tDesc" rows="2" placeholder="Keterangan transaksi"></textarea></div>
+          <div class="col-12 d-none" id="tReasonWrap"><label class="form-label form-label-er text-danger">Alasan Koreksi *</label><input type="text" class="form-control" id="tReason" placeholder="mis. salah nominal, salah kategori">
+            <label class="d-flex align-items-center gap-2 fs-13 mt-2"><input type="checkbox" class="form-check-input m-0" id="tCancelOnly" onchange="onCancelOnly()"> Batalkan saja (hanya bon pembalik, tanpa transaksi pengganti)</label></div>
+          <div class="col-12"><div class="fs-12 border rounded p-2 bg-light" id="tPreview"></div></div>
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
-        <button class="btn" id="bonSubmit" onclick="submitBon()"><i class="bi bi-check-lg me-1"></i>Simpan Bon</button>
+        <button class="btn btn-primary" id="tSubmit" onclick="submitTrx()"><i class="bi bi-check-lg me-1"></i>Simpan</button>
       </div>
     </div></div>
   </div>
@@ -76,7 +83,7 @@
     <div class="modal-dialog"><div class="modal-content">
       <div class="modal-header"><h5 class="modal-title">Pindah Dana</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
       <div class="modal-body">
-        <div class="alert alert-light border py-2 fs-13">Dari Bank ke Kas (penarikan tunai untuk mengisi kas) atau ke Bank lain perusahaan. Otomatis tercatat 2 bon: Bon Merah di akun asal dan Bon Biru di akun tujuan.</div>
+        <div class="alert alert-light border py-2 fs-13">Dari Bank ke Kas (penarikan tunai untuk mengisi kas) atau ke Bank lain perusahaan. Otomatis tercatat 2 transaksi: Kredit di rekening asal dan Debet di rekening tujuan.</div>
         <div class="row g-3">
           <div class="col-6"><label class="form-label form-label-er">Dari (Bank) *</label><select class="form-select" id="tfFrom" onchange="onTransferChange()"></select><div class="fs-12 text-muted mt-1" id="tfBalance"></div></div>
           <div class="col-6"><label class="form-label form-label-er">Ke (Kas / Bank) *</label><select class="form-select" id="tfTo" onchange="onTransferChange()"></select></div>
@@ -97,26 +104,37 @@
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
   <script src="assets/js/business-logic.js"></script>
+  <script src="assets/js/accounting.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
-    initApp('finance-ledger.html', [{label:'Piutang & Keuangan',href:'#'},{label:'Buku Kas & Bank'}], 'Buku Kas & Bank');
-    const CB = BizLogic.CashBank;
+    initApp('finance-ledger.html', [{label:'Keuangan',href:'#'},{label:'Buku Kas & Bank'}], 'Buku Kas & Bank');
+    const CB = BizLogic.CashBank, AC = BizLogic.Accounting;
     const today = new Date().toISOString().split('T')[0];
     const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
     const accName = id => (CB.account(id) || {}).name || id;
     const kindIcon = kind => kind === 'Kas' ? 'bi-cash-stack' : 'bi-bank';
     const activeAccounts = () => MockData.accounts.filter(a => a.status !== 'Inactive');
+    const canCreate = canDo('Accounts', 'Create');
+    if (!canCreate) document.querySelectorAll('.need-create').forEach(b => b.remove());
+    const catName = e => e.jcat && CB.jcat(e.jcat) ? CB.jcatName(e.jcat) : CB.categoryLabel(CB.categoryOf(e));
+
+    function renderPostInfo() {
+      const pend = CB.pending(), total = pend.reduce((s, e) => s + e.amount, 0);
+      const me = CB.autoPost() ? '<strong>Input Anda langsung masuk jurnal</strong> (Finance / Accounting).' : '<strong>Input Anda (kasir) masuk jurnal setelah di-generate Accounting</strong> di Laporan Kas.';
+      document.getElementById('postInfo').innerHTML = `<div class="alert ${pend.length ? 'alert-warning' : 'alert-light border'} py-2 fs-13 d-flex flex-wrap align-items-center gap-2">
+        <i class="bi bi-diagram-2"></i><span>Alur: <strong>Transaksi kas</strong> → <strong>Generate</strong> (Accounting) → <strong>Jurnal</strong> → <strong>COA</strong>. ${canCreate ? me : ''}</span>
+        ${pend.length ? `<span class="ms-auto"><strong>${pend.length} transaksi</strong> (${formatRupiah(total)}) menunggu generate · <a href="cash-report.html">Laporan Kas →</a></span>` : ''}</div>`;
+    }
 
     // ---------- Filter ----------
     function onKindFilter() {
       const kind = document.getElementById('kindFilter').value, type = document.getElementById('typeFilter').value;
       const accSel = document.getElementById('accountFilter'), curAcc = accSel.value;
-      accSel.innerHTML = '<option value="">Semua Akun</option>' + MockData.accounts.filter(a => !kind || CB.kindOf(a) === kind).map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+      accSel.innerHTML = '<option value="">Semua Rekening</option>' + MockData.accounts.filter(a => !kind || CB.kindOf(a) === kind).map(a => `<option value="${a.id}">${a.code ? a.code + ' · ' : ''}${esc(a.name)}</option>`).join('');
       accSel.value = [...accSel.options].some(o => o.value === curAcc) ? curAcc : '';
       const catSel = document.getElementById('categoryFilter'), curCat = catSel.value;
-      const groups = (kind ? [kind] : ['Kas', 'Bank']).flatMap(k => (type ? [type] : ['IN', 'OUT']).map(t => [k, t]));
-      catSel.innerHTML = '<option value="">Semua Kategori</option>' + groups.map(([k, t]) =>
-        `<optgroup label="${k} ${t === 'IN' ? 'Masuk' : 'Keluar'}">${CB.categoriesFor(k, t, true).map(c => `<option value="${c}">${CB.categoryLabel(c)}</option>`).join('')}</optgroup>`).join('');
+      catSel.innerHTML = '<option value="">Semua Kategori</option>' + [['IN', 'Uang Masuk'], ['OUT', 'Uang Keluar']].filter(([t]) => !type || t === type)
+        .map(([t, l]) => `<optgroup label="${l}">${CB.jcats(t).map(c => `<option value="jc:${c.id}">${esc(c.name)}</option>`).join('')}</optgroup>`).join('');
       catSel.value = [...catSel.options].some(o => o.value === curCat) ? curCat : '';
       render();
     }
@@ -126,7 +144,7 @@
       const sum = list => list.reduce((s, a) => s + CB.balance(a.id), 0);
       const card = a => `<div class="col-6 col-md-4 col-xl-2"><div class="kpi-card h-100" role="button" onclick="pickAccount('${a.id}')" title="Lihat transaksi ${esc(a.name)}">
           <div class="kpi-icon ${CB.kindOf(a) === 'Kas' ? 'green' : 'blue'}"><i class="bi ${kindIcon(CB.kindOf(a))}"></i></div>
-          <div class="kpi-content"><div class="kpi-value fs-6">${formatRupiah(CB.balance(a.id))}</div><div class="kpi-label">${esc(a.name)}${a.status === 'Inactive' ? ' (nonaktif)' : ''}</div></div></div></div>`;
+          <div class="kpi-content"><div class="kpi-value fs-6">${formatRupiah(CB.balance(a.id))}</div><div class="kpi-label">${a.code ? `<span class="text-mono">${a.code}</span> · ` : ''}${esc(a.name)}${a.status === 'Inactive' ? ' (nonaktif)' : ''}</div></div></div></div>`;
       document.getElementById('accountCards').innerHTML = `
         <div class="col-6 col-md-4 col-xl-2"><div class="kpi-card h-100"><div class="kpi-icon green"><i class="bi bi-cash-coin"></i></div><div class="kpi-content"><div class="kpi-value fs-6">${formatRupiah(sum(kas))}</div><div class="kpi-label">Total Saldo Kas</div></div></div></div>
         <div class="col-6 col-md-4 col-xl-2"><div class="kpi-card h-100"><div class="kpi-icon blue"><i class="bi bi-bank2"></i></div><div class="kpi-content"><div class="kpi-value fs-6">${formatRupiah(sum(bank))}</div><div class="kpi-label">Total Saldo Bank</div></div></div></div>
@@ -146,7 +164,7 @@
     function rows() {
       const q = document.getElementById('searchInput').value.toLowerCase();
       const kind = document.getElementById('kindFilter').value, acc = document.getElementById('accountFilter').value;
-      const type = document.getElementById('typeFilter').value, cat = document.getElementById('categoryFilter').value;
+      const type = document.getElementById('typeFilter').value, cat = document.getElementById('categoryFilter').value, post = document.getElementById('postFilter').value;
       const from = document.getElementById('fromFilter').value, to = document.getElementById('toFilter').value;
       const running = {};
       MockData.accounts.forEach(a => running[a.id] = Number(a.openingBalance) || 0);
@@ -158,30 +176,50 @@
         if (kind && k !== kind) return false;
         if (acc && e.bankAccountId !== acc) return false;
         if (type && e.type !== type) return false;
-        if (cat && c !== cat) return false;
+        if (cat && (cat.startsWith('jc:') ? e.jcat !== cat.slice(3) : c !== cat)) return false;
+        if (post === 'pending' && e.posted !== false) return false;
+        if (post === 'posted' && e.posted === false) return false;
         if (from && e.date < from) return false;
         if (to && e.date > to) return false;
         return true;
       }).reverse();
     }
 
+    function postBadge(e) {
+      if (e.posted === false) return '<span class="badge bg-warning-subtle text-warning fw-normal" title="Menunggu Accounting generate Laporan Kas">Menunggu generate</span>';
+      return `<span class="badge bg-success-subtle text-success fw-normal" title="${esc((e.postedBy || 'data awal') + (e.batch ? ' · ' + e.batch : ''))}">Masuk jurnal</span>`;
+    }
+
+    function actions(e) {
+      if (!canCreate) return '';
+      let h = '';
+      if (CB.canEdit(e)) h += `<button class="btn-action" title="Ubah (belum masuk jurnal)" onclick="openTrx('edit','${e.id}')"><i class="bi bi-pencil"></i></button>`;
+      if (CB.canCorrect(e)) h += `<button class="btn-action" title="Koreksi (sudah masuk jurnal)" onclick="openTrx('correct','${e.id}')"><i class="bi bi-arrow-counterclockwise"></i></button>`;
+      if (e.posted === false && e.source !== 'payment' && !e.reconciled && !e.reversal) h += `<button class="btn-action" title="Hapus" onclick="removeEntry('${e.id}')"><i class="bi bi-trash"></i></button>`;
+      return h;
+    }
+
     function render() {
       const data = rows();
-      document.getElementById('tableBody').innerHTML = data.map(({ e, bal, cat, kind }) => `<tr>
+      document.getElementById('tableBody').innerHTML = data.map(({ e, bal, kind }) => {
+        const proj = e.projectId ? MockData.projects.find(p => p.id === e.projectId) : null;
+        const corr = e.reversal ? '<span class="badge bg-danger-subtle text-danger fw-normal">pembalik</span> ' : e.correctionOf ? '<span class="badge bg-info-subtle text-info fw-normal">pengganti</span> ' : e.reversedBy ? '<span class="badge bg-secondary-subtle text-secondary fw-normal">dikoreksi</span> ' : '';
+        return `<tr class="${e.reversedBy ? 'text-muted' : ''}">
         <td class="text-nowrap">${formatDate(e.date)}</td>
-        <td class="text-mono text-nowrap"><span class="badge ${e.type === 'IN' ? 'bg-primary-subtle text-primary' : 'bg-danger-subtle text-danger'}">${e.voucherNo || e.id}</span></td>
-        <td class="text-nowrap"><i class="bi ${kindIcon(kind)} text-muted me-1"></i>${esc(accName(e.bankAccountId))}</td>
-        <td class="fs-12">${esc(CB.categoryLabel(cat))}${e.source === 'transfer' ? ' <i class="bi bi-arrow-left-right text-muted" title="Pindah dana"></i>' : ''}</td>
-        <td><div>${esc(e.description)}</div><div class="fs-12 text-muted">${e.party ? esc(e.party) : ''}${e.party && e.reference ? ' · ' : ''}${e.reference ? refLink(e.reference) : ''}</div></td>
+        <td class="text-nowrap"><span class="badge text-mono ${e.type === 'IN' ? 'bg-primary-subtle text-primary' : 'bg-danger-subtle text-danger'}">${e.voucherNo || e.id}</span>
+          <div class="fs-11 text-muted mt-1"><i class="bi ${kindIcon(kind)} me-1"></i>${esc(accName(e.bankAccountId))} · ${esc(e.method || (kind === 'Kas' ? 'Cash' : 'Transfer'))}</div></td>
+        <td class="fs-12">${esc(catName(e))}${e.source === 'transfer' ? ' <i class="bi bi-arrow-left-right text-muted" title="Pindah dana"></i>' : ''}${proj ? `<div><a href="project-detail.html?id=${proj.id}" class="text-muted">${esc(proj.id)}</a></div>` : ''}</td>
+        <td><div>${corr}${esc(e.description)}</div><div class="fs-12 text-muted">${e.party ? esc(e.party) : ''}${e.party && e.reference ? ' · ' : ''}${e.reference ? refLink(e.reference) : ''}</div></td>
         <td class="num ${e.type === 'IN' ? 'qty-plus fw-600' : 'zero'}">${e.type === 'IN' ? formatRupiah(e.amount) : '-'}</td>
         <td class="num ${e.type === 'OUT' ? 'qty-minus fw-600' : 'zero'}">${e.type === 'OUT' ? formatRupiah(e.amount) : '-'}</td>
-        <td class="num">${formatRupiah(bal)}</td>
+        <td class="num text-nowrap">${formatRupiah(bal)}</td>
+        <td>${postBadge(e)}</td>
         <td>${kind === 'Bank' ? (e.reconciled ? '<i class="bi bi-check-circle-fill text-success" title="Sudah direkonsiliasi"></i>' : '<i class="bi bi-circle text-muted" title="Belum direkonsiliasi"></i>') : ''}</td>
-        <td>${e.source !== 'payment' && !e.reconciled ? editButton({ docType: 'Transaksi Kas/Bank', docId: e.voucherNo, docLabel: e.description, link: 'finance-ledger.html' }, `<button class="btn-action" title="Hapus" onclick="removeEntry('${e.id}')"><i class="bi bi-trash"></i></button>`, { action: 'Hapus' }) : ''}</td>
-      </tr>`).join('') || '<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada transaksi</td></tr>';
+        <td class="text-nowrap">${actions(e)}</td>
+      </tr>`; }).join('') || '<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada transaksi</td></tr>';
       const tin = data.filter(r => r.e.type === 'IN').reduce((s, r) => s + r.e.amount, 0);
       const tout = data.filter(r => r.e.type === 'OUT').reduce((s, r) => s + r.e.amount, 0);
-      document.getElementById('tableFoot').innerHTML = data.length ? `<tr><td colspan="5" class="text-end">Total (${data.length} transaksi)</td><td class="num">${formatRupiah(tin)}</td><td class="num">${formatRupiah(tout)}</td><td class="num" title="Masuk − Keluar">${formatRupiah(tin - tout)}</td><td colspan="2"></td></tr>` : '';
+      document.getElementById('tableFoot').innerHTML = data.length ? `<tr><td colspan="4" class="text-end">Total (${data.length} transaksi)</td><td class="num">${formatRupiah(tin)}</td><td class="num">${formatRupiah(tout)}</td><td class="num" title="Debet − Kredit">${formatRupiah(tin - tout)}</td><td colspan="3"></td></tr>` : '';
     }
 
     function removeEntry(id) {
@@ -190,68 +228,120 @@
       const res = CB.remove(id);
       if (!res.success) { showToast(res.error, 'error'); return; }
       showToast('Transaksi dihapus', 'warning');
-      renderCards(); render();
+      refresh();
     }
 
     function exportCSV() {
-      const out = [['Tanggal', 'No. Bon', 'Akun', 'Jenis Akun', 'Kategori', 'Keterangan', 'Pihak', 'Referensi', 'Masuk', 'Keluar', 'Saldo Akun', 'Rekonsiliasi']];
-      rows().reverse().forEach(({ e, bal, cat, kind }) => out.push([e.date, e.voucherNo, accName(e.bankAccountId), kind, CB.categoryLabel(cat), e.description, e.party, e.reference, e.type === 'IN' ? e.amount : 0, e.type === 'OUT' ? e.amount : 0, bal, e.reconciled ? 'Ya' : '']));
+      const out = [['Tanggal', 'Kode Transaksi', 'Rekening', 'Jenis Rekening', 'Proyek', 'Kategori', 'Baris Laporan Kas', 'Metode', 'Notes', 'Pihak', 'Referensi', 'Debet', 'Kredit', 'Saldo', 'Status Jurnal', 'Rekonsiliasi']];
+      rows().reverse().forEach(({ e, bal, cat, kind }) => out.push([e.date, e.voucherNo, accName(e.bankAccountId), kind, e.projectId || '', catName(e), CB.categoryLabel(cat), e.method || '', e.description, e.party, e.reference,
+        e.type === 'IN' ? e.amount : 0, e.type === 'OUT' ? e.amount : 0, bal, e.posted === false ? 'Menunggu generate' : 'Masuk jurnal', e.reconciled ? 'Ya' : '']));
       downloadCSV('buku-kas-bank-' + today + '.csv', out);
     }
 
-    // ---------- Bon Biru / Bon Merah ----------
-    let bonType = 'IN';
-    function openBon(type, preset) {
-      preset = preset || {};
-      bonType = type;
-      const isIn = type === 'IN';
-      document.getElementById('bonTitle').textContent = isIn ? 'Bon Biru - Kas / Bank Masuk' : 'Bon Merah - Kas / Bank Keluar';
-      document.getElementById('bonHeader').className = 'modal-header ' + (isIn ? 'bg-primary-subtle' : 'bg-danger-subtle');
-      document.getElementById('bonHint').className = 'alert py-2 fs-13 ' + (isIn ? 'alert-primary' : 'alert-danger');
-      document.getElementById('bonHint').innerHTML = isIn ? '<strong>Bon Biru</strong> = menambah saldo kas / bank.' : '<strong>Bon Merah</strong> = mengurangi saldo kas / bank.';
-      document.getElementById('bonSubmit').className = 'btn ' + (isIn ? 'btn-primary' : 'btn-danger');
-      document.getElementById('bonPartyLabel').textContent = isIn ? 'Diterima dari' : 'Dibayar kepada';
-      document.getElementById('bonAccount').innerHTML = activeAccounts().map(a => `<option value="${a.id}">${CB.kindOf(a)} - ${a.name}</option>`).join('');
-      document.getElementById('bonDate').value = preset.date || today;
-      if (preset.account) document.getElementById('bonAccount').value = preset.account;
-      ['bonAmount', 'bonParty', 'bonRef', 'bonDesc'].forEach(id => document.getElementById(id).value = '');
-      document.getElementById('bonAmount').value = preset.amount || '';
-      document.getElementById('bonParty').value = preset.party || '';
-      document.getElementById('bonRef').value = preset.ref || '';
-      document.getElementById('bonDesc').value = preset.desc || '';
-      onBonAccount();
-      if (preset.category) document.getElementById('bonCategory').value = preset.category;
-      refreshBonNo();
-      bootstrap.Modal.getOrCreateInstance(document.getElementById('bonModal')).show();
+    // ---------- Input / Ubah / Koreksi ----------
+    let mode = 'new', editing = null;
+    const val = id => document.getElementById(id).value;
+    function openTrx(m, id, preset) {
+      mode = m; editing = id ? MockData.ledger.find(x => x.id === id) : null; preset = preset || {};
+      const e = editing;
+      const titles = { new: 'Input Transaksi Kas', edit: 'Ubah Transaksi ' + (e ? e.voucherNo : ''), correct: 'Koreksi Transaksi ' + (e ? e.voucherNo : '') };
+      document.getElementById('trxTitle').textContent = titles[m];
+      document.getElementById('trxHeader').className = 'modal-header ' + (m === 'correct' ? 'bg-danger-subtle' : 'bg-primary-subtle');
+      const hint = document.getElementById('trxHint');
+      hint.className = 'alert py-2 fs-13 ' + (m === 'correct' ? 'alert-danger' : 'alert-primary');
+      hint.innerHTML = m === 'correct'
+        ? `Transaksi ini sudah masuk jurnal. Koreksi membuat <strong>bon pembalik</strong> (nilai sama, arah berlawanan) lalu <strong>transaksi pengganti</strong> dengan isian di bawah. Jejak aslinya tetap ada.`
+        : (CB.autoPost() ? 'Input Finance / Accounting <strong>langsung masuk jurnal</strong>.' : 'Input kasir <strong>masuk jurnal setelah di-generate Accounting</strong>. Sebelum itu masih bisa diubah / dihapus.') +
+          ' Isi nominal di <strong>Debet</strong> (uang masuk) atau <strong>Kredit</strong> (uang keluar).';
+      document.getElementById('tAccount').innerHTML = activeAccounts().map(a => `<option value="${a.id}">${a.code ? a.code + ' · ' : ''}${CB.kindOf(a)} - ${esc(a.name)}</option>`).join('');
+      document.getElementById('tProject').innerHTML = '<option value="">- Umum / tanpa proyek -</option>' + MockData.projects.map(p => `<option value="${p.id}">${esc(p.id + ' · ' + p.name)}</option>`).join('');
+      document.getElementById('tCat').innerHTML = '<option value="">- pilih kategori -</option>' + [['IN', 'Uang Masuk (Debet)'], ['OUT', 'Uang Keluar (Kredit)']]
+        .map(([t, l]) => `<optgroup label="${l}">${CB.jcats(t).map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}</optgroup>`).join('');
+      document.getElementById('tMethod').innerHTML = Object.keys(CB.METHODS).map(k => `<option value="${k}">${CB.METHODS[k]}</option>`).join('');
+      const src = e || {};
+      document.getElementById('tDate').value = m === 'correct' ? today : (src.date || preset.date || today);
+      document.getElementById('tAccount').value = src.bankAccountId || preset.account || activeAccounts()[0].id;
+      document.getElementById('tProject').value = src.projectId || preset.project || '';
+      document.getElementById('tCat').value = src.jcat || preset.jcat || '';
+      document.getElementById('tDebit').value = src.type === 'IN' ? src.amount : (preset.debit || '');
+      document.getElementById('tCredit').value = src.type === 'OUT' ? src.amount : (preset.credit || '');
+      document.getElementById('tParty').value = src.party || preset.party || '';
+      document.getElementById('tRef').value = src.reference || preset.ref || '';
+      document.getElementById('tDesc').value = src.description || preset.desc || '';
+      document.getElementById('tReason').value = '';
+      document.getElementById('tCancelOnly').checked = false;
+      document.getElementById('tReasonWrap').classList.toggle('d-none', m !== 'correct');
+      document.getElementById('tAccount').disabled = m === 'correct';
+      onAccount();
+      document.getElementById('tMethod').value = src.method || preset.method || (CB.kindOf(CB.account(val('tAccount'))) === 'Kas' ? 'Cash' : 'Transfer');
+      onCat(true); onCancelOnly();
+      document.getElementById('tSubmit').className = 'btn ' + (m === 'correct' ? 'btn-danger' : 'btn-primary');
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('trxModal')).show();
     }
-    function onBonAccount() {
-      const acc = CB.account(document.getElementById('bonAccount').value);
-      const kind = CB.kindOf(acc);
-      document.getElementById('bonCategory').innerHTML = CB.categoriesFor(kind, bonType).map(c => `<option value="${c}">${CB.categoryLabel(c)}</option>`).join('');
-      document.getElementById('bonBalance').textContent = acc ? 'Saldo saat ini: ' + formatRupiah(CB.balance(acc.id)) : '';
+    function onAccount() {
+      const acc = CB.account(val('tAccount'));
+      document.getElementById('tBalance').textContent = acc ? 'Saldo: ' + formatRupiah(CB.balance(acc.id)) : '';
+      refreshCode(); preview();
     }
-    function refreshBonNo() { document.getElementById('bonNo').value = CB.nextVoucher(bonType, document.getElementById('bonDate').value); }
-    function submitBon() {
-      const res = CB.addEntry({
-        type: bonType,
-        date: document.getElementById('bonDate').value,
-        accountId: document.getElementById('bonAccount').value,
-        category: document.getElementById('bonCategory').value,
-        amount: document.getElementById('bonAmount').value,
-        party: document.getElementById('bonParty').value,
-        reference: document.getElementById('bonRef').value,
-        description: document.getElementById('bonDesc').value
-      });
+    function curType() { return Number(val('tDebit')) > 0 ? 'IN' : Number(val('tCredit')) > 0 ? 'OUT' : null; }
+    function refreshCode() {
+      const type = (CB.jcat(val('tCat')) || {}).type || curType() || 'IN';
+      document.getElementById('tCode').value = mode === 'edit' && editing && editing.type === type && editing.bankAccountId === val('tAccount') ? editing.voucherNo : CB.nextVoucher(type, val('tDate'), val('tAccount'));
+    }
+    // Kategori menentukan arah: kategori uang masuk → isi Debet, uang keluar → isi Kredit
+    function onCat(keep) {
+      const jc = CB.jcat(val('tCat')), d = document.getElementById('tDebit'), k = document.getElementById('tCredit');
+      if (jc) {
+        const amt = Number(d.value) || Number(k.value) || '';
+        d.disabled = jc.type !== 'IN'; k.disabled = jc.type !== 'OUT';
+        if (!keep || !(jc.type === 'IN' ? d.value : k.value)) { d.value = jc.type === 'IN' ? amt : ''; k.value = jc.type === 'OUT' ? amt : ''; }
+      } else { d.disabled = k.disabled = false; }
+      refreshCode(); preview();
+    }
+    function onAmount(which) {
+      const d = document.getElementById('tDebit'), k = document.getElementById('tCredit');
+      if (which === 'd' && Number(d.value) > 0) k.value = '';
+      if (which === 'k' && Number(k.value) > 0) d.value = '';
+      refreshCode(); preview();
+    }
+    function onCancelOnly() {
+      const only = document.getElementById('tCancelOnly').checked;
+      ['tDate', 'tProject', 'tCat', 'tMethod', 'tDebit', 'tCredit', 'tParty', 'tRef', 'tDesc'].forEach(id => { if (mode === 'correct') document.getElementById(id).closest('[class^="col"]').style.opacity = only ? .4 : 1; });
+      preview();
+    }
+    function preview() {
+      const acc = CB.account(val('tAccount')), jc = CB.jcat(val('tCat')), type = jc ? jc.type : curType();
+      const amt = Number(val('tDebit')) || Number(val('tCredit')) || 0;
+      if (!acc || !type) { document.getElementById('tPreview').innerHTML = '<span class="text-muted">Pilih kategori & isi nominal untuk melihat jurnalnya.</span>'; return; }
+      const kind = CB.kindOf(acc), cashCat = jc ? CB.cashCategoryOf(jc, kind, type) : null;
+      const cbAcc = AC.account('CB:' + acc.id), lawan = jc ? AC.account(jc.acc) : null;
+      const lines = type === 'IN' ? [[cbAcc, amt, 0], [lawan, 0, amt]] : [[lawan, amt, 0], [cbAcc, 0, amt]];
+      document.getElementById('tPreview').innerHTML = `<div class="mb-1"><strong>Masuk Laporan Kas:</strong> ${cashCat ? esc(CB.categoryLabel(cashCat)) : '-'}</div>
+        <div><strong>Jurnal${CB.autoPost() ? '' : ' (setelah generate)'}:</strong> ${lines.map(([a, d, k]) => `<span class="me-3">${a ? `<span class="acc-code">${a.code}</span>${esc(a.name)}` : '<span class="text-muted">akun dari kategori</span>'} ${d ? '<span class="text-primary">D ' + formatRupiah(d) + '</span>' : '<span class="text-danger">K ' + formatRupiah(k) + '</span>'}</span>`).join('')}</div>`;
+    }
+    function submitTrx() {
+      const data = {
+        date: val('tDate'), accountId: val('tAccount'), projectId: val('tProject') || null, jcat: val('tCat'), method: val('tMethod'),
+        debit: val('tDebit'), credit: val('tCredit'), party: val('tParty'), reference: val('tRef'), description: val('tDesc')
+      };
+      if (!data.jcat && !(mode === 'correct' && document.getElementById('tCancelOnly').checked)) { showToast('Pilih kategori', 'error'); return; }
+      let res, msg;
+      if (mode === 'new') { res = CB.addEntry(data); msg = res.success && `${res.entry.voucherNo} tersimpan${res.entry.posted ? ' & masuk jurnal' : ', menunggu generate Accounting'}`; }
+      if (mode === 'edit') { res = CB.update(editing.id, data); msg = res.success && `${res.entry.voucherNo} diubah`; }
+      if (mode === 'correct') {
+        res = CB.correct(editing.id, Object.assign(data, { reason: val('tReason'), cancelOnly: document.getElementById('tCancelOnly').checked }));
+        msg = res.success && `Koreksi tersimpan: pembalik ${res.reversal.voucherNo}${res.replacement ? ' + pengganti ' + res.replacement.voucherNo : ''}`;
+      }
       if (!res.success) { showToast(res.error, 'error'); return; }
-      bootstrap.Modal.getInstance(document.getElementById('bonModal')).hide();
-      showToast((bonType === 'IN' ? 'Bon Biru ' : 'Bon Merah ') + res.entry.voucherNo + ' tersimpan', 'success');
-      renderCards(); render();
+      bootstrap.Modal.getInstance(document.getElementById('trxModal')).hide();
+      showToast(msg, 'success');
+      refresh();
     }
 
     // ---------- Pindah Dana ----------
     function openTransfer() {
       const banks = activeAccounts().filter(a => CB.kindOf(a) === 'Bank');
-      document.getElementById('tfFrom').innerHTML = banks.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+      document.getElementById('tfFrom').innerHTML = banks.map(a => `<option value="${a.id}">${esc(a.name)}</option>`).join('');
       document.getElementById('tfDate').value = today;
       document.getElementById('tfAmount').value = '';
       document.getElementById('tfDesc').value = '';
@@ -259,43 +349,41 @@
       bootstrap.Modal.getOrCreateInstance(document.getElementById('transferModal')).show();
     }
     function onTransferChange(resetTo) {
-      const from = document.getElementById('tfFrom').value, toSel = document.getElementById('tfTo');
+      const from = val('tfFrom'), toSel = document.getElementById('tfTo');
       const cur = toSel.value;
       const targets = activeAccounts().filter(a => a.id !== from).sort((a, b) => (CB.kindOf(a) === 'Kas' ? 0 : 1) - (CB.kindOf(b) === 'Kas' ? 0 : 1));
-      toSel.innerHTML = targets.map(a => `<option value="${a.id}">${CB.kindOf(a)} - ${a.name}</option>`).join('');
+      toSel.innerHTML = targets.map(a => `<option value="${a.id}">${CB.kindOf(a)} - ${esc(a.name)}</option>`).join('');
       if (!resetTo && targets.some(a => a.id === cur)) toSel.value = cur;
       document.getElementById('tfBalance').textContent = from ? 'Saldo: ' + formatRupiah(CB.balance(from)) : '';
       const toKas = CB.kindOf(CB.account(toSel.value)) === 'Kas';
-      document.getElementById('tfPreview').innerHTML = `Tercatat: <span class="text-danger">Bon Merah "${CB.categoryLabel(toKas ? 'bank_out_cash' : 'bank_out_transfer')}"</span> + <span class="text-primary">Bon Biru "${CB.categoryLabel(toKas ? 'kas_in_transfer' : 'bank_in_transfer')}"</span>`;
+      document.getElementById('tfPreview').innerHTML = `Tercatat: <span class="text-danger">Kredit "${CB.categoryLabel(toKas ? 'bank_out_cash' : 'bank_out_transfer')}"</span> + <span class="text-primary">Debet "${CB.categoryLabel(toKas ? 'kas_in_transfer' : 'bank_in_transfer')}"</span>`;
     }
     function submitTransfer() {
-      const res = CB.transfer({
-        fromId: document.getElementById('tfFrom').value,
-        toId: document.getElementById('tfTo').value,
-        date: document.getElementById('tfDate').value,
-        amount: document.getElementById('tfAmount').value,
-        description: document.getElementById('tfDesc').value
-      });
+      const res = CB.transfer({ fromId: val('tfFrom'), toId: val('tfTo'), date: val('tfDate'), amount: val('tfAmount'), description: val('tfDesc') });
       if (!res.success) { showToast(res.error, 'error'); return; }
       bootstrap.Modal.getInstance(document.getElementById('transferModal')).hide();
       showToast(`Dana dipindahkan (${res.out.voucherNo} → ${res.in.voucherNo})`, 'success');
-      renderCards(); render();
+      refresh();
     }
+
+    function refresh() { renderPostInfo(); renderCards(); render(); }
 
     // ---------- Init (param URL dari Laporan Kas / Rekonsiliasi / Pembelian) ----------
     document.getElementById('kindFilter').value = getUrlParam('kind') || '';
     document.getElementById('typeFilter').value = getUrlParam('type') || '';
     onKindFilter();
     if (getUrlParam('account')) document.getElementById('accountFilter').value = getUrlParam('account');
-    if (getUrlParam('category')) document.getElementById('categoryFilter').value = getUrlParam('category');
+    if (getUrlParam('jcat')) document.getElementById('categoryFilter').value = 'jc:' + getUrlParam('jcat');
+    if (getUrlParam('category')) document.getElementById('categoryFilter').insertAdjacentHTML('beforeend', `<option value="${esc(getUrlParam('category'))}" selected>${esc(CB.categoryLabel(getUrlParam('category')))}</option>`);
+    if (getUrlParam('post')) document.getElementById('postFilter').value = getUrlParam('post');
     document.getElementById('fromFilter').value = getUrlParam('from') || '';
     document.getElementById('toFilter').value = getUrlParam('to') || '';
-    renderCards();
-    render();
+    refresh();
     const nw = getUrlParam('new');
-    if (nw === 'in' || nw === 'out') {
-      openBon(nw === 'in' ? 'IN' : 'OUT', { account: getUrlParam('acc'), category: getUrlParam('cat'), amount: getUrlParam('amount'), ref: getUrlParam('ref'), party: getUrlParam('party'), desc: getUrlParam('desc'), date: getUrlParam('date') });
-    } else if (nw === 'transfer') openTransfer();
+    if (canCreate && (nw === 'in' || nw === 'out' || nw === 'trx')) {
+      const amt = getUrlParam('amount');
+      openTrx('new', null, { account: getUrlParam('acc'), jcat: getUrlParam('jcat'), debit: nw === 'in' ? amt : '', credit: nw === 'out' ? amt : '', ref: getUrlParam('ref'), party: getUrlParam('party'), desc: getUrlParam('desc'), date: getUrlParam('date'), project: getUrlParam('project') });
+    } else if (canCreate && nw === 'transfer') openTransfer();
   </script>
 </body>
 </html>

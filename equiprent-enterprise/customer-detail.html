@@ -43,19 +43,19 @@
           <h2>${esc(cust.name)} ${statusBadge(cust.status)}</h2>
           <div class="detail-meta">
             <span class="detail-meta-item"><i class="bi bi-hash"></i>${cust.id}</span>
-            <span class="detail-meta-item"><i class="bi bi-person"></i>${esc(cust.pic)}</span>
+            <span class="detail-meta-item"><i class="bi bi-person"></i>PM: ${esc(cust.pic)}</span>
             <span class="detail-meta-item"><i class="bi bi-telephone"></i>${esc(cust.phone)}</span>
           </div>
         </div>
       </div>
       <div class="detail-header-actions">
         ${canDo('Projects', 'Create') ? `<a href="project-create.html?customer=${cust.id}" class="btn btn-outline-primary btn-sm"><i class="bi bi-folder-plus me-1"></i>Proyek Baru</a>` : ''}
-        ${canDo('Rentals', 'Create') ? `<a href="rental-create.html?customer=${cust.id}" class="btn btn-outline-primary btn-sm"><i class="bi bi-file-earmark-plus me-1"></i>Sewa Baru</a>` : ''}
+        ${canDo('Rentals', 'Create') ? `<a href="rental-create.html?customer=${cust.id}" class="btn btn-outline-primary btn-sm"><i class="bi bi-file-earmark-plus me-1"></i>Order Sewa</a>` : ''}
         ${canDo('Sales', 'Create') ? `<a href="sale-create.html?customer=${cust.id}" class="btn btn-outline-primary btn-sm"><i class="bi bi-bag-plus me-1"></i>Jual Baru</a>` : ''}
         ${editButton({ docType: 'Pelanggan', docId: cust.id, docLabel: cust.name, link: 'customer-detail.html?id=' + cust.id }, `<a href="customers.html?edit=${cust.id}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Ubah Profil</a>`, { label: 'Ajukan Perubahan' })}
       </div>`;
 
-    const tabs = [['overview', 'Ringkasan'], ['projects', 'Proyek', projects.length], ['rentals', 'Penyewaan', rentals.length], ['sales', 'Penjualan', sales.length], ['invoices', 'Invoice & Piutang', invoices.length], ['profile', 'Profil']];
+    const tabs = [['overview', 'Ringkasan'], ['projects', 'Proyek', projects.length], ['rentals', 'Rekap Project', rentals.length], ['sales', 'Penjualan', sales.length], ['invoices', 'Invoice & Piutang', invoices.length], ['profile', 'Profil']];
     document.getElementById('detailTabs').innerHTML = tabs.map(([k, l, n], i) => `<button class="er-tab ${i === 0 ? 'active' : ''}" data-tab="${k}" onclick="switchTab('${k}')">${l}${n != null ? `<span class="er-tab-count">${n}</span>` : ''}</button>`).join('');
 
     const kpi = (c, i, l, v) => `<div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon ${c}"><i class="bi ${i}"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${v}</div><div class="kpi-label">${l}</div></div></div></div>`;
@@ -107,7 +107,7 @@
         <div class="info-item"><span class="info-label">ID Pelanggan</span><span class="info-value text-mono">${cust.id}</span></div>
         <div class="info-item"><span class="info-label">Nama Perusahaan</span><span class="info-value fw-600">${esc(cust.name)}</span></div>
         <div class="info-item"><span class="info-label">Kode</span><span class="info-value">${esc(cust.code)}</span></div>
-        <div class="info-item"><span class="info-label">PIC</span><span class="info-value">${esc(cust.pic)}</span></div>
+        <div class="info-item"><span class="info-label">PM (Project Manager)</span><span class="info-value">${esc(cust.pic)}</span></div>
         <div class="info-item"><span class="info-label">Telepon</span><span class="info-value">${esc(cust.phone)}</span></div>
         <div class="info-item"><span class="info-label">Email</span><span class="info-value"><a href="mailto:${esc(cust.email)}">${esc(cust.email)}</a></span></div>
         <div class="info-item"><span class="info-label">NPWP</span><span class="info-value">${cust.taxId ? esc(cust.taxId) : '<span class="text-danger">Belum diisi</span>'}</span></div>
