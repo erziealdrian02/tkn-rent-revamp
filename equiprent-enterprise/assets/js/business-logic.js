@@ -971,26 +971,20 @@ BizLogic.Delivery = {
     return m + ' mnt';
   },
 
-  // Keterlambatan dibebankan ke Logistik (PT pengiriman): SJ tiba lewat estimasi (lewat toleransi) →
-  // denda = Σ qty × harga satuan sewa ÷ bulan sewa × hari telat × tarif denda. Sewa ke customer tetap dihitung dari SJ.
-  latePenalty: function(d) {
+  // Keterlambatan hanya DIDETEKSI: berapa lama surat jalan tiba lewat estimasi (alat on site).
+  // Denda ke Logistik diurus internal di luar sistem; sewa ke customer tetap dihitung dari tanggal SJ.
+  lateInfo: function(d) {
     var m = this.lateMinutes(d);
-    var st = MockData.settings || {}, grace = st.logisticsLateGraceMinutes != null ? Number(st.logisticsLateGraceMinutes) : 120;
-    var rate = st.logisticsLateRate != null ? Number(st.logisticsLateRate) : 1;
-    if (m == null || m <= grace) return null;
-    var days = Math.ceil((m - grace) / 1440), md = BizLogic.Billing.monthDays(), done = !!(d.arrivedAt || d.completedAt);
-    var sale = d.saleId && (MockData.sales || []).find(function(x) { return x.id === d.saleId; });
-    var amount = d.items.reduce(function(sum, i) {
-      var price = BizLogic.Billing.unitPrice(d.projectId, i.name);
-      return sum + i.qty * price / md * days * rate;
-    }, 0);
-    return { minutes: m, days: days, amount: Math.round(amount), final: done, sale: !!sale,
+    if (m == null || m <= 0) return null;
+    var done = !!(d.arrivedAt || d.completedAt);
+    return { minutes: m, final: done, arrivedAt: d.arrivedAt || d.completedAt || null,
       basis: (done ? 'Tiba ' : 'Belum tiba, sudah lewat ') + this.durationText(m) + ' dari estimasi ' + d.estimate.arriveAt };
   },
   lateList: function(from, to) {
     var self = this;
-    return MockData.deliveries.filter(function(d) { return d.status !== 'Failed'; }).map(function(d) { return { d: d, p: self.latePenalty(d) }; })
-      .filter(function(x) { return x.p && (!from || x.d.deliveryDate >= from) && (!to || x.d.deliveryDate <= to); });
+    return MockData.deliveries.filter(function(d) { return d.status !== 'Failed'; }).map(function(d) { return { d: d, p: self.lateInfo(d) }; })
+      .filter(function(x) { return x.p && (!from || x.d.deliveryDate >= from) && (!to || x.d.deliveryDate <= to); })
+      .sort(function(a, b) { return b.p.minutes - a.p.minutes; });
   },
 
   // Selisih tiba aktual vs estimasi (menit, + = telat)

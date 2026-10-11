@@ -300,12 +300,6 @@ function renderSidebarI18n(user, activePage) {
   html += L('rentals.html', 'bi-file-earmark-text', 'rentals');
   html += L('sales.html', 'bi-bag-check', 'sales');
   html += L('claims.html', 'bi-exclamation-triangle', 'claims');
-  html += sidebarSectionI18n(t('receivables_section'));
-  html += L('approvals.html', 'bi-check2-circle', 'approvals', canDo('Approvals', 'Approve') ? pendingOrders : 0);
-  html += L('billing.html', 'bi-calculator', 'billing_recap');
-  html += L('invoices.html', 'bi-receipt', 'invoices');
-  html += L('payments.html', 'bi-cash-coin', 'payments');
-  html += L('receivables.html', 'bi-journal-text', 'receivables_report');
   html += sidebarSectionI18n(t('stock_recap_section'));
   html += L('deliveries.html', 'bi-truck', 'deliveries');
   html += L('returns.html', 'bi-box-arrow-in-left', 'returns');
@@ -315,6 +309,12 @@ function renderSidebarI18n(user, activePage) {
   html += L('stock-report.html', 'bi-clipboard-data', 'stock_report');
   html += L('vehicles.html', 'bi-truck-front', 'vehicles');
   html += L('drivers.html', 'bi-person-badge', 'drivers');
+  html += sidebarSectionI18n(t('receivables_section'));
+  html += L('approvals.html', 'bi-check2-circle', 'approvals', canDo('Approvals', 'Approve') ? pendingOrders : 0);
+  html += L('billing.html', 'bi-calculator', 'billing_recap');
+  html += L('invoices.html', 'bi-receipt', 'invoices');
+  html += L('payments.html', 'bi-cash-coin', 'payments');
+  html += L('receivables.html', 'bi-journal-text', 'receivables_report');
   html += sidebarSectionI18n(t('inventory'));
   html += L('equipment.html', 'bi-tools', 'equipment');
   html += L('branches.html', 'bi-building', 'branches');

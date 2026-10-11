@@ -271,16 +271,16 @@ const MockData = {
     { id: 'SO-001', customerId: 'CUS-003', customerName: 'PT Mitra Teknologi', projectId: 'PRJ-004', projectName: 'Project Warehouse Renovation', branch: 'Bekasi', branchId: 'BR-002',
       date: '2026-09-02', status: 'Delivered', deliveryStatus: 'Completed', notes: 'Penjualan unit bekas', taxRate: 0.11,
       items: [{ name: 'Aluminium Ladder 6m', qty: 2, unitPrice: 1500000, delivered: 2 }], subtotal: 3000000,
-      createdBy: 'Rina Kasir', createdAt: '2026-09-02 09:00', approvedBy: 'Sari Dewi', approvedDate: '2026-09-02 11:00', invoiceId: null },
+      createdBy: 'Joko Warehouse', createdAt: '2026-09-02 09:00', approvedBy: 'Sari Dewi', approvedDate: '2026-09-02 11:00', invoiceId: null },
     { id: 'SO-002', customerId: 'CUS-002', customerName: 'PT Infrastruktur Nusantara', projectId: 'PRJ-003', projectName: 'Project Infrastructure Expansion', branch: 'Cileungsi', branchId: 'BR-001',
       date: '2026-10-09', status: 'Pending Approval', deliveryStatus: 'Pending', notes: 'Kabel untuk instalasi permanen', taxRate: 0.11,
       items: [{ name: 'Power Cable 50m', qty: 10, unitPrice: 2000000 }, { name: 'Power Cable 100m', qty: 4, unitPrice: 3500000 }], subtotal: 34000000,
-      createdBy: 'Rina Kasir', createdAt: '2026-10-09 14:00', submittedAt: '2026-10-09 14:05', invoiceId: null },
+      createdBy: 'Joko Warehouse', createdAt: '2026-10-09 14:00', submittedAt: '2026-10-09 14:05', invoiceId: null },
     { id: 'SO-003', customerId: 'CUS-004', customerName: 'PT Karya Engineering', projectId: 'PRJ-005', projectName: 'Project Bridge Construction', branch: 'Bekasi', branchId: 'BR-002',
       date: '2026-08-18', status: 'Delivered', deliveryStatus: 'Completed', notes: 'Kabel hilang di lokasi, dibeli pelanggan', taxRate: 0,
       source: 'project', sourceReason: 'Hilang di lokasi proyek', returnSjNo: 'SJR-2608-003', returnIds: ['RET-004'],
       items: [{ name: 'Power Cable 100m', qty: 1, unitPrice: 900000, delivered: 1 }], subtotal: 900000,
-      createdBy: 'Rina Kasir', createdAt: '2026-08-18 09:00', approvedBy: 'Sari Dewi', approvedDate: '2026-08-18 10:00', invoiceId: 'INV-005' },
+      createdBy: 'Joko Warehouse', createdAt: '2026-08-18 09:00', approvedBy: 'Sari Dewi', approvedDate: '2026-08-18 10:00', invoiceId: 'INV-005' },
   ],
 
   // ---- PERMINTAAN PERUBAHAN ----
@@ -290,7 +290,7 @@ const MockData = {
     { id: 'ER-001', docType: 'Pelanggan', docId: 'CUS-003', docLabel: 'PT Mitra Teknologi', link: 'customer-detail.html?id=CUS-003', action: 'Ubah',
       notes: 'Mohon isi NPWP pelanggan: 03.529.647.8-009.000 (untuk faktur pajak)', requestedBy: 'Sari Dewi', requestedRole: 'Account Receivable', requestedAt: '2026-10-08 10:15', status: 'Menunggu ACC' },
     { id: 'ER-002', docType: 'Proyek', docId: 'PRJ-003', docLabel: 'Project Infrastructure Expansion', link: 'project-detail.html?id=PRJ-003', action: 'Ubah',
-      notes: 'Lokasi proyek pindah ke Jl. Gatot Subroto No. 15', requestedBy: 'Rina Kasir', requestedRole: 'Kasir', requestedAt: '2026-10-07 13:20', status: 'Disetujui',
+      notes: 'Lokasi proyek pindah ke Jl. Gatot Subroto No. 15', requestedBy: 'Joko Warehouse', requestedRole: 'Logistik', requestedAt: '2026-10-07 13:20', status: 'Disetujui',
       reviewedBy: 'Lina Akuntan', reviewedAt: '2026-10-07 15:00', reviewNote: 'OK, sesuai surat customer' },
   ],
 
@@ -538,18 +538,18 @@ const MockData = {
     {"id":"TRX-009","voucherNo":"BB-2609-008","date":"2026-09-30","bankAccountId":"ACC-004","type":"IN","category":"bank_in_ar","reference":"PAY-009 / INV-010","description":"Pembayaran lunas INV-010 - PT Karya Engineering","party":"PT Karya Engineering","amount":8342600,"source":"payment","transferId":null,"reconciled":true,"user":"Maya Finance","reconId":"REK-001","method":"Transfer"},
     {"id":"TRX-020","voucherNo":"BM-2609-007","date":"2026-09-30","bankAccountId":"ACC-001","type":"OUT","category":"bank_out_admin","reference":"","description":"Biaya administrasi rekening September","party":"BCA","amount":35000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance","jcat":"JC-009","method":"Transfer"},
     {"id":"TRX-021","voucherNo":"BB-2609-009","date":"2026-09-30","bankAccountId":"ACC-003","type":"IN","category":"bank_in_interest","reference":"","description":"Jasa giro September","party":"BNI","amount":125000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance","jcat":"JC-019","method":"Transfer"},
-    {"id":"TRX-022","voucherNo":"BB-2610-001","date":"2026-10-03","bankAccountId":"ACC-005","type":"IN","category":"kas_in_refund","reference":"","description":"Pengembalian kasbon (cicilan 1)","party":"Budi Santoso","amount":500000,"source":"manual","transferId":null,"reconciled":false,"user":"Rina Kasir","jcat":"JC-018","method":"Cash","posted":false},
+    {"id":"TRX-022","voucherNo":"BB-2610-001","date":"2026-10-03","bankAccountId":"ACC-005","type":"IN","category":"kas_in_refund","reference":"","description":"Pengembalian kasbon (cicilan 1)","party":"Budi Santoso","amount":500000,"source":"manual","transferId":null,"reconciled":false,"user":"Joko Warehouse","jcat":"JC-018","method":"Cash","posted":false},
     {"id":"TRX-011","voucherNo":"BB-2610-002","date":"2026-10-05","bankAccountId":"ACC-001","type":"IN","category":"bank_in_ar","reference":"PAY-011 / INV-012","description":"Pembayaran cicilan INV-012 - PT Data Center Indonesia","party":"PT Data Center Indonesia","amount":15100000,"source":"payment","transferId":null,"reconciled":false,"user":"Maya Finance","method":"Transfer"},
     {"id":"TRX-023","voucherNo":"BM-2610-001","date":"2026-10-06","bankAccountId":"ACC-002","type":"OUT","category":"bank_out_loan","reference":"","description":"Angsuran pinjaman modal kerja Oktober","party":"Bank Mandiri","amount":15000000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance","jcat":"JC-013","method":"Transfer"},
-    {"id":"TRX-024","voucherNo":"BB-2610-003","date":"2026-10-07","bankAccountId":"ACC-005","type":"IN","category":"kas_in_sale","reference":"","description":"Penjualan tunai besi bekas","party":"Pengepul","amount":750000,"source":"manual","transferId":null,"reconciled":false,"user":"Rina Kasir","jcat":"JC-017","method":"Cash","posted":false},
+    {"id":"TRX-024","voucherNo":"BB-2610-003","date":"2026-10-07","bankAccountId":"ACC-005","type":"IN","category":"kas_in_sale","reference":"","description":"Penjualan tunai besi bekas","party":"Pengepul","amount":750000,"source":"manual","transferId":null,"reconciled":false,"user":"Joko Warehouse","jcat":"JC-017","method":"Cash","posted":false},
     {"id":"TRX-025","voucherNo":"BM-2609-008","date":"2026-09-10","bankAccountId":"ACC-005","type":"OUT","category":"kas_out_opex","reference":"","description":"Pembelian ATK & materai","party":"Toko Sinar Jaya","amount":850000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance","jcat":"JC-001","method":"Cash"},
     {"id":"TRX-026","voucherNo":"BM-2609-009","date":"2026-09-15","bankAccountId":"ACC-001","type":"OUT","category":"bank_out_supplier","reference":"INV/TL/0915","description":"Sewa truk crane mobilisasi genset (net setelah PPh 23)","party":"CV Trans Logistik","amount":9800000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance","projectId":"PRJ-001","jcat":"JC-008","method":"Transfer"},
     {"id":"TRX-027","voucherNo":"BM-2609-010","date":"2026-09-20","bankAccountId":"ACC-001","type":"OUT","category":"bank_out_supplier","reference":"PLN-0826","description":"Listrik kantor & gudang Agustus","party":"PLN","amount":3200000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance","jcat":"JC-005","method":"Transfer"},
     {"id":"TRX-028","voucherNo":"BM-2609-011","date":"2026-09-24","bankAccountId":"ACC-005","type":"OUT","category":"kas_out_opex","reference":"","description":"Servis truk B 9123 XY","party":"Bengkel Maju Motor","amount":1750000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance","jcat":"JC-004","method":"Cash"},
     {"id":"TRX-029","voucherNo":"BM-2609-012","date":"2026-09-26","bankAccountId":"ACC-002","type":"OUT","category":"bank_out_supplier","reference":"","description":"Konsumsi & akomodasi tim pemasangan di lokasi proyek","party":"Hotel Bintang","amount":4500000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance","projectId":"PRJ-003","jcat":"JC-006","method":"Transfer"},
     {"id":"TRX-030","voucherNo":"BM-2610-002","date":"2026-10-08","bankAccountId":"ACC-005","type":"OUT","category":"kas_out_payroll","reference":"NTPN-0926","description":"Setor PPh 23 masa September 2026","party":"Kas Negara","amount":200000,"source":"manual","transferId":null,"reconciled":false,"user":"Maya Finance","jcat":"JC-010","method":"Cash"},
-    {"id":"TRX-031","voucherNo":"BMKAS-2610-001","date":"2026-10-09","bankAccountId":"ACC-005","type":"OUT","category":"kas_out_opex","jcat":"JC-002","method":"Cash","projectId":null,"reference":"NOTA-0910","description":"Pakan anjing jaga gudang Cileungsi (2 karung)","party":"Toko Pakan Sejahtera","amount":450000,"source":"manual","transferId":null,"reconciled":false,"user":"Rina Kasir","posted":false},
-    {"id":"TRX-032","voucherNo":"BMKAS-2610-002","date":"2026-10-10","bankAccountId":"ACC-005","type":"OUT","category":"kas_out_opex","jcat":"JC-003","method":"Debit","projectId":"PRJ-001","reference":"SJK-2610","description":"Solar truk kirim alat ke Data Center Jakarta","party":"SPBU Cileungsi","amount":600000,"source":"manual","transferId":null,"reconciled":false,"user":"Rina Kasir","posted":false},
+    {"id":"TRX-031","voucherNo":"BMKAS-2610-001","date":"2026-10-09","bankAccountId":"ACC-005","type":"OUT","category":"kas_out_opex","jcat":"JC-002","method":"Cash","projectId":null,"reference":"NOTA-0910","description":"Pakan anjing jaga gudang Cileungsi (2 karung)","party":"Toko Pakan Sejahtera","amount":450000,"source":"manual","transferId":null,"reconciled":false,"user":"Joko Warehouse","posted":false},
+    {"id":"TRX-032","voucherNo":"BMKAS-2610-002","date":"2026-10-10","bankAccountId":"ACC-005","type":"OUT","category":"kas_out_opex","jcat":"JC-003","method":"Debit","projectId":"PRJ-001","reference":"SJK-2610","description":"Solar truk kirim alat ke Data Center Jakarta","party":"SPBU Cileungsi","amount":600000,"source":"manual","transferId":null,"reconciled":false,"user":"Joko Warehouse","posted":false},
   ],
 
   // ---- REKONSILIASI BANK ----
@@ -687,7 +687,7 @@ const MockData = {
   },
 
   // ---- KATEGORI JURNAL ----
-  // Dipilih kasir saat input transaksi kas. acc = akun COA lawan (masuk jurnal), cash = baris Laporan Kas per jenis rekening.
+  // Dipilih saat input transaksi kas. acc = akun COA lawan (masuk jurnal), cash = baris Laporan Kas per jenis rekening.
   journalCategories: [
     { id: 'JC-001', name: 'ATK & Materai', type: 'OUT', acc: '6-2005', cash: { Kas: 'kas_out_opex', Bank: 'bank_out_supplier' } },
     { id: 'JC-002', name: 'Pakan Hewan (Anjing Jaga Gudang)', type: 'OUT', acc: '6-2006', cash: { Kas: 'kas_out_opex', Bank: 'bank_out_supplier' } },
@@ -729,23 +729,21 @@ const MockData = {
   // ---- USERS ----
   users: [
     { id: 'USR-001', name: 'Ahmad Hidayat', username: 'admin', email: 'ahmad@equiprent.co.id', role: 'Admin', branch: 'All', status: 'Active', lastLogin: '2026-10-09 09:15' },
+    { id: 'USR-006', name: 'Joko Warehouse', username: 'logistik', email: 'joko@equiprent.co.id', role: 'Logistik', branch: 'Cileungsi', status: 'Active', lastLogin: '2026-10-09 07:30' },
     { id: 'USR-002', name: 'Sari Dewi', username: 'piutang', email: 'sari@equiprent.co.id', role: 'Account Receivable', branch: 'Cileungsi', status: 'Active', lastLogin: '2026-10-09 08:45' },
     { id: 'USR-003', name: 'Maya Finance', username: 'finance', email: 'maya@equiprent.co.id', role: 'Finance', branch: 'Cileungsi', status: 'Active', lastLogin: '2026-10-09 10:00' },
     { id: 'USR-004', name: 'Lina Akuntan', username: 'accounting', email: 'lina@equiprent.co.id', role: 'Accounting & Tax', branch: 'Cileungsi', status: 'Active', lastLogin: '2026-10-09 08:30' },
     { id: 'USR-005', name: 'Rudi Purchasing', username: 'purchase', email: 'rudi@equiprent.co.id', role: 'Purchase', branch: 'Cileungsi', status: 'Active', lastLogin: '2026-10-08 16:00' },
-    { id: 'USR-006', name: 'Joko Warehouse', username: 'logistik', email: 'joko@equiprent.co.id', role: 'Logistik', branch: 'Cileungsi', status: 'Active', lastLogin: '2026-10-09 07:30' },
-    { id: 'USR-007', name: 'Rina Kasir', username: 'kasir', email: 'rina@equiprent.co.id', role: 'Kasir', branch: 'Cileungsi', status: 'Active', lastLogin: '2026-10-09 08:00' },
   ],
 
   // ---- ROLES ----
   roles: [
     { id: 'ROLE-001', name: 'Admin', description: 'Akses penuh. Satu-satunya yang boleh mengubah & menghapus data', usersCount: 1 },
+    { id: 'ROLE-006', name: 'Logistik', description: 'Pelanggan, proyek, order sewa & jual, input kas, gudang & stok, kendaraan & pengemudi, surat jalan, estimasi, inspeksi (PT logistik)', usersCount: 1 },
     { id: 'ROLE-002', name: 'Account Receivable', description: 'Staff Piutang: ACC order sewa/jual, rekap tagihan, invoice, piutang', usersCount: 1 },
     { id: 'ROLE-003', name: 'Finance', description: 'Kas & bank, pembayaran, rekonsiliasi', usersCount: 1 },
     { id: 'ROLE-004', name: 'Accounting & Tax', description: 'Akuntansi, pajak, ACC permintaan perubahan data', usersCount: 1 },
     { id: 'ROLE-005', name: 'Purchase', description: 'Pembelian alat & supplier', usersCount: 1 },
-    { id: 'ROLE-006', name: 'Logistik', description: 'Gudang, stok, kendaraan & pengemudi, surat jalan, estimasi & update posisi, inspeksi pengembalian (PT logistik)', usersCount: 1 },
-    { id: 'ROLE-007', name: 'Kasir', description: 'Kasir: input transaksi kas (masuk jurnal setelah di-generate Accounting); input pelanggan, proyek, order sewa & jual', usersCount: 1 },
   ],
 
   // ---- PERMISSIONS MATRIX ----
@@ -768,15 +766,13 @@ const MockData = {
         Accounts: ['View'], Invoices: ['View'], Payments: ['View'], Purchases: ['View'], Stock: ['View'] } },
       'Purchase': { modules: {
         Dashboard: ['View'], Purchases: ['View','Create','Update'], Stock: ['View'], Equipment: ['View'], Branches: ['View'] } },
-      // Logistik = gudang + pengiriman (Ekspedisi & Driver digabung ke sini): kendaraan, pengemudi, estimasi, update posisi
+      // Logistik = input order (pelanggan, proyek, order sewa & jual, kas) + gudang + pengiriman
+      // (role Kasir, Ekspedisi & Driver digabung ke sini). Input kas Logistik masuk jurnal setelah di-generate Accounting.
       'Logistik': { modules: {
-        Dashboard: ['View'], Projects: ['View'], Rentals: ['View','Update'], Sales: ['View','Update'], Deliveries: ['View','Create','Update'], Returns: ['View','Create','Update'],
+        Dashboard: ['View'], Customers: ['View','Create'], Projects: ['View','Create','Update'], Rentals: ['View','Create','Update'], Sales: ['View','Create','Update'],
+        Claims: ['View','Create'], Deliveries: ['View','Create','Update'], Returns: ['View','Create','Update'],
         Stock: ['View','Create','Update'], Equipment: ['View','Create','Update'], Branches: ['View','Create','Update'], Movements: ['View'],
-        Purchases: ['View','Create'], Drivers: ['View','Create','Update'], Vehicles: ['View','Create','Update'] } },
-      'Kasir': { modules: {
-        Dashboard: ['View'], Customers: ['View','Create'], Projects: ['View','Create','Update'], Rentals: ['View','Create'], Sales: ['View','Create'],
-        Claims: ['View','Create'], Deliveries: ['View'], Returns: ['View'], Stock: ['View'], Equipment: ['View'], Invoices: ['View'],
-        Accounts: ['View','Create'] } }, // kasir: input transaksi kas, masuk jurnal setelah di-generate Accounting
+        Purchases: ['View','Create'], Drivers: ['View','Create','Update'], Vehicles: ['View','Create','Update'], Invoices: ['View'], Accounts: ['View','Create'] } },
     }
   },
 
@@ -787,7 +783,7 @@ const MockData = {
     { id: 3, message: 'Invoice <strong>#INV-013</strong> is approaching due date', type: 'orange', icon: 'bi-receipt', time: '1 hour ago', read: false, link: 'invoice-detail.html?id=INV-013' },
     { id: 4, message: 'Purchase <strong>#PO-003</strong> has arrived at Bekasi', type: 'green', icon: 'bi-box-seam', time: '2 hours ago', read: true, link: 'purchase-detail.html?id=PO-003' },
     { id: 5, message: 'Rental <strong>#RNT-009</strong> is waiting for approval', type: 'warning', icon: 'bi-clock-history', time: '3 hours ago', read: true, link: 'rental-detail.html?id=RNT-009' },
-    { id: 6, message: '<strong>4 transaksi kas</strong> dari kasir menunggu di-generate ke jurnal', type: 'warning', icon: 'bi-journal-arrow-down', time: '4 hours ago', read: false, link: 'cash-report.html' },
+    { id: 6, message: '<strong>4 transaksi kas</strong> dari Logistik menunggu di-generate ke jurnal', type: 'warning', icon: 'bi-journal-arrow-down', time: '4 hours ago', read: false, link: 'cash-report.html' },
     { id: 7, message: 'Stock alert: Generator 50 KVA low in Cileungsi', type: 'orange', icon: 'bi-exclamation-circle', time: '5 hours ago', read: true, link: 'stock.html' },
   ],
 
@@ -808,20 +804,18 @@ const MockData = {
   // ---- DEMO USERS FOR LOGIN ----
   demoUsers: [
     { username: 'admin', password: 'demo', name: 'Ahmad Hidayat', role: 'Admin', branch: 'All', initials: 'AH' },
+    { username: 'logistik', password: 'demo', name: 'Joko Warehouse', role: 'Logistik', branch: 'Cileungsi', initials: 'JW' },
     { username: 'piutang', password: 'demo', name: 'Sari Dewi', role: 'Account Receivable', branch: 'Cileungsi', initials: 'SD' },
     { username: 'finance', password: 'demo', name: 'Maya Finance', role: 'Finance', branch: 'Cileungsi', initials: 'MF' },
     { username: 'accounting', password: 'demo', name: 'Lina Akuntan', role: 'Accounting & Tax', branch: 'Cileungsi', initials: 'LA' },
     { username: 'purchase', password: 'demo', name: 'Rudi Purchasing', role: 'Purchase', branch: 'Cileungsi', initials: 'RP' },
-    { username: 'logistik', password: 'demo', name: 'Joko Warehouse', role: 'Logistik', branch: 'Cileungsi', initials: 'JW' },
-    { username: 'kasir', password: 'demo', name: 'Rina Kasir', role: 'Kasir', branch: 'Cileungsi', initials: 'RK' },
   ],
 
   // ---- SETTINGS ----
   // billingMonthDays = pembagi "Bulan Sewa" di rumus tagihan (template 30 hari)
   // taxRate = PPN efektif 11% (dihitung sebagai DPP 11/12 × PPN 12%, sesuai format Rekap Tagihan)
-  // Keterlambatan SJ dari estimasi dibebankan ke Logistik: denda = harga sewa harian × hari telat × logisticsLateRate,
-  // hari telat dihitung setelah toleransi logisticsLateGraceMinutes
-  settings: { billingMonthDays: 30, taxRate: 0.11, paymentTermDays: 30, logisticsLateRate: 1, logisticsLateGraceMinutes: 120 },
+  // Keterlambatan SJ dari estimasi hanya dideteksi (berapa lama telat); denda ke Logistik diurus internal, tidak di sistem
+  settings: { billingMonthDays: 30, taxRate: 0.11, paymentTermDays: 30 },
 
   // ---- COMPANY INFO ----
   company: {
@@ -850,7 +844,7 @@ const MockData = {
 
 // --- Persistence Logic ---
 // Naikkan angka ini setiap struktur data seed berubah, supaya localStorage lama di-reset.
-const MOCK_SCHEMA_VERSION = '11-role-kasir';
+const MOCK_SCHEMA_VERSION = '12-logistik-order';
 
 (function() {
   const STORAGE_PREFIX = 'equiprent_';

@@ -47,6 +47,7 @@ Cara baca diagram:
 | 11 | [Role, ACC Piutang, Penjualan, Ekspedisi & Permintaan Perubahan](#11-role-acc-piutang-penjualan-ekspedisi--permintaan-perubahan) | Alur terbaru dari catatan user Okt 2026 |
 | 12 | [Purchasing](#12-purchasing-purchase-request-purchase-order-pembayaran-laporan) | Purchase Request, Purchase Order (term & tax), uang muka / pelunasan / tempo, laporan pembelian & hutang dagang |
 | 13 | [Rekap Project, Jual Alat di Proyek & Kasir → Jurnal → COA](#13-rekap-project-jual-alat-di-proyek--kasir--jurnal--coa) | Catatan user batch 3: rekap per proyek + persentase, hapus Hilang, kasir, generate, kategori jurnal, COA bulanan |
+| 15 | [Revisi setelah User Guide: Kasir → Logistik, urutan Logistik → Piutang, keterlambatan](#15-revisi-setelah-user-guide) | Role Kasir dihapus, Logistik di atas Piutang, keterlambatan hanya dideteksi |
 | 14 | [DATA TKN.xlsx: Logistik, Rekap Tagihan, Rekap Stock & LAPKEU](#14-data-tknxlsx-logistik-rekap-tagihan-rekap-stock--lapkeu) | Gabung role ke Logistik, denda telat ke Logistik, format rekap tagihan (PO, DPP 11/12, PPN 12%), matriks rekap stock, nomor SJ, kode transaksi |
 
 ---
@@ -976,12 +977,12 @@ Kepulangan menghitung alat yang sudah tiba di gudang (termasuk yang masih menung
 | Finance langsung masuk jurnal | Input oleh role **Finance** / **Accounting & Tax** langsung berstatus *Masuk jurnal* |
 | COA periode per bulan, total semua, pie chart | **COA**: pilih bulan & tahun → saldo awal bulan, debet, kredit, saldo akhir per akun & kelompok, tabel total per jenis akun, pie **biaya per kelompok akun** & **biaya per kategori jurnal** |
 
-Kasir = role **Kasir** (dulu Administrasi; hak akses Rekening/Kas: lihat & input).
+Input kas dilakukan role **Logistik** (role Administrasi → Kasir → digabung ke Logistik, batch 5). Input Finance / Accounting langsung masuk jurnal.
 
 ```
-title 13 - Kasir → Generate → Jurnal → COA
+title 13 - Logistik input kas → Generate → Jurnal → COA
 
-actor Kasir
+actor Logistik
 actor Finance
 actor Accounting
 participant "Buku Kas & Bank" as Kas
@@ -989,12 +990,12 @@ participant "Laporan Kas" as LK
 participant "Jurnal → Buku Besar" as J
 participant "COA (per bulan)" as COA
 
-Kasir->Kas:"Input Transaksi Kas"
+Logistik->Kas:"Input Transaksi Kas"
 tanggal, rekening (kode otomatis), proyek,
 kategori, cash/debit, debet ATAU kredit, notes
-Kas-->Kasir:status **Menunggu generate** (saldo kas langsung berubah)
+Kas-->Logistik:status **Menunggu generate** (saldo kas langsung berubah)
 opt salah input
-  Kasir->Kas:"Ubah" / "Hapus" (selama belum di-generate)
+  Logistik->Kas:"Ubah" / "Hapus" (selama belum di-generate)
 end
 Finance->Kas:"Input Transaksi Kas"
 Kas->J:langsung **Masuk jurnal**
@@ -1004,7 +1005,7 @@ akun lawan = akun dari kategori jurnal
 J->COA:saldo awal bulan, debet, kredit, saldo akhir
 + total per jenis akun + pie chart
 opt koreksi setelah masuk jurnal
-  Kasir->Kas:"Koreksi" + alasan
+  Logistik->Kas:"Koreksi" + alasan
   Kas->J:bon pembalik + transaksi pengganti
 end
 ```
@@ -1021,7 +1022,7 @@ Dari file `excel/DATA TKN.xlsx` + catatan user (Okt 2026, batch 4).
 - Role **Ekspedisi** dan **Driver** (beserta portal driver) dihapus. **Logistik** sekarang: gudang & stok, **kendaraan & pengemudi** (menu pindah ke LOGISTIK & STOK), surat jalan, **estimasi** kirim / jemput, **update posisi**, inspeksi.
 - Pengemudi tetap jadi data master (nama di surat jalan), tapi tidak login.
 - **Keterlambatan dari estimasi dibebankan ke Logistik**, bukan customer. Biaya keterlambatan di Rekap Tagihan dihapus; customer bayar sewa sesuai tanggal SJ.
-- **Surat Jalan → tab Denda Logistik**: SJ yang tiba lewat estimasi (toleransi `logisticsLateGraceMinutes`, default 2 jam). Denda = qty × harga sewa ÷ 30 × hari telat × `logisticsLateRate` (default 1). Cetak surat jalan mencantumkan PT pengangkut.
+- **Surat Jalan → tab Keterlambatan**: sistem hanya mendeteksi berapa lama SJ tiba lewat estimasi Logistik (alat on site). Denda ke ekspedisi diurus internal, tidak dihitung sistem (revisi batch 5).
 
 ### B. Rekap Tagihan (sheet REKAP TAGIHAN)
 
@@ -1045,6 +1046,19 @@ Dari file `excel/DATA TKN.xlsx` + catatan user (Okt 2026, batch 4).
 
 ---
 
+## 15. Revisi setelah User Guide
+
+Catatan user setelah membaca User Guide (Okt 2026, batch 5). Catatan Finance menyusul.
+
+| Catatan user | Di prototype |
+|---|---|
+| Role Kasir ditiadakan, semua tugasnya masuk ke Logistik | Role & user Kasir dihapus. **Logistik** sekarang: pelanggan, proyek, order sewa & jual, **input transaksi kas** (masuk jurnal setelah di-generate Accounting), gudang & stok, kendaraan & pengemudi, surat jalan, estimasi, inspeksi |
+| Logistik di atas, baru Piutang | Sidebar: **LOGISTIK & STOK** di atas **PIUTANG**. Urutan role di daftar Peran, akun demo, dan halaman login: Admin → Logistik → Staff Piutang → Finance → Accounting → Purchase |
+| Denda internal, tidak perlu di sistem; sistem hanya mendeteksi berapa lama ekspedisi telat dari estimasi alat on site | Tab **Surat Jalan → Keterlambatan**: SJ yang tiba lewat estimasi + **lama telat** (yang belum tiba ditandai *masih berjalan*). Tidak ada nominal denda maupun pengaturan tarif |
+| Urutan Logistik dulu baru Piutang | Alur & User Guide: Logistik input order → Staff Piutang ACC → Logistik kirim / jemput → Staff Piutang tagih |
+
+---
+
 ## Lampiran A - Peta Menu Sidebar
 
 | Grup | Menu | File |
@@ -1055,11 +1069,6 @@ Dari file `excel/DATA TKN.xlsx` + catatan user (Okt 2026, batch 4).
 | | Rekap Project (order sewa) | `rentals.html`, `rental-create.html`, `rental-detail.html` |
 | | Penjualan | `sales.html`, `sale-create.html`, `sale-detail.html` |
 | | Klaim | `claims.html`, `claim-detail.html` |
-| PIUTANG | Persetujuan Order | `approvals.html` |
-| | Rekap Tagihan | `billing.html` |
-| | Invoice | `invoices.html`, `invoice-detail.html`, `invoice-shadow.html` |
-| | Pembayaran Tagihan | `payments.html` |
-| | Laporan Piutang | `receivables.html` |
 | LOGISTIK & STOK | Surat Jalan & Pengiriman | `deliveries.html`, `delivery-detail.html` |
 | | Pengembalian (Inspeksi) | `returns.html`, `return-detail.html` |
 | | Stok Gudang | `stock.html` |
@@ -1067,6 +1076,11 @@ Dari file `excel/DATA TKN.xlsx` + catatan user (Okt 2026, batch 4).
 | | Stok Proyek | `project-stock.html` |
 | | Laporan Stok | `stock-report.html` |
 | | Kendaraan / Pengemudi (dikelola Logistik) | `vehicles.html`, `vehicle-detail.html`, `drivers.html`, `driver-detail.html` |
+| PIUTANG | Persetujuan Order | `approvals.html` |
+| | Rekap Tagihan | `billing.html` |
+| | Invoice | `invoices.html`, `invoice-detail.html`, `invoice-shadow.html` |
+| | Pembayaran Tagihan | `payments.html` |
+| | Laporan Piutang | `receivables.html` |
 | INVENTARIS | Alat Berat | `equipment.html`, `equipment-detail.html` |
 | | Gudang | `branches.html`, `branch-detail.html` |
 | | Log Pergerakan Aset | `movements.html`, `movement-detail.html` |

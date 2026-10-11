@@ -16,13 +16,13 @@
       <header class="app-header" id="appHeader"></header>
       <div class="app-content">
         <div class="page-header">
-          <div class="page-header-left"><h2 class="page-header-title">Surat Jalan & Pengiriman</h2><p class="page-header-subtitle">Surat jalan sewa, jual dan pemulangan. Logistik mengatur kendaraan & pengemudi, mengisi estimasi dan update posisi. Telat dari estimasi = denda ke Logistik.</p></div>
+          <div class="page-header-left"><h2 class="page-header-title">Surat Jalan & Pengiriman</h2><p class="page-header-subtitle">Surat jalan sewa, jual dan pemulangan. Logistik mengatur kendaraan & pengemudi, mengisi estimasi dan update posisi. Sistem mencatat berapa lama pengiriman telat dari estimasi.</p></div>
         </div>
         <div class="row g-3 mb-4" id="kpis"></div>
         <div class="er-card">
           <div class="er-tabs">
             <button class="er-tab active" data-tab="list" onclick="switchTab('list')"><i class="bi bi-truck me-1"></i>Surat Jalan</button>
-            <button class="er-tab" data-tab="late" onclick="switchTab('late')"><i class="bi bi-alarm me-1"></i>Denda Logistik<span class="er-tab-count" id="lateCount">0</span></button>
+            <button class="er-tab" data-tab="late" onclick="switchTab('late')"><i class="bi bi-alarm me-1"></i>Keterlambatan<span class="er-tab-count" id="lateCount">0</span></button>
           </div>
           <div class="er-tab-content active" id="tab-list"><div class="er-card-body">
           <div class="table-toolbar">
@@ -44,7 +44,7 @@
               <input type="date" class="filter-select" id="lFrom" onchange="renderLate()"><span class="text-muted">s/d</span><input type="date" class="filter-select" id="lTo" onchange="renderLate()">
               <button class="btn btn-outline-secondary btn-sm" onclick="exportLate()"><i class="bi bi-download me-1"></i>Export CSV</button>
             </div></div>
-            <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No. Surat Jalan</th><th>Pelanggan / Proyek</th><th>Driver · Kendaraan</th><th>Estimasi Tiba</th><th>Tiba Aktual</th><th>Telat</th><th class="num">Hari</th><th class="num">Denda ke Logistik</th></tr></thead>
+            <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No. Surat Jalan</th><th>Pelanggan / Proyek</th><th>Driver · Kendaraan</th><th>Estimasi Tiba</th><th>Tiba Aktual</th><th class="num">Lama Telat</th></tr></thead>
               <tbody id="lateBody"></tbody><tfoot id="lateFoot"></tfoot></table></div>
           </div></div>
         </div>
@@ -80,7 +80,7 @@
         card('blue', 'bi-truck', 'Surat jalan aktif', list.length) +
         card('orange', 'bi-hourglass-split', 'Belum ada estimasi logistik', list.filter(d => !d.estimate).length, "document.getElementById('noEstimate').checked=true;filterData()") +
         card('purple', 'bi-signpost-split', 'Sedang di jalan', list.filter(d => d.status === 'Departed').length, "document.getElementById('statusFilter').value='Departed';filterData()") +
-        card('red', 'bi-alarm', 'Denda Logistik (semua)', formatRupiah(D.lateList().reduce((s, x) => s + x.p.amount, 0)), "switchTab('late')");
+        card('red', 'bi-alarm', 'Telat dari estimasi', D.lateList().length + ' SJ', "switchTab('late')");
     }
 
     function filterData() {
@@ -111,10 +111,9 @@
         </tr>`;
       }).join('') || '<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada surat jalan</td></tr>';
     }
-    // ---------- Denda keterlambatan → Logistik ----------
-    const st = MockData.settings, lg = MockData.company.logistics || { name: 'Logistik' };
-    document.getElementById('lateInfo').innerHTML = `<i class="bi bi-info-circle me-1"></i>Surat jalan yang tiba lewat estimasi (toleransi ${(st.logisticsLateGraceMinutes ?? 120) / 60} jam) dibebankan ke <strong>${esc(lg.name)}</strong>, bukan ke customer.
-      Denda = qty × harga sewa ÷ ${BizLogic.Billing.monthDays()} hari × hari telat × ${st.logisticsLateRate ?? 1}. Yang belum tiba masih bisa bertambah.`;
+    // ---------- Keterlambatan dari estimasi (hanya deteksi; denda diurus internal) ----------
+    document.getElementById('lateInfo').innerHTML = `<i class="bi bi-info-circle me-1"></i>Daftar surat jalan yang tiba di lokasi lewat dari estimasi Logistik, diurutkan dari yang paling lama.
+      Sistem hanya mencatat lama keterlambatan; tindak lanjut / denda ke ekspedisi diurus internal. Yang belum tiba masih terus bertambah.`;
     function lateRows() { return D.lateList(document.getElementById('lFrom').value || null, document.getElementById('lTo').value || null); }
     function renderLate() {
       const rows = lateRows();
@@ -125,15 +124,14 @@
           <td>${esc(d.driverName || '-')}<div class="fs-12 text-muted">${d.vehiclePlate || ''}</div></td>
           <td class="text-nowrap">${esc(d.estimate.arriveAt)}</td>
           <td class="text-nowrap">${p.final ? esc(d.arrivedAt || d.completedAt) : '<span class="badge bg-warning-subtle text-warning fw-normal">belum tiba</span>'}</td>
-          <td class="text-danger text-nowrap">${D.durationText(p.minutes)}</td>
-          <td class="num">${p.days}</td><td class="num fw-600 text-danger text-nowrap">${formatRupiah(p.amount)}</td></tr>`; }).join('')
-        || '<tr><td colspan="8" class="text-center text-muted py-4">Tidak ada surat jalan yang telat dari estimasi</td></tr>';
-      document.getElementById('lateFoot').innerHTML = rows.length ? `<tr><td colspan="7">Total ${rows.length} surat jalan</td><td class="num">${formatRupiah(rows.reduce((s, x) => s + x.p.amount, 0))}</td></tr>` : '';
+          <td class="num fw-600 text-danger text-nowrap">${D.durationText(p.minutes)}${p.final ? '' : '<div class="fs-11 fw-normal text-muted">masih berjalan</div>'}</td></tr>`; }).join('')
+        || '<tr><td colspan="6" class="text-center text-muted py-4">Tidak ada surat jalan yang telat dari estimasi</td></tr>';
+      document.getElementById('lateFoot').innerHTML = rows.length ? `<tr><td colspan="5">Total ${rows.length} surat jalan telat</td><td class="num">${D.durationText(rows.reduce((s, x) => s + x.p.minutes, 0))}</td></tr>` : '';
     }
     function exportLate() {
-      const out = [['No. SJ', 'Jenis', 'Pelanggan', 'Proyek', 'Driver', 'Kendaraan', 'Estimasi Tiba', 'Tiba Aktual', 'Telat (menit)', 'Hari Denda', 'Denda ke Logistik']];
-      lateRows().forEach(({ d, p }) => out.push([d.sjNo, D.KINDS[D.kindOf(d)].label, d.customerName, d.projectName || '', d.driverName || '', d.vehiclePlate || '', d.estimate.arriveAt, d.arrivedAt || d.completedAt || '', p.minutes, p.days, p.amount]));
-      downloadCSV('denda-logistik.csv', out);
+      const out = [['No. SJ', 'Jenis', 'Pelanggan', 'Proyek', 'Driver', 'Kendaraan', 'Estimasi Tiba', 'Tiba Aktual', 'Lama Telat', 'Telat (menit)']];
+      lateRows().forEach(({ d, p }) => out.push([d.sjNo, D.KINDS[D.kindOf(d)].label, d.customerName, d.projectName || '', d.driverName || '', d.vehiclePlate || '', d.estimate.arriveAt, p.arrivedAt || 'belum tiba', D.durationText(p.minutes), p.minutes]));
+      downloadCSV('keterlambatan-pengiriman.csv', out);
     }
     renderKpis();
     filterData();

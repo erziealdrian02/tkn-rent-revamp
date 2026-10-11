@@ -122,9 +122,7 @@
       const m = D.lateMinutes(dlv);
       if (m == null) return '';
       if (m <= 0) return '<span class="badge bg-success-subtle text-success fw-normal ms-1">Tepat waktu</span>';
-      const p = D.latePenalty(dlv);
-      return `<span class="badge bg-danger-subtle text-danger fw-normal ms-1">Telat ${D.durationText(m)} dari estimasi</span>` +
-        (p ? ` <a href="deliveries.html?tab=late" class="badge bg-danger text-white fw-normal ms-1 text-decoration-none" title="${p.days} hari denda">Denda ke Logistik ${formatRupiah(p.amount)}${p.final ? '' : ' (berjalan)'}</a>` : ' <span class="badge bg-light text-muted border fw-normal ms-1">masih dalam toleransi</span>');
+      return `<a href="deliveries.html?tab=late" class="badge bg-danger-subtle text-danger fw-normal ms-1 text-decoration-none">Telat ${D.durationText(m)} dari estimasi${dlv.arrivedAt || dlv.completedAt ? '' : ' (berjalan)'}</a>`;
     }
 
     function render() {

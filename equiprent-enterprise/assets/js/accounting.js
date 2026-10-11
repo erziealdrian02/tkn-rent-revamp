@@ -65,7 +65,7 @@ BizLogic.Accounting = {
   GENERIC_CATEGORIES: ['kas_out_opex', 'kas_out_payroll', 'kas_out_supplier', 'kas_in_other', 'bank_out_supplier', 'bank_out_admin'],
 
   SOURCES: {
-    kas:         { label: 'Laporan Kas (Kasir)',  icon: 'bi-wallet2',        color: 'primary' },
+    kas:         { label: 'Laporan Kas',  icon: 'bi-wallet2',        color: 'primary' },
     penjualan:   { label: 'Penjualan (AR)',       icon: 'bi-receipt',        color: 'success' },
     pembelian:   { label: 'Pembelian & Stok',     icon: 'bi-cart',           color: 'warning' },
     penyesuaian: { label: 'Jurnal Penyesuaian',   icon: 'bi-pencil-square',  color: 'danger' },

@@ -543,7 +543,7 @@
     // ──── ESTIMASI EKSPEDISI (saat penyewaan dibuat) ────
     function openRentalEstimate() {
       const e = rental.logisticsEstimate || {};
-      BizLogic.showConfirmModal('Estimasi Logistik', 'Rencana kirim & jemput untuk <strong>' + rental.id + '</strong>. Estimasi ini tanggung jawab Logistik: surat jalan yang tiba lewat estimasi dikenai denda ke Logistik, bukan ke customer.',
+      BizLogic.showConfirmModal('Estimasi Logistik', 'Rencana kirim & jemput untuk <strong>' + rental.id + '</strong>. Estimasi ini tanggung jawab Logistik: sistem mencatat berapa lama surat jalan telat dari estimasi.',
         '<i class="bi bi-check-lg me-1"></i>Simpan', 'btn-primary',
         function(f) {
           const r = BizLogic.Rental.setEstimate(rental.id, f);

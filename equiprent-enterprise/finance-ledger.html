@@ -16,7 +16,7 @@
       <header class="app-header" id="appHeader"></header>
       <div class="app-content">
         <div class="page-header">
-          <div class="page-header-left"><h2 class="page-header-title">Buku Kas & Bank (Kasir)</h2><p class="page-header-subtitle">Semua transaksi masuk dari sini: Debet = uang masuk (Bon Biru), Kredit = uang keluar (Bon Merah) → Jurnal → COA</p></div>
+          <div class="page-header-left"><h2 class="page-header-title">Buku Kas & Bank</h2><p class="page-header-subtitle">Semua transaksi masuk dari sini: Debet = uang masuk (Bon Biru), Kredit = uang keluar (Bon Merah) → Jurnal → COA</p></div>
           <div class="page-header-actions">
             <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-download me-1"></i>Export CSV</button>
             <button class="btn btn-outline-secondary btn-sm need-create" onclick="openTransfer()"><i class="bi bi-arrow-left-right me-1"></i>Pindah Dana</button>
@@ -120,7 +120,7 @@
 
     function renderPostInfo() {
       const pend = CB.pending(), total = pend.reduce((s, e) => s + e.amount, 0);
-      const me = CB.autoPost() ? '<strong>Input Anda langsung masuk jurnal</strong> (Finance / Accounting).' : '<strong>Input Anda (kasir) masuk jurnal setelah di-generate Accounting</strong> di Laporan Kas.';
+      const me = CB.autoPost() ? '<strong>Input Anda langsung masuk jurnal</strong> (Finance / Accounting).' : '<strong>Input Anda masuk jurnal setelah di-generate Accounting</strong> di Laporan Kas.';
       document.getElementById('postInfo').innerHTML = `<div class="alert ${pend.length ? 'alert-warning' : 'alert-light border'} py-2 fs-13 d-flex flex-wrap align-items-center gap-2">
         <i class="bi bi-diagram-2"></i><span>Alur: <strong>Transaksi kas</strong> → <strong>Generate</strong> (Accounting) → <strong>Jurnal</strong> → <strong>COA</strong>. ${canCreate ? me : ''}</span>
         ${pend.length ? `<span class="ms-auto"><strong>${pend.length} transaksi</strong> (${formatRupiah(total)}) menunggu generate · <a href="cash-report.html">Laporan Kas →</a></span>` : ''}</div>`;
@@ -253,7 +253,7 @@
       hint.className = 'alert py-2 fs-13 ' + (m === 'correct' ? 'alert-danger' : 'alert-primary');
       hint.innerHTML = m === 'correct'
         ? `Transaksi ini sudah masuk jurnal. Koreksi membuat <strong>bon pembalik</strong> (nilai sama, arah berlawanan) lalu <strong>transaksi pengganti</strong> dengan isian di bawah. Jejak aslinya tetap ada.`
-        : (CB.autoPost() ? 'Input Finance / Accounting <strong>langsung masuk jurnal</strong>.' : 'Input kasir <strong>masuk jurnal setelah di-generate Accounting</strong>. Sebelum itu masih bisa diubah / dihapus.') +
+        : (CB.autoPost() ? 'Input Finance / Accounting <strong>langsung masuk jurnal</strong>.' : 'Input Logistik <strong>masuk jurnal setelah di-generate Accounting</strong>. Sebelum itu masih bisa diubah / dihapus.') +
           ' Isi nominal di <strong>Debet</strong> (uang masuk) atau <strong>Kredit</strong> (uang keluar).';
       document.getElementById('tAccount').innerHTML = activeAccounts().map(a => `<option value="${a.id}">${a.code ? a.code + ' · ' : ''}${CB.kindOf(a)} - ${esc(a.name)}</option>`).join('');
       document.getElementById('tProject').innerHTML = '<option value="">- Umum / tanpa proyek -</option>' + MockData.projects.map(p => `<option value="${p.id}">${esc(p.id + ' · ' + p.name)}</option>`).join('');

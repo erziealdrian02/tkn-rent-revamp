@@ -16,7 +16,7 @@
       <header class="app-header" id="appHeader"></header>
       <div class="app-content">
         <div class="page-header">
-          <div class="page-header-left"><h2 class="page-header-title">Jurnal</h2><p class="page-header-subtitle">Transaksi kas → Jurnal → COA. Data kasir masuk setelah Laporan Kas di-generate; input Finance langsung masuk. Akun COA mengikuti kategori jurnal.</p></div>
+          <div class="page-header-left"><h2 class="page-header-title">Jurnal</h2><p class="page-header-subtitle">Transaksi kas → Jurnal → COA. Input Logistik masuk setelah Laporan Kas di-generate; input Finance langsung masuk. Akun COA mengikuti kategori jurnal.</p></div>
           <div class="page-header-actions">
             <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-download me-1"></i>Export CSV</button>
             <a href="cash-report.html" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-bar-graph me-1"></i>Laporan Kas</a>
@@ -137,7 +137,7 @@
       const opening = bal;
       cashRows = [];
       const pend = CB.pending(from, to).filter(e => accIds.includes(e.bankAccountId));
-      document.getElementById('pendingNote').innerHTML = pend.length ? `<div class="alert alert-warning py-2 fs-13 mt-2 mb-0"><i class="bi bi-hourglass-split me-1"></i>${pend.length} transaksi kasir (${formatRupiah(pend.reduce((s, e) => s + e.amount, 0))}) belum masuk jurnal. <a href="cash-report.html">Generate di Laporan Kas →</a></div>` : '';
+      document.getElementById('pendingNote').innerHTML = pend.length ? `<div class="alert alert-warning py-2 fs-13 mt-2 mb-0"><i class="bi bi-hourglass-split me-1"></i>${pend.length} transaksi kas (${formatRupiah(pend.reduce((s, e) => s + e.amount, 0))}) belum masuk jurnal. <a href="cash-report.html">Generate di Laporan Kas →</a></div>` : '';
       posted.filter(e => e.date >= from && e.date <= to).forEach(e => {
         bal += e.type === 'IN' ? e.amount : -e.amount;
         const status = AC.classifyStatus(e), coa = AC.classify(e);
