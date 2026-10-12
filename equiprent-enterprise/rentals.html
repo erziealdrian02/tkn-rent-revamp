@@ -74,23 +74,18 @@
                     <th>No. Rekap</th>
                     <th>Status</th>
                     <th>Pelanggan · Proyek</th>
-                    <th>Periode Awal Sewa</th>
-                    <th>Akhir Sewa</th>
-                    <th class="num">Kebutuhan</th>
+                    <th>Periode Sewa</th>
+                    <th class="num">Durasi</th>
                     <th class="num">Terkirim</th>
-                    <th class="num" title="Kebutuhan − Terkirim">Sisa Kebutuhan</th>
-                    <th class="num">Kepulangan</th>
-                    <th class="num">Di Proyek</th>
-                    <th style="min-width:150px">Persentase</th>
+                    <th class="num">Total Harga Sewa</th>
                     <th></th>
                   </tr>
                 </thead>
                 <tbody id="rentalTableBody"></tbody>
               </table>
             </div>
-            <p class="fs-12 text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Kebutuhan = qty alat di order
-              sewa. Terkirim = surat jalan kirim yang sudah diterima di proyek. Sisa Kebutuhan = Kebutuhan − Terkirim (belum dikirim). Kepulangan = alat yang sudah kembali ke
-              gudang.
+            <p class="fs-12 text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Terkirim = unit yang sudah diterima di proyek dari qty order. Total Harga Sewa = nilai order (qty × tarif / hari × hari − diskon).
+              Rekap kebutuhan, kepulangan &amp; stok di proyek per proyek ada di menu <a href="projects.html">Proyek</a>.
               Status <strong>On Progress</strong> = ada surat jalan kirim / pemulangan yang masih di jalan.</p>
             <div class="er-card-footer" id="rentalPagination"></div>
           </div>
@@ -131,7 +126,7 @@
       document.getElementById('kpis').innerHTML = [
         ['blue', 'bi-list-check', 'Kebutuhan Alat (unit)', formatNumber(need), ''],
         ['purple', 'bi-truck', 'Terkirim', formatNumber(sent), need ? Math.round(sent / need * 100) + '% dari kebutuhan' : ''],
-        ['teal', 'bi-box-arrow-in-left', 'Kepulangan', formatNumber(back), sent ? Math.round(back / sent * 100) + '% dari terkirim' : ''],
+        ['teal', 'bi-cash-stack', 'Total Harga Sewa', formatRupiah(all.reduce((s, x) => s + (x.r.total || 0), 0)), all.length + ' order aktif'],
         ['orange', 'bi-signpost-split', 'On Progress (di jalan)', all.filter(x => x.status === 'On Progress').length + ' rekap', 'klik untuk filter']
       ].map(([c, i, l, v, sub], n) => `<div class="col-6 col-lg-3"><div class="kpi-card h-100" ${n === 3 ? 'role="button" onclick="pickProgress()"' : ''}><div class="kpi-icon ${c}"><i class="bi ${i}"></i></div>
         <div class="kpi-content"><div class="kpi-value">${v}</div><div class="kpi-label">${l}</div>${sub ? `<div class="fs-11 text-muted mt-1">${sub}</div>` : ''}</div></div></div>`).join('');
@@ -164,26 +159,21 @@
           <td><a href="rental-detail.html?id=${r.id}" class="cell-link text-mono">${r.id}</a></td>
           <td>${statusBadge(status)}</td>
           <td><div>${esc(r.customerName)}</div><a href="project-detail.html?id=${r.projectId}" class="fs-12 cell-link">${esc(r.projectName)}</a></td>
-          <td class="text-nowrap">${formatDate(r.rentalDate)}</td>
-          <td class="text-nowrap">${formatDate(r.returnDate)}${overdue ? ` <span class="badge bg-danger ms-1">${R.getOverdueDays(r)} hr</span>` : ''}</td>
-          <td class="num fw-600">${formatNumber(t.need)}</td>
-          <td class="num">${formatNumber(t.sent)}${t.goingOut ? `<div class="fs-11 text-warning" title="Sedang dikirim">+${t.goingOut} di jalan</div>` : ''}</td>
-          <td class="num ${t.need - t.sent > 0 ? 'qty-warn' : 'zero'}">${formatNumber(Math.max(0, t.need - t.sent))}</td>
-          <td class="num">${formatNumber(t.back)}${t.goingBack ? `<div class="fs-11 text-warning" title="Sedang dipulangkan">+${t.goingBack} di jalan</div>` : ''}</td>
-          <td class="num ${t.onSite ? 'col-strong' : 'zero'}">${formatNumber(t.onSite)}</td>
-          <td>
-            <div class="d-flex align-items-center gap-2" title="Terkirim / kebutuhan">${bar(t.pctSent)}<span class="fs-11 text-muted text-nowrap" style="width:62px">Kirim ${t.pctSent}%</span></div>
-            <div class="d-flex align-items-center gap-2 mt-1" title="Kepulangan / terkirim">${bar(t.pctBack, 'back')}<span class="fs-11 text-muted text-nowrap" style="width:62px">Pulang ${t.pctBack}%</span></div>
-          </td>
+          <td class="text-nowrap fs-12">${formatDate(r.rentalDate)} –<br>${formatDate(r.returnDate)}${overdue ? ` <span class="badge bg-danger ms-1">${R.getOverdueDays(r)} hr</span>` : ''}</td>
+          <td class="num fs-12 text-nowrap">${R.durationText(R.durationDays(r.rentalDate, r.returnDate))}</td>
+          <td class="num" style="min-width:130px"><span class="fw-600">${formatNumber(t.sent)}</span> <span class="text-muted">/ ${formatNumber(t.need)}</span>
+            <div class="d-flex align-items-center gap-2 mt-1">${bar(t.pctSent)}<span class="fs-11 text-muted">${t.pctSent}%</span></div>
+            ${t.goingOut ? `<div class="fs-11 text-warning" title="Sedang dikirim">+${t.goingOut} di jalan</div>` : ''}</td>
+          <td class="num fw-600">${formatRupiah(r.total)}</td>
           <td><a href="rental-detail.html?id=${r.id}" class="btn-action" title="Lihat rekap"><i class="bi bi-eye"></i></a></td>
         </tr>`;
-      }).join('') : '<tr><td colspan="12" class="text-center text-muted py-4">Tidak ada rekap project ditemukan</td></tr>';
+      }).join('') : '<tr><td colspan="8" class="text-center text-muted py-4">Tidak ada rekap project ditemukan</td></tr>';
       document.getElementById('rentalPagination').innerHTML = renderPagination(data.length, currentPage, pageSize, 'changePage');
     }
 
     function exportCSV() {
-      const out = [['No. Rekap', 'Pelanggan', 'Proyek', 'Periode Awal Sewa', 'Akhir Sewa', 'Alat', 'Kebutuhan', 'Terkirim', 'Sisa Kebutuhan', 'Kepulangan', 'Di Proyek', '% Terkirim', '% Kepulangan', 'Status']];
-      filtered().forEach(({ r, rc, status }) => rc.rows.forEach(x => out.push([r.id, r.customerName, r.projectName, r.rentalDate, r.returnDate, x.name, x.need, x.sent, Math.max(0, x.need - x.sent), x.back, x.onSite, x.pctSent, x.pctBack, status])));
+      const out = [['No. Rekap', 'Pelanggan', 'Proyek', 'Periode Awal Sewa', 'Akhir Sewa', 'Hari', 'Alat', 'Qty', 'Terkirim', 'Tarif / Hari', 'Subtotal', 'Status']];
+      filtered().forEach(({ r, rc, status }) => rc.rows.forEach(x => { const it = r.items.find(i => i.name === x.name) || {}; out.push([r.id, r.customerName, r.projectName, r.rentalDate, r.returnDate, it.duration || '', x.name, x.need, x.sent, it.rate || 0, it.subtotal || 0, status]); }));
       downloadCSV('rekap-project-' + new Date().toISOString().split('T')[0] + '.csv', out);
     }
 

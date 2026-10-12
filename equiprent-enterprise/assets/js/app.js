@@ -799,3 +799,69 @@ const INVOICE_STATUS_LABEL = { 'Shadow': 'Bayangan', 'Issued': 'Belum Dibayar', 
 function invoiceStatusBadge(status) {
   return statusBadge(status).replace('>' + status + '<', '>' + (INVOICE_STATUS_LABEL[status] || status) + '<');
 }
+
+// ---- SELECT2: dropdown dengan banyak pilihan otomatis bisa dicari ----
+// Berlaku untuk .form-select / .filter-select dengan >= 8 pilihan (atau atribut data-search). data-no-search = jangan diubah.
+// onchange inline & addEventListener('change') tetap jalan; set sel.value dari script ikut memperbarui tampilan.
+const SELECT2_MIN = 8;
+(function setupSelect2() {
+  if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return;
+  let ready = false;
+  const want = sel => sel.tagName === 'SELECT' && sel.dataset.noSearch == null && !sel.classList.contains('select2-hidden-accessible') &&
+    (sel.classList.contains('form-select') || sel.classList.contains('filter-select')) && (sel.dataset.search != null || sel.options.length >= SELECT2_MIN);
+  const refresh = sel => {
+    const s2 = window.jQuery && window.jQuery(sel).data('select2');
+    if (s2) s2.dataAdapter.current(data => s2.trigger('selection:update', { data }));
+  };
+  function enhance(sel) {
+    if (!ready || !want(sel)) return;
+    const $ = window.jQuery, small = sel.classList.contains('form-select-sm') || sel.classList.contains('filter-select'), modal = sel.closest('.modal');
+    $(sel).select2({
+      theme: 'bootstrap-5', width: sel.classList.contains('filter-select') ? 'resolve' : '100%',
+      dropdownParent: modal ? $(modal) : $(document.body),
+      selectionCssClass: small ? 'select2--small' : '', dropdownCssClass: small ? 'select2--small' : '',
+      language: { noResults: () => 'Tidak ditemukan', searching: () => 'Mencari...' }
+    });
+    // select2 memicu change lewat jQuery (memanggil onchange inline); teruskan sebagai event native untuk listener lain
+    $(sel).on('change', e => {
+      if (e.originalEvent || e.namespace) return;
+      const inline = sel.onchange; sel.onchange = null;
+      try { sel.dispatchEvent(new Event('change', { bubbles: true })); } finally { sel.onchange = inline; }
+    });
+  }
+  const scan = root => (root.querySelectorAll ? root.querySelectorAll('select') : []).forEach(enhance);
+  // value / selectedIndex dari script → perbarui teks select2
+  ['value', 'selectedIndex'].forEach(prop => {
+    const d = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, prop);
+    Object.defineProperty(HTMLSelectElement.prototype, prop, { configurable: true, enumerable: d.enumerable,
+      get() { return d.get.call(this); },
+      set(v) { d.set.call(this, v); if (this.classList.contains('select2-hidden-accessible')) refresh(this); } });
+  });
+  let pending = new Set(), queued = false;
+  new MutationObserver(list => {
+    list.forEach(m => {
+      if (m.target.tagName === 'SELECT') pending.add(m.target);
+      m.addedNodes.forEach(n => { if (n.nodeType !== 1) return; if (n.tagName === 'SELECT') pending.add(n); else if (n.querySelector && n.querySelector('select')) n.querySelectorAll('select').forEach(s => pending.add(s)); });
+    });
+    if (!ready || queued || !pending.size) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; const p = pending; pending = new Set(); p.forEach(s => s.isConnected && enhance(s)); });
+  }).observe(document.documentElement, { childList: true, subtree: true });
+
+  const add = (tag, attrs) => new Promise((ok, fail) => { const el = Object.assign(document.createElement(tag), attrs); el.onload = ok; el.onerror = fail; document.head.appendChild(el); });
+  const css = document.createElement('style');
+  css.textContent = `.select2-container--bootstrap-5 .select2-selection, .select2-container--bootstrap-5 .select2-dropdown, .select2-container--bootstrap-5 .select2-dropdown .select2-search .select2-search__field
+      { background-color: var(--bg-input); color: var(--text-primary); border-color: var(--border-color); }
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered { color: var(--text-primary); }
+    .select2-container--bootstrap-5 .select2-dropdown .select2-results__options .select2-results__option { color: var(--text-primary); }
+    .select2-container--bootstrap-5 .select2-dropdown .select2-results__options .select2-results__option.select2-results__option--highlighted { background-color: var(--bg-sidebar-active); color: var(--text-primary); }
+    .select2-container--bootstrap-5 .select2-dropdown .select2-results__options .select2-results__option.select2-results__option--selected { background-color: var(--primary); color: #fff; }
+    .table-toolbar .select2-container { min-width: 160px; }`;
+  document.head.appendChild(css);
+  add('link', { rel: 'stylesheet', href: 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css' }).catch(() => {});
+  add('link', { rel: 'stylesheet', href: 'https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css' }).catch(() => {});
+  (window.jQuery ? Promise.resolve() : add('script', { src: 'https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js' }))
+    .then(() => window.jQuery.fn.select2 ? null : add('script', { src: 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js' }))
+    .then(() => { ready = true; scan(document); })
+    .catch(() => console.warn('select2 gagal dimuat, dropdown tetap biasa'));
+})();

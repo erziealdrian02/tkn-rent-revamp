@@ -568,6 +568,85 @@ BizLogic.Activity = {
 // ============================================================
 
 BizLogic.Rental = {
+  ACTIVE_ORDER: function(r) { return ['Cancelled', 'Rejected'].indexOf(r.status) < 0; },
+
+  // Lama sewa dalam hari (inklusif) + teks "92 hari (3 bln 2 hr)"
+  durationDays: function(start, end) { return start && end && end >= start ? BizLogic.Billing.days(start, end) : 0; },
+  durationText: function(days) {
+    if (!days) return '-';
+    if (days < 30) return days + ' hari';
+    var m = Math.floor(days / 30), d = days % 30;
+    return days + ' hari (' + m + ' bln' + (d ? ' ' + d + ' hr' : '') + ')';
+  },
+
+  // Kebutuhan alat proyek vs yang sudah dipesan di order sewa lain & yang sekarang ada di proyek
+  projectNeeds: function(projectId, exceptRentalId) {
+    var self = this;
+    var p = MockData.projects.find(function(x) { return x.id === projectId; });
+    if (!p) return [];
+    var onSite = {};
+    BizLogic.StockLedger.projectSummary(projectId).forEach(function(r) { onSite[r.equipment] = r; });
+    var rows = {};
+    (p.requirements || []).forEach(function(r) { rows[r.equipment] = { name: r.equipment, need: Number(r.qty) || 0, unitPrice: Number(r.unitPrice) || 0, ordered: 0 }; });
+    MockData.rentals.filter(function(r) { return r.projectId === projectId && r.id !== exceptRentalId && self.ACTIVE_ORDER(r); }).forEach(function(r) {
+      r.items.forEach(function(i) {
+        var x = rows[i.name] = rows[i.name] || { name: i.name, need: 0, unitPrice: BizLogic.Billing.unitPrice(projectId, i.name), ordered: 0 };
+        x.ordered += Number(i.quantity) || 0;
+      });
+    });
+    return Object.keys(rows).map(function(k) {
+      var x = rows[k], s = onSite[k];
+      x.onSite = s ? s.onSite : 0; x.delivered = s ? s.delivered : 0;
+      x.remaining = Math.max(0, x.need - x.ordered);
+      return x;
+    });
+  },
+
+  // Order sewa baru. data: { customerId, projectId, poNumber, rentalDate, returnDate, branch, notes, discount, items:[{name, quantity}] }
+  // Periode harus di dalam periode proyek; tarif harian dari kebutuhan proyek; subtotal = qty × tarif × hari.
+  create: function(data, submit) {
+    data = data || {};
+    var customer = MockData.customers.find(function(c) { return c.id === data.customerId; });
+    var project = MockData.projects.find(function(p) { return p.id === data.projectId; });
+    if (!customer || !project) return { success: false, error: 'Pilih pelanggan dan proyek' };
+    if (project.customerId !== customer.id) return { success: false, error: 'Proyek bukan milik pelanggan ini' };
+    var start = data.rentalDate, end = data.returnDate;
+    if (!start || !end) return { success: false, error: 'Isi periode awal dan akhir sewa' };
+    if (end < start) return { success: false, error: 'Akhir sewa sebelum periode awal' };
+    if (project.startDate && start < project.startDate) return { success: false, error: 'Periode awal tidak boleh sebelum mulai proyek (' + project.startDate + ')' };
+    if (project.endDate && end > project.endDate) return { success: false, error: 'Akhir sewa tidak boleh melewati tenggat proyek (' + project.endDate + ')' };
+    var days = this.durationDays(start, end);
+    var items = [], seen = {};
+    for (var n = 0; n < (data.items || []).length; n++) {
+      var it = data.items[n], qty = Number(it.quantity) || 0;
+      if (!it.name) continue;
+      if (qty <= 0) return { success: false, error: it.name + ': qty harus lebih dari 0' };
+      if (seen[it.name]) return { success: false, error: it.name + ' dipilih dua kali' };
+      seen[it.name] = true;
+      var eq = MockData.equipment.find(function(e) { return e.name === it.name; });
+      var rate = BizLogic.Billing.unitPrice(project.id, it.name);
+      items.push({ equipmentId: eq ? eq.id : it.name, name: it.name, quantity: qty, rate: rate, duration: days, subtotal: qty * rate * days });
+    }
+    if (!items.length) return { success: false, error: 'Tambahkan minimal satu alat' };
+    var subtotal = items.reduce(function(s, i) { return s + i.subtotal; }, 0);
+    var discount = Math.max(0, Math.round(Number(data.discount) || 0));
+    if (discount > subtotal) return { success: false, error: 'Diskon melebihi subtotal' };
+    var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
+    var branch = BizLogic.Stock.branchShort(data.branch || 'BR-001');
+    var r = {
+      id: MockData.generateId('RNT', 'rentals'), poNumber: String(data.poNumber || '').trim(),
+      customerId: customer.id, customerName: customer.name, projectId: project.id, projectName: project.name,
+      rentalDate: start, returnDate: end, branch: branch, branchId: BizLogic.StockLedger.warehouseIdOf(branch),
+      totalItems: items.length, deliveryStatus: 'Pending', status: 'Draft', invoiceStatus: 'Draft',
+      notes: String(data.notes || '').trim(), items: items, subtotal: subtotal, discount: discount, total: subtotal - discount,
+      createdBy: user.name || 'System', createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
+    };
+    MockData.rentals.push(r);
+    MockData.save('rentals');
+    if (submit) this.submit(r.id); else BizLogic.Activity.log('Order sewa ' + r.id + ' disimpan sebagai draft', 'info');
+    return { success: true, rental: r };
+  },
+
   submit: function(rentalId) {
     var rental = MockData.rentals.find(function(r) { return r.id === rentalId; });
     if (!rental) return { success: false, error: 'Rental not found' };
@@ -736,6 +815,8 @@ BizLogic.Rental = {
     if (!newDate) return { success: false, error: 'Isi tanggal kembali yang baru' };
     if (newDate <= rental.returnDate) return { success: false, error: 'Tanggal baru harus setelah tanggal kembali sekarang (' + rental.returnDate + ')' };
     if (!String(reason || '').trim()) return { success: false, error: 'Alasan perpanjangan wajib diisi' };
+    var project = MockData.projects.find(function(p) { return p.id === rental.projectId; });
+    if (project && project.endDate && newDate > project.endDate) return { success: false, error: 'Tanggal kembali melewati tenggat proyek (' + project.endDate + '). Perpanjang tenggat proyek dulu.' };
 
     var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
     if (!MockData.extensions) MockData.extensions = [];
@@ -778,11 +859,11 @@ BizLogic.Rental = {
   // Rekap Project per alat: kebutuhan (qty order), terkirim (SJ kirim selesai), di jalan, kepulangan, di proyek + persentase
   recap: function(rental) {
     var D = BizLogic.Delivery;
-    var dels = MockData.deliveries.filter(function(d) { return d.rentalId === rental.id; });
-    var rets = MockData.returns.filter(function(r) { return r.rentalId === rental.id; });
+    var dels = MockData.deliveries.filter(function(d) { return D.forRental(d, rental.id); });
+    var rets = MockData.returns.filter(function(r) { return D.forRental(r, rental.id); });
     var moving = function(d) { return D.TRANSIT.indexOf(d.status) >= 0; };
     var qty = function(list, name) {
-      return list.reduce(function(s, d) { var di = d.items.find(function(i) { return i.name === name; }); return s + (di ? Number(di.qty != null ? di.qty : di.sent) || 0 : 0); }, 0);
+      return list.reduce(function(s, d) { return s + D.allocQty(d, rental.id, name); }, 0);
     };
     var sewaDone = dels.filter(function(d) { return D.kindOf(d) === 'SEWA' && d.status === 'Completed'; });
     var sewaMoving = dels.filter(function(d) { return D.kindOf(d) === 'SEWA' && moving(d); });
@@ -805,7 +886,7 @@ BizLogic.Rental = {
   displayStatus: function(rental) {
     if (['Completed', 'Cancelled', 'Rejected', 'Draft', 'Pending Approval', 'Waiting Approval'].indexOf(rental.status) < 0) {
       var D = BizLogic.Delivery;
-      if (MockData.deliveries.some(function(d) { return d.rentalId === rental.id && D.kindOf(d) !== 'JUAL' && D.TRANSIT.indexOf(d.status) >= 0; })) return 'On Progress';
+      if (MockData.deliveries.some(function(d) { return D.forRental(d, rental.id) && D.kindOf(d) !== 'JUAL' && D.TRANSIT.indexOf(d.status) >= 0; })) return 'On Progress';
     }
     return this.isOverdue(rental) ? 'Overdue' : rental.status;
   },
@@ -879,21 +960,79 @@ BizLogic.Delivery = {
     return delivery;
   },
 
+  // Dokumen (SJ / pengembalian) milik satu order sewa. Pemulangan per proyek menyimpan alloc [{ rentalId, name, qty }].
+  forRental: function(doc, rentalId) {
+    return doc.rentalId === rentalId || (doc.alloc || []).some(function(a) { return a.rentalId === rentalId; });
+  },
+  allocQty: function(doc, rentalId, name) {
+    if (doc.alloc) return doc.alloc.reduce(function(s, a) { return a.rentalId === rentalId && a.name === name ? s + a.qty : s; }, 0);
+    if (doc.rentalId !== rentalId) return 0;
+    var it = doc.items.find(function(i) { return i.name === name; });
+    return it ? Number(it.qty != null ? it.qty : it.sent) || 0 : 0;
+  },
+
   // Sisa qty yang masih bisa dijemput dari proyek untuk satu penyewaan
   pickupRemaining: function(rental) {
     var self = this;
     return rental.items.map(function(item) {
       var delivered = MockData.deliveries.filter(function(d) { return d.rentalId === rental.id && self.kindOf(d) === 'SEWA' && d.status === 'Completed'; })
         .reduce(function(s, d) { var di = d.items.find(function(i) { return i.name === item.name; }); return s + (di ? di.qty : 0); }, 0);
-      var returned = MockData.returns.filter(function(r) { return r.rentalId === rental.id; })
-        .reduce(function(s, r) { return s + r.items.reduce(function(t, ri) { return ri.name === item.name ? t + ri.sent : t; }, 0); }, 0);
-      var onTheWay = MockData.deliveries.filter(function(d) { return d.rentalId === rental.id && self.kindOf(d) === 'PEMULANGAN' && ['Completed', 'Failed'].indexOf(d.status) < 0; })
-        .reduce(function(s, d) { var di = d.items.find(function(i) { return i.name === item.name; }); return s + (di ? di.qty : 0); }, 0);
+      var returned = MockData.returns.filter(function(r) { return self.forRental(r, rental.id); })
+        .reduce(function(s, r) { return s + self.allocQty(r, rental.id, item.name); }, 0);
+      var onTheWay = MockData.deliveries.filter(function(d) { return self.forRental(d, rental.id) && self.kindOf(d) === 'PEMULANGAN' && ['Completed', 'Failed'].indexOf(d.status) < 0; })
+        .reduce(function(s, d) { return s + self.allocQty(d, rental.id, item.name); }, 0);
       return { name: item.name, onSite: delivered - returned, remaining: Math.max(0, delivered - returned - onTheWay) };
     });
   },
 
-  // Surat jalan pemulangan: jemput alat dari proyek. Selesai di gudang → dibuat Pengembalian untuk diinspeksi.
+  // Stok proyek yang bisa dijemput: di proyek (ledger) − sedang dijemput − sudah tiba di gudang tapi belum diinspeksi
+  projectPickupRemaining: function(projectId) {
+    var self = this, pending = {};
+    MockData.deliveries.filter(function(d) { return d.projectId === projectId && self.kindOf(d) === 'PEMULANGAN' && ['Completed', 'Failed'].indexOf(d.status) < 0; })
+      .forEach(function(d) { d.items.forEach(function(i) { pending[i.name] = (pending[i.name] || 0) + i.qty; }); });
+    MockData.returns.filter(function(r) { return r.projectId === projectId && r.status !== 'Completed'; })
+      .forEach(function(r) { r.items.forEach(function(i) { pending[i.name] = (pending[i.name] || 0) + i.sent; }); });
+    (MockData.sales || []).filter(function(x) { return x.source === 'project' && x.projectId === projectId && ['Draft', 'Pending Approval', 'Rejected'].indexOf(x.status) >= 0; })
+      .forEach(function(x) { x.items.forEach(function(i) { pending[i.name] = (pending[i.name] || 0) + i.qty; }); });
+    return BizLogic.StockLedger.projectSummary(projectId).filter(function(x) { return x.onSite > 0 || pending[x.equipment]; }).map(function(x) {
+      return { name: x.equipment, onSite: x.onSite, pending: pending[x.equipment] || 0, remaining: Math.max(0, x.onSite - (pending[x.equipment] || 0)) };
+    });
+  },
+
+  // Surat jalan pemulangan per PROYEK: jemput dari stok proyek sekaligus (satu SJ), dibagi FIFO ke order sewa (yang paling lama dulu)
+  createProjectPickup: function(projectId, items, details) {
+    details = details || {};
+    var project = MockData.projects.find(function(p) { return p.id === projectId; });
+    if (!project) return { success: false, error: 'Proyek tidak ditemukan' };
+    items = (items || []).map(function(i) { return { name: i.name, qty: Math.round(Number(i.qty) || 0) }; }).filter(function(i) { return i.qty > 0; });
+    if (!items.length) return { success: false, error: 'Isi qty alat yang dijemput' };
+    var rem = this.projectPickupRemaining(projectId);
+    for (var n = 0; n < items.length; n++) {
+      var r = rem.find(function(x) { return x.name === items[n].name; });
+      if (!r || items[n].qty > r.remaining) return { success: false, error: items[n].name + ': maksimal ' + (r ? r.remaining : 0) + ' unit bisa dijemput' };
+    }
+    var self = this, alloc = [], left = {};
+    items.forEach(function(i) { left[i.name] = i.qty; });
+    MockData.rentals.filter(function(r) { return r.projectId === projectId; })
+      .sort(function(a, b) { return String(a.rentalDate).localeCompare(String(b.rentalDate)) || a.id.localeCompare(b.id); })
+      .forEach(function(r) {
+        self.pickupRemaining(r).forEach(function(x) {
+          var take = Math.min(left[x.name] || 0, x.remaining);
+          if (take > 0) { alloc.push({ rentalId: r.id, name: x.name, qty: take }); left[x.name] -= take; }
+        });
+      });
+    var rentalIds = alloc.map(function(a) { return a.rentalId; }).filter(function(v, i, arr) { return arr.indexOf(v) === i; });
+    var first = MockData.rentals.find(function(r) { return r.id === rentalIds[0]; });
+    var branchId = details.branchId || (first && first.branchId) || 'BR-001';
+    var branch = BizLogic.Stock.branchShort(branchId);
+    var date = details.deliveryDate || new Date().toISOString().split('T')[0];
+    var d = this._make({ kind: 'PEMULANGAN', sjNo: BizLogic.StockLedger.nextNo('RETURN', date), rentalId: rentalIds.length === 1 ? rentalIds[0] : null, alloc: alloc,
+      projectId: project.id, projectName: project.name, customerId: project.customerId, customerName: project.customerName,
+      branch: branch, branchId: branchId, items: items }, Object.assign({ destination: 'Gudang ' + branch }, details));
+    return { success: true, delivery: d };
+  },
+
+  // Surat jalan pemulangan dari satu order sewa (lama; UI sekarang pakai createProjectPickup).
   createPickup: function(rentalId, items, details) {
     var rental = MockData.rentals.find(function(r) { return r.id === rentalId; });
     if (!rental) return { success: false, error: 'Rental not found' };
@@ -1157,7 +1296,8 @@ BizLogic.Delivery = {
     if (kind === 'PEMULANGAN') {
       var ret = {
         id: MockData.generateId('RET', 'returns'), sjNo: delivery.sjNo, pickupId: delivery.id,
-        rentalId: delivery.rentalId, projectId: delivery.projectId, projectName: delivery.projectName,
+        rentalId: delivery.rentalId, alloc: delivery.alloc ? delivery.alloc.map(function(a) { return Object.assign({}, a); }) : undefined,
+        projectId: delivery.projectId, projectName: delivery.projectName, branch: delivery.branch, branchId: delivery.branchId,
         customerId: delivery.customerId, customerName: delivery.customerName,
         returnDate: today, status: 'Inspection', inspectedBy: null,
         items: delivery.items.map(function(i) { return { name: i.name, sent: i.qty, good: i.qty, damaged: 0, lost: 0, missing: 0 }; })
@@ -1292,7 +1432,8 @@ BizLogic.PurchaseRequest = {
   list: function() { return (MockData.purchaseRequests = MockData.purchaseRequests || []); },
   find: function(id) { return this.list().find(function(r) { return r.id === id; }); },
   total: function(pr) { return pr.items.reduce(function(s, i) { return s + (Number(i.qty) || 0) * (Number(i.price) || 0); }, 0); },
-  // data: { vendorId, date, branchId, items:[{name, unit, qty, price}], notes }
+  // data: { vendorId, date, branchId, items:[{name, unit, qty, price}], notes, paymentTerm, taxRate, accountId, expectedDate }
+  // Term of payment, pajak & rekening diisi di PR → saat di-ACC Finance, PO langsung dibuat (tidak input 2 kali)
   save: function(data, editId, submit) {
     data = data || {};
     var v = BizLogic.Vendor.find(data.vendorId);
@@ -1301,12 +1442,15 @@ BizLogic.PurchaseRequest = {
       .map(function(i) { return { name: String(i.name).trim(), unit: String(i.unit || 'Unit').trim(), qty: Number(i.qty) || 0, price: Math.round(Number(i.price) || 0) }; });
     if (!items.length) return { success: false, error: 'Tambahkan minimal satu barang' };
     if (items.some(function(i) { return i.qty <= 0 || i.price <= 0; })) return { success: false, error: 'Qty dan harga harus lebih dari 0' };
+    var term = data.paymentTerm || { type: 'TEMPO', days: 30 };
+    if (term.type === 'DP' && !(term.dpPercent > 0 && term.dpPercent < 100)) return { success: false, error: 'Persentase uang muka 1 - 99%' };
     var pr = editId ? this.find(editId) : null;
     if (pr && ['Draft', 'Ditolak'].indexOf(pr.status) < 0) return { success: false, error: 'PR yang sudah diajukan tidak bisa diubah' };
     var user = JSON.parse(sessionStorage.getItem('er_user') || '{}');
     if (!pr) { pr = { id: MockData.generateId('PR', 'purchaseRequests'), status: 'Draft', poId: null, requestedBy: user.name || 'System' }; this.list().push(pr); }
     Object.assign(pr, { date: data.date || new Date().toISOString().split('T')[0], vendorId: v.id, vendorName: v.name, vendorAddress: v.address,
-      vendorPhone: v.phone, vendorContact: v.contactPerson, branchId: data.branchId || 'BR-001', items: items, notes: String(data.notes || '').trim() });
+      vendorPhone: v.phone, vendorContact: v.contactPerson, branchId: data.branchId || 'BR-001', items: items, notes: String(data.notes || '').trim(),
+      paymentTerm: term, taxRate: data.taxRate != null ? Number(data.taxRate) : 0.11, accountId: data.accountId || null, expectedDate: data.expectedDate || '' });
     MockData.save('purchaseRequests');
     if (submit) return this.submit(pr.id);
     return { success: true, request: pr };
@@ -1333,7 +1477,13 @@ BizLogic.PurchaseRequest = {
     pr.reviewNote = String(note || '').trim();
     MockData.save('purchaseRequests');
     BizLogic.Activity.log('PR ' + pr.id + (approve ? ' disetujui' : ' ditolak'), approve ? 'success' : 'warning');
-    return { success: true, request: pr };
+    if (!approve) return { success: true, request: pr };
+    // ACC = PO langsung dibuat dengan status Disetujui; Purchase tinggal "Pesan ke Supplier"
+    var po = BizLogic.Purchase.create({ vendorId: pr.vendorId, prId: pr.id, branchId: pr.branchId, accountId: pr.accountId || (MockData.accounts[0] || {}).id,
+      purchaseDate: new Date().toISOString().split('T')[0], expectedDate: pr.expectedDate || '', items: pr.items, paymentTerm: pr.paymentTerm,
+      taxRate: pr.taxRate != null ? pr.taxRate : 0.11, status: 'Approved', notes: pr.notes });
+    if (!po.success) return { success: true, request: pr, warning: 'PR di-ACC, tapi PO gagal dibuat: ' + po.error };
+    return { success: true, request: pr, purchase: po.purchase };
   }
 };
 
@@ -1598,9 +1748,11 @@ BizLogic.Return = {
       return { success: false, error: 'Return is already completed' };
     }
 
-    var rental = MockData.rentals.find(function(r) { return r.id === ret.rentalId; });
-    var branch = rental ? (rental.branch ? rental.branch.replace(' Warehouse', '') : 'Cileungsi') : 'Cileungsi';
-    var warehouseId = (rental && rental.branchId) || BizLogic.StockLedger.warehouseIdOf(branch);
+    var rentalIds = ret.alloc ? ret.alloc.map(function(a) { return a.rentalId; }) : [ret.rentalId];
+    var rentals = MockData.rentals.filter(function(r) { return rentalIds.indexOf(r.id) >= 0; });
+    var rental = rentals[0];
+    var branch = ret.branch || (rental && rental.branch ? rental.branch.replace(' Warehouse', '') : 'Cileungsi');
+    var warehouseId = ret.branchId || (rental && rental.branchId) || BizLogic.StockLedger.warehouseIdOf(branch);
 
     // Validasi dulu semua baris sebelum ada stok yang berubah
     // Hasil inspeksi hanya Baik / Rusak. Alat yang tidak ikut kembali tidak dicatat "hilang":
@@ -1628,7 +1780,7 @@ BizLogic.Return = {
         type: 'RETURN', no: ret.sjNo, date: today,
         from: { type: 'project', id: ret.projectId },
         to: { type: 'warehouse', id: warehouseId },
-        reference: ret.id + ' / ' + ret.rentalId,
+        reference: ret.id + ' / ' + (rentalIds.filter(Boolean).join(', ') || ret.projectId),
         items: backItems
       });
       if (!back.success) return back;
@@ -1659,10 +1811,8 @@ BizLogic.Return = {
     ret.completedDate = new Date().toISOString().replace('T', ' ').substring(0, 16);
     MockData.save('returns');
 
-    // Check if rental should be completed
-    if (rental) {
-      BizLogic.Return._updateRentalReturnStatus(rental);
-    }
+    // Status order sewa yang ikut dipulangkan
+    rentals.forEach(function(r) { BizLogic.Return._updateRentalReturnStatus(r); });
 
     BizLogic.Activity.log('Return ' + returnId + ' inspection completed', 'success');
 
@@ -1676,27 +1826,28 @@ BizLogic.Return = {
     var it = ret.items.find(function(i) { return i.name === name; });
     qty = Math.round(Number(qty));
     if (!it || isNaN(qty) || qty < 0 || qty > it.sent) return { success: false, error: 'Qty tidak valid' };
+    var cut = it.sent - qty;
     it.sent = qty; it.good = qty; it.damaged = 0;
     ret.items = ret.items.filter(function(i) { return i.sent > 0; });
+    if (ret.alloc) {
+      for (var a = ret.alloc.length - 1; a >= 0 && cut > 0; a--) {
+        if (ret.alloc[a].name !== name) continue;
+        var t = Math.min(cut, ret.alloc[a].qty); ret.alloc[a].qty -= t; cut -= t;
+      }
+      ret.alloc = ret.alloc.filter(function(x) { return x.qty > 0; });
+    }
     MockData.save('returns');
     return { success: true };
   },
 
   _updateRentalReturnStatus: function(rental) {
+    var D = BizLogic.Delivery;
     var returns = MockData.returns.filter(function(r) {
-      return r.rentalId === rental.id && r.status === 'Completed';
+      return D.forRental(r, rental.id) && r.status === 'Completed';
     });
 
     rental.items.forEach(function(rentalItem) {
-      var totalReturned = returns.reduce(function(sum, r) {
-        return sum + r.items.reduce(function(isum, ri) {
-          if (ri.name === rentalItem.name) {
-            return isum + ri.sent;
-          }
-          return isum;
-        }, 0);
-      }, 0);
-      rentalItem.returned = totalReturned;
+      rentalItem.returned = returns.reduce(function(sum, r) { return sum + D.allocQty(r, rental.id, rentalItem.name); }, 0);
     });
 
     var allReturned = rental.items.every(function(i) { return (i.returned || 0) >= i.quantity; });
@@ -1803,7 +1954,7 @@ BizLogic.Claim = {
   // Nilai klaim default per unit alat rusak = 30% nilai ganti (harga sewa/bulan × 10) sebagai biaya perbaikan.
   // Alat hilang tidak diklaim: dipulangkan administratif lalu dijual ke pelanggan (Penjualan dari proyek).
   // Nilai bisa diubah di claim-detail sebelum invoice dibuat.
-  REPLACEMENT_FACTOR: 10,
+  REPLACEMENT_FACTOR: 300, // nilai ganti ≈ 300 × tarif harian (± 10 bulan sewa)
   DAMAGE_RATE: 0.3,
   unitValues: function(projectId, equipment) {
     var replace = BizLogic.Billing.unitPrice(projectId, equipment) * this.REPLACEMENT_FACTOR;
@@ -1997,7 +2148,8 @@ BizLogic.Purchase = {
       vendorId: v.id, supplier: v.name, vendorAddress: v.address, supplierContact: v.phone,
       purchaseDate: data.purchaseDate || new Date().toISOString().split('T')[0], expectedDate: data.expectedDate || '',
       branch: br.name.replace(' Warehouse', ''), branchId: br.id, accountId: acc ? acc.id : null, accountName: acc ? acc.name : '',
-      status: data.status === 'Requested' ? 'Requested' : 'Draft', createdBy: user.name || 'System', notes: data.notes || '',
+      status: data.status === 'Approved' ? 'Approved' : data.status === 'Requested' ? 'Requested' : 'Draft', createdBy: user.name || 'System', notes: data.notes || '',
+      approvedBy: data.status === 'Approved' ? (user.name || 'System') : undefined, approvedDate: data.status === 'Approved' ? new Date().toISOString().replace('T', ' ').substring(0, 16) : undefined,
       paymentTerm: term, taxRate: Number(data.taxRate) || 0, totalItems: items.length, items: items
     }, this.totals(items, data.taxRate, data.discount, data.shipping));
     MockData.purchases.push(po);
@@ -2113,8 +2265,9 @@ BizLogic.Purchase = {
 //   akhir = tanggal SJ pulang / hilang (FIFO: unit yang dikirim duluan dianggap pulang duluan)
 //           jika belum pulang → tanggal akhir periode tagihan (bisa di-adjust)
 //   hari  = akhir − awal + 1
-//   total = qty × hari × harga satuan ÷ bulan sewa (default 30)
-// Harga satuan = harga per bulan dari kebutuhan alat proyek (project.requirements).
+//   total = qty × hari × tarif harian
+// Tarif harian = harga satuan per hari dari kebutuhan alat proyek (project.requirements).
+// (Invoice lama yang masih punya monthDays dihitung ÷ bulan sewa dan tetap ditampilkan apa adanya.)
 // ============================================================
 
 BizLogic.Billing = {
@@ -2179,11 +2332,10 @@ BizLogic.Billing = {
   },
 
   // Rekap tagihan untuk satu periode.
-  // opts: { monthDays, endOverrides: { [line.key]: 'YYYY-MM-DD' } } - override hanya untuk alat yang belum pulang
+  // opts: { endOverrides: { [line.key]: 'YYYY-MM-DD' } } - override hanya untuk alat yang belum pulang
   recap: function(projectId, periodStart, periodEnd, opts) {
     opts = opts || {};
     var self = this;
-    var monthDays = Number(opts.monthDays) || this.monthDays();
     var overrides = opts.endOverrides || {};
     var lines = [];
     this.segments(projectId).forEach(function(s) {
@@ -2200,8 +2352,8 @@ BizLogic.Billing = {
       var unitPrice = self.unitPrice(projectId, s.equipment);
       lines.push({
         key: s.key, equipment: s.equipment, qty: s.qty, unitPrice: unitPrice,
-        start: start, end: end, days: days, monthDays: monthDays,
-        amount: Math.round(s.qty * days * unitPrice / monthDays),
+        start: start, end: end, days: days,
+        amount: Math.round(s.qty * days * unitPrice),
         sjDelivery: s.sjDelivery, sjReturn: returnedInPeriod ? s.sjReturn : null,
         endType: returnedInPeriod ? s.endType : null,
         adjustable: adjustable, adjusted: adjustable && !!overrides[s.key]
@@ -2225,8 +2377,8 @@ BizLogic.Billing = {
     return rid ? MockData.rentals.find(function(r) { return r.id === rid; }) : null;
   },
 
-  // Baris rekap manual. Ada tanggal → rumus sewa (qty × hari × harga ÷ bulan sewa); tanpa tanggal → qty × harga.
-  manualLines: function(items, monthDays) {
+  // Baris rekap manual. Ada tanggal → rumus sewa (qty × hari × tarif harian); tanpa tanggal → qty × harga.
+  manualLines: function(items) {
     var self = this, out = [], error = null;
     (items || []).forEach(function(it) {
       var desc = String(it.desc || '').trim();
@@ -2237,8 +2389,8 @@ BizLogic.Billing = {
       if (start && end && end < start && !error) error = 'Tanggal akhir "' + desc + '" sebelum tanggal awal';
       var days = start && end && end >= start ? self.days(start, end) : 0;
       out.push({ key: 'manual-' + out.length, type: it.type || 'manual', equipment: it.equipment || desc, desc: desc, qty: qty, unitPrice: price,
-        start: start, end: end, days: days, monthDays: monthDays,
-        amount: days ? Math.round(qty * days * price / monthDays) : Math.round(qty * price),
+        start: start, end: end, days: days,
+        amount: days ? Math.round(qty * days * price) : Math.round(qty * price),
         sjDelivery: it.sjDelivery || null, sjReturn: it.sjReturn || null, manual: true });
     });
     return { lines: out, error: error };
@@ -2333,7 +2485,7 @@ BizLogic.Invoice = {
     return { accountId: acc.id, accountName: acc.name };
   },
 
-  // opts: { monthDays, endOverrides, taxRate, invoiceDate, dueDays, accountId, notes }
+  // opts: { endOverrides, taxRate, invoiceDate, dueDays, accountId, notes }
   createFromRecap: function(projectId, periodStart, periodEnd, opts) {
     opts = opts || {};
     var project = MockData.projects.find(function(p) { return p.id === projectId; });
@@ -2353,7 +2505,7 @@ BizLogic.Invoice = {
 
     var lines;
     if (opts.manualItems) { // mode manual: baris diisi / diedit sendiri
-      var man = BizLogic.Billing.manualLines(opts.manualItems, Number(opts.monthDays) || BizLogic.Billing.monthDays());
+      var man = BizLogic.Billing.manualLines(opts.manualItems);
       if (man.error) return { success: false, error: man.error };
       lines = man.lines;
       if (!lines.length) return { success: false, error: 'Tambahkan minimal satu baris tagihan' };
@@ -2377,7 +2529,7 @@ BizLogic.Invoice = {
       invoiceDate: invoiceDate,
       dueDate: BizLogic.Billing.addDays(invoiceDate, dueDays),
       periodStart: periodStart, periodEnd: periodEnd,
-      monthDays: lines[0].monthDays,
+      daily: true,
       recapMode: opts.manualItems ? 'manual' : 'stok',
       items: lines.map(function(l) {
         return {
@@ -2448,8 +2600,8 @@ BizLogic.Invoice = {
   },
 
   // Hitung ulang baris barang invoice bayangan (diisi manual).
-  // Sewa: Total = Qty × Hari × Harga Satuan ÷ Bulan Sewa (sama dgn rekap). Klaim/lainnya: Qty × Harga Satuan.
-  shadowItems: function(type, items, monthDays) {
+  // Sewa: Total = Qty × Hari × Tarif harian (sama dgn rekap). Klaim/lainnya: Qty × Harga Satuan.
+  shadowItems: function(type, items) {
     var Bill = BizLogic.Billing;
     var out = [], error = null;
     (items || []).forEach(function(it, n) {
@@ -2464,7 +2616,7 @@ BizLogic.Invoice = {
         out.push({
           desc: desc, equipment: desc, qty: qty, unitPrice: unitPrice,
           startDate: start, endDate: end, days: days,
-          amount: Math.round(qty * days * unitPrice / monthDays),
+          amount: Math.round(qty * days * unitPrice),
           sjDelivery: null, sjReturn: null, adjusted: false, manual: true
         });
       } else {
@@ -2475,7 +2627,7 @@ BizLogic.Invoice = {
   },
 
   // Buat / ubah invoice bayangan - semua field opsional kecuali customer; barang ditambah manual.
-  // data: { customerId, projectId, type, periodStart, periodEnd, monthDays, items[], invoiceDate, dueDays, taxRate, accountId, notes }
+  // data: { customerId, projectId, type, periodStart, periodEnd, items[], invoiceDate, dueDays, taxRate, accountId, notes }
   saveShadow: function(data, invoiceId) {
     data = data || {};
     var existing = null;
@@ -2491,8 +2643,7 @@ BizLogic.Invoice = {
     if (data.periodStart && data.periodEnd && data.periodEnd < data.periodStart) return { success: false, error: 'Tanggal akhir periode sebelum tanggal awal' };
 
     var type = ['Klaim', 'Jual'].indexOf(data.type) >= 0 ? data.type : 'Sewa';
-    var monthDays = Number(data.monthDays) || BizLogic.Billing.monthDays();
-    var calc = this.shadowItems(type, data.items, monthDays);
+    var calc = this.shadowItems(type, data.items);
     if (calc.error) return { success: false, error: calc.error };
     var subtotal = calc.items.reduce(function(s, l) { return s + l.amount; }, 0);
 
@@ -2513,7 +2664,7 @@ BizLogic.Invoice = {
       invoiceDate: invoiceDate,
       dueDate: BizLogic.Billing.addDays(invoiceDate, dueDays),
       periodStart: data.periodStart || null, periodEnd: data.periodEnd || null,
-      monthDays: type === 'Sewa' ? monthDays : undefined,
+      monthDays: undefined, daily: type === 'Sewa' || undefined,
       items: calc.items,
       notes: data.notes || ''
     }, this._totals(subtotal, Number(data.taxRate) || 0), this._account(data.accountId));

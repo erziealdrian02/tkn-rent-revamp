@@ -28,9 +28,10 @@
               </div>
             </div>
             <div class="er-table-wrapper">
-              <table class="er-table"><thead><tr><th>Project #</th><th>Project Name</th><th>Pelanggan</th><th>Mulai</th><th>Tenggat</th><th>Rentals</th><th>Equipment</th><th>Status</th><th>Aksi</th></tr></thead>
+              <table class="er-table"><thead><tr><th>Proyek</th><th>Periode</th><th class="num">Kebutuhan</th><th class="num">Terkirim</th><th class="num" title="Kebutuhan − Terkirim">Sisa Kebutuhan</th><th class="num">Kepulangan</th><th class="num">Di Proyek</th><th style="min-width:150px">Persentase</th><th>Status</th><th></th></tr></thead>
               <tbody id="tableBody"></tbody></table>
             </div>
+            <p class="fs-12 text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Kebutuhan = kebutuhan alat proyek. Terkirim / Kepulangan dari surat jalan yang sudah selesai (stok proyek). Di Proyek = Terkirim − Kepulangan. Angka <span class="text-warning">+n di jalan</span> = surat jalan yang masih di perjalanan.</p>
           </div>
         </div>
       </div>
@@ -39,9 +40,23 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
     initApp('projects.html',[{label:'Pelanggan & Order',href:'#'},{label:'Proyek'}],'Proyek');
+    const D = BizLogic.Delivery;
+    const bar = (pct, cls) => `<div class="progress-thin flex-grow-1"><span class="${cls || (pct >= 100 ? 'done' : '')}" style="width:${pct}%"></span></div>`;
+    const pct = (a, b) => b ? Math.min(100, Math.round(a / b * 100)) : 0;
+    // Rekap stok per proyek (sama seperti Rekap Project, tapi digabung semua order sewa)
+    function stats(p) {
+      const rows = BizLogic.StockLedger.projectSummary(p.id), sum = k => rows.reduce((s, r) => s + r[k], 0);
+      const moving = kind => MockData.deliveries.filter(d => d.projectId === p.id && D.kindOf(d) === kind && D.TRANSIT.includes(d.status)).reduce((s, d) => s + d.items.reduce((t, i) => t + i.qty, 0), 0);
+      // alat yang sudah tiba di gudang tapi belum diinspeksi dihitung sudah pulang (sama dgn Rekap Project)
+      const atWarehouse = MockData.returns.filter(r => r.projectId === p.id && r.status !== 'Completed').reduce((s, r) => s + r.items.reduce((t, i) => t + i.sent, 0), 0);
+      const need = sum('required'), sent = sum('delivered'), back = sum('returned') + atWarehouse;
+      return { need, sent, back, onSite: sent - back, left: Math.max(0, need - sent), goingOut: moving('SEWA'), goingBack: moving('PEMULANGAN'), pctSent: pct(sent, need), pctBack: pct(back, sent) };
+    }
+    const n = (v, cls) => `<td class="num ${v ? (cls || '') : 'zero'}">${formatNumber(v)}</td>`;
     function filterData(){
       const q=document.getElementById('searchInput').value.toLowerCase();
       const s=document.getElementById('statusFilter').value;
@@ -49,13 +64,19 @@
         if(q&&!p.id.toLowerCase().includes(q)&&!p.name.toLowerCase().includes(q)&&!p.customerName.toLowerCase().includes(q))return false;
         if(s&&p.status!==s)return false;return true;
       });
-      document.getElementById('tableBody').innerHTML=data.map(p=>`<tr>
-        <td><a href="project-detail.html?id=${p.id}" class="cell-link text-mono">${p.id}</a></td>
-        <td><a href="project-detail.html?id=${p.id}" class="cell-link">${p.name}</a></td>
-        <td>${p.customerName}</td><td>${formatDate(p.startDate)}</td><td>${formatDate(p.endDate)}${(d => d == null || p.status !== 'Active' ? '' : `<div class="fs-11 ${d < 0 ? 'text-danger' : d <= 14 ? 'text-warning' : 'text-muted'}">${d < 0 ? 'lewat ' + (-d) + ' hari' : d + ' hari lagi'}</div>`)(p.endDate ? Math.round((new Date(p.endDate) - new Date(new Date().toDateString())) / 864e5) : null)}</td>
-        <td>${p.totalRentals}</td><td>${p.activeEquipment}</td><td>${statusBadge(p.status)}</td>
+      document.getElementById('tableBody').innerHTML=data.map(p=>{ const t = stats(p); return `<tr>
+        <td><a href="project-detail.html?id=${p.id}" class="cell-link fw-600">${p.name}</a><div class="fs-12 text-muted"><span class="text-mono">${p.id}</span> · ${p.customerName}</div></td>
+        <td class="text-nowrap fs-12">${formatDate(p.startDate)} –<br>${formatDate(p.endDate)}${(d => d == null || p.status !== 'Active' ? '' : `<div class="fs-11 ${d < 0 ? 'text-danger' : d <= 14 ? 'text-warning' : 'text-muted'}">${d < 0 ? 'lewat ' + (-d) + ' hari' : d + ' hari lagi'}</div>`)(p.endDate ? Math.round((new Date(p.endDate) - new Date(new Date().toDateString())) / 864e5) : null)}</td>
+        ${n(t.need, 'fw-600')}
+        <td class="num ${t.sent ? '' : 'zero'}">${formatNumber(t.sent)}${t.goingOut ? `<div class="fs-11 text-warning">+${t.goingOut} di jalan</div>` : ''}</td>
+        ${n(t.left, 'qty-warn')}
+        <td class="num ${t.back ? '' : 'zero'}">${formatNumber(t.back)}${t.goingBack ? `<div class="fs-11 text-warning">+${t.goingBack} di jalan</div>` : ''}</td>
+        ${n(t.onSite, 'col-strong')}
+        <td><div class="d-flex align-items-center gap-2" title="Terkirim / kebutuhan">${bar(t.pctSent)}<span class="fs-11 text-muted text-nowrap" style="width:62px">Kirim ${t.pctSent}%</span></div>
+          <div class="d-flex align-items-center gap-2 mt-1" title="Kepulangan / terkirim">${bar(t.pctBack, 'back')}<span class="fs-11 text-muted text-nowrap" style="width:62px">Pulang ${t.pctBack}%</span></div></td>
+        <td>${statusBadge(p.status)}</td>
         <td><a href="project-detail.html?id=${p.id}" class="btn-action"><i class="bi bi-eye"></i></a></td>
-      </tr>`).join('')||'<tr><td colspan="9" class="text-center text-muted py-4">Tidak ada proyek ditemukan</td></tr>';
+      </tr>`; }).join('')||'<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada proyek ditemukan</td></tr>';
     }
     filterData();
   </script>

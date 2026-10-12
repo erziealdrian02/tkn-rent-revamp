@@ -218,7 +218,7 @@ BizLogic.Accounting = {
     (MockData.purchases || []).slice().sort(function(a, b) { return (a.purchaseDate || '').localeCompare(b.purchaseDate || ''); })
       .forEach(function(po) { (po.items || []).forEach(function(it) { if (it.price) costs[it.name] = Number(it.price); }); });
     BizLogic.StockLedger.equipmentNames().forEach(function(n) {
-      if (!costs[n]) costs[n] = (BizLogic.StockLedger.defaultRate(n) || 0) * 10;
+      if (!costs[n]) costs[n] = (BizLogic.StockLedger.defaultRate(n) || 0) * 300;
     });
     return costs;
   },

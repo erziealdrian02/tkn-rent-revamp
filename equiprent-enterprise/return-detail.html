@@ -63,7 +63,7 @@
     // Return Info
     body += `<div class="info-grid mb-4">
       <div class="info-item"><span class="info-label">No. Pengembalian</span><span class="info-value text-mono">${ret.id}</span></div>
-      <div class="info-item"><span class="info-label">Rekap Project</span><span class="info-value">${ret.rentalId ? `<a href="rental-detail.html?id=${ret.rentalId}">${ret.rentalId}</a>` : '-'}</span></div>
+      <div class="info-item"><span class="info-label">Rekap Project</span><span class="info-value">${(x => x.alloc && x.alloc.length ? [...new Set(x.alloc.map(a => a.rentalId))].map(id => `<a href="rental-detail.html?id=${id}" class="cell-link">${id}</a>`).join(', ') : x.rentalId ? `<a href="rental-detail.html?id=${x.rentalId}" class="cell-link">${x.rentalId}</a>` : '-')(ret)}</span></div>
       <div class="info-item"><span class="info-label">Proyek</span><span class="info-value">${ret.projectName}</span></div>
       <div class="info-item"><span class="info-label">Pelanggan</span><span class="info-value">${ret.customerName}</span></div>
       <div class="info-item"><span class="info-label">Tanggal Tiba</span><span class="info-value">${formatDate(ret.returnDate)}</span></div>

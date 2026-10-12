@@ -19,20 +19,24 @@
           <div class="page-header-left"><h2 class="page-header-title">Persetujuan Order</h2><p class="page-header-subtitle">Order sewa & jual dari proyek di-ACC Staff Piutang sebelum logistik membuat surat jalan. Cek piutang customer dulu.</p></div>
         </div>
         <div class="row g-3 mb-4" id="kpis"></div>
-        <div class="er-card mb-4"><div class="er-card-body">
-          <h6 class="fw-700 mb-3"><i class="bi bi-hourglass-split me-1"></i>Menunggu ACC</h6>
+        <div class="er-card">
+          <div class="er-tabs">
+            <button class="er-tab active" data-tab="pending" onclick="switchTab('pending')"><i class="bi bi-hourglass-split me-1"></i>Menunggu ACC<span class="er-tab-count" id="pendingCount">0</span></button>
+            <button class="er-tab" data-tab="history" onclick="switchTab('history')"><i class="bi bi-clock-history me-1"></i>Riwayat ACC Terakhir</button>
+          </div>
+          <div class="er-tab-content active" id="tab-pending"><div class="er-card-body">
           <div class="er-table-wrapper"><table class="er-table">
             <thead><tr><th>Order</th><th>Jenis</th><th>Diajukan</th><th>Pelanggan</th><th>Proyek</th><th class="num">Nilai Order</th><th class="num">Piutang Customer</th><th class="num">Lewat Jatuh Tempo</th><th>Stok</th><th></th></tr></thead>
             <tbody id="pendingBody"></tbody>
           </table></div>
-        </div></div>
-        <div class="er-card"><div class="er-card-body">
-          <h6 class="fw-700 mb-3"><i class="bi bi-clock-history me-1"></i>Riwayat ACC Terakhir</h6>
+          </div></div>
+          <div class="er-tab-content" id="tab-history"><div class="er-card-body">
           <div class="er-table-wrapper"><table class="er-table">
             <thead><tr><th>Order</th><th>Jenis</th><th>Pelanggan</th><th>Hasil</th><th>Oleh</th><th>Waktu</th><th>Catatan</th></tr></thead>
             <tbody id="historyBody"></tbody>
           </table></div>
-        </div></div>
+          </div></div>
+        </div>
       </div>
     </main>
   </div>
@@ -68,6 +72,7 @@
         card('blue', 'bi-file-earmark-text', 'Sewa', pending.filter(o => o.kind === 'Sewa').length) + card('green', 'bi-bag-check', 'Jual', pending.filter(o => o.kind === 'Jual').length) +
         card('red', 'bi-exclamation-triangle', 'Customer punya piutang lewat JT', risky);
 
+      document.getElementById('pendingCount').textContent = pending.length;
       document.getElementById('pendingBody').innerHTML = pending.map(o => {
         const cs = BizLogic.Customer.summary(o.customerId), short = stockShort(o);
         return `<tr>
