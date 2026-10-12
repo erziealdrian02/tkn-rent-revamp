@@ -9,6 +9,11 @@ Semua isi diambil dari kode prototype saat ini (`*.html` + `assets/js/business-l
 > (alat hilang dipulangkan administratif lalu dijual); Buku Kas jadi form **kasir** → **Generate** (Accounting) → Jurnal → **COA per bulan** dengan pie chart.
 > Diagram lama di bagian 2–4 & 9 masih memakai istilah lama; aturan di bagian 13 yang berlaku.
 >
+> **Update setelah uji coba (12 Okt 2026, batch 6)** — lihat [bagian 16](#16-revisi-setelah-uji-coba-tarif-harian-pemulangan-per-proyek-pr--po):
+> **semua tarif sekarang per hari** (tagihan = Hari × Qty × Tarif/hari, tanpa "Bulan Sewa"); order sewa dikunci di periode proyek
+> dan menampilkan kebutuhan proyek; **pemulangan berdasarkan stok proyek** (satu SJ untuk beberapa order sewa); **ACC PR langsung membuat PO**;
+> dropdown dengan banyak pilihan bisa dicari (select2). Rumus "÷ Bulan Sewa (30)" di diagram lama sudah tidak berlaku.
+>
 > **Update DATA TKN.xlsx (Okt 2026, batch 4)** — lihat [bagian 14](#14-data-tknxlsx-logistik-rekap-tagihan-rekap-stock--lapkeu):
 > role **Ekspedisi & Driver dihapus**, digabung ke **Logistik** (termasuk kendaraan & pengemudi). Keterlambatan dari estimasi
 > **dibebankan ke Logistik**, bukan customer. Semua penyebutan "Ekspedisi" / portal driver di diagram lama = Logistik.
@@ -48,13 +53,14 @@ Cara baca diagram:
 | 12 | [Purchasing](#12-purchasing-purchase-request-purchase-order-pembayaran-laporan) | Purchase Request, Purchase Order (term & tax), uang muka / pelunasan / tempo, laporan pembelian & hutang dagang |
 | 13 | [Rekap Project, Jual Alat di Proyek & Kasir → Jurnal → COA](#13-rekap-project-jual-alat-di-proyek--kasir--jurnal--coa) | Catatan user batch 3: rekap per proyek + persentase, hapus Hilang, kasir, generate, kategori jurnal, COA bulanan |
 | 15 | [Revisi setelah User Guide: Kasir → Logistik, urutan Logistik → Piutang, keterlambatan](#15-revisi-setelah-user-guide) | Role Kasir dihapus, Logistik di atas Piutang, keterlambatan hanya dideteksi |
+| 16 | [Revisi setelah uji coba: tarif harian, pemulangan per proyek, PR → PO](#16-revisi-setelah-uji-coba-tarif-harian-pemulangan-per-proyek-pr--po) | Tarif & durasi harian, order sewa dalam periode proyek + panel kebutuhan, kolom Proyek / Rekap Project, tab Persetujuan, pemulangan per stok proyek, ACC PR = PO, select2 |
 | 14 | [DATA TKN.xlsx: Logistik, Rekap Tagihan, Rekap Stock & LAPKEU](#14-data-tknxlsx-logistik-rekap-tagihan-rekap-stock--lapkeu) | Gabung role ke Logistik, denda telat ke Logistik, format rekap tagihan (PO, DPP 11/12, PPN 12%), matriks rekap stock, nomor SJ, kode transaksi |
 
 ---
 
 ## Ringkasan alur (versi teks)
 
-1. **Siapkan data**: Pelanggan → Proyek. Kebutuhan alat + **Harga Satuan per bulan** diisi di proyek, dan harga ini yang dipakai saat menagih.
+1. **Siapkan data**: Pelanggan → Proyek. Kebutuhan alat + **Tarif per hari** diisi di proyek, dan tarif ini yang dipakai saat menagih.
 2. **Penyewaan**: buat sewa → *Submit for Approval* → Manager *Setujui*. Stok gudang jadi **dipesan**.
 3. **Pengiriman**: *Create Delivery* → Depart → Arrive → *Complete Handover (PoD)*. Stok pindah gudang → proyek (SJK). **Sewa mulai dihitung dari tanggal ini.**
 4. **Tagihan**: tiap periode buka *Rekap Tagihan* → *Buat Invoice*.
@@ -498,7 +504,7 @@ database Data
 Finance->BL:sidebar Piutang → Rekap Tagihan
 BL-->Finance:tabel "Belum Ditagih (s/d hari ini)" → klik "Rekap" pada proyek
 note right of BL:Periode otomatis: sehari setelah invoice terakhir\n(atau tanggal SJK pertama) s/d akhir bulan itu
-Sys->BL:1 baris = 1 SJ Kirim × alat\nAwal = tgl SJK atau awal periode\nAkhir = tgl SJR/HL atau akhir periode\nTotal = Qty × Hari × Harga Satuan proyek ÷ Bulan Sewa (30)
+Sys->BL:1 baris = 1 SJ Kirim × alat\nAwal = tgl SJK atau awal periode\nAkhir = tgl SJR/HL atau akhir periode\nTotal = Qty × Hari × Tarif / hari proyek
 opt alat belum pulang tapi mau dihitung sampai tanggal tertentu
   Finance->BL:ubah tanggal di kolom "B. Akhir"
 end
@@ -1028,7 +1034,7 @@ Dari file `excel/DATA TKN.xlsx` + catatan user (Okt 2026, batch 4).
 
 - Header: **Kepada Yth** (pelanggan), **Proyek**, **Periode Sewa**.
 - Baris dikelompokkan per **No. PO customer** (field baru di Order Sewa), lalu per alat & per SJ.
-- Kolom: Nama Barang · Periode Sewa Awal / Akhir · **Hari (D)** · **Bulan (M)** · **Qty (Q)** · **Harga (P)** · **Jumlah (D×Q×P)/M**.
+- Kolom: Nama Barang · Periode Sewa Awal / Akhir · **Hari (D)** · **Qty (Q)** · **Tarif / Hari (P)** · **Jumlah D×Q×P**. (Sebelum batch 6: ÷ Bulan (M) 30 hari dengan harga bulanan.)
 - Footer: **TOTAL → DPP 11/12 → PPN 12% → TOTAL TAGIHAN** (efektif 11%). Invoice menyimpan DPP nilai lain; XML Coretax sudah memakai DPP 11/12 & tarif 12%.
 - Hari = Akhir − Awal **+ 1** (aturan sheet DATA). Catatan: rumus di sheet REKAP TAGIHAN `=D−C` tanpa +1; perlu dikonfirmasi ke user.
 
@@ -1056,6 +1062,66 @@ Catatan user setelah membaca User Guide (Okt 2026, batch 5). Catatan Finance men
 | Logistik di atas, baru Piutang | Sidebar: **LOGISTIK & STOK** di atas **PIUTANG**. Urutan role di daftar Peran, akun demo, dan halaman login: Admin → Logistik → Staff Piutang → Finance → Accounting → Purchase |
 | Denda internal, tidak perlu di sistem; sistem hanya mendeteksi berapa lama ekspedisi telat dari estimasi alat on site | Tab **Surat Jalan → Keterlambatan**: SJ yang tiba lewat estimasi + **lama telat** (yang belum tiba ditandai *masih berjalan*). Tidak ada nominal denda maupun pengaturan tarif |
 | Urutan Logistik dulu baru Piutang | Alur & User Guide: Logistik input order → Staff Piutang ACC → Logistik kirim / jemput → Staff Piutang tagih |
+
+---
+
+## 16. Revisi setelah uji coba: tarif harian, pemulangan per proyek, PR → PO
+
+Catatan user setelah mencoba prototype dari awal (12 Okt 2026, batch 6).
+
+| Catatan user | Di prototype |
+|---|---|
+| Semua option select yang pilihannya banyak pakai select2 yang bisa search | `app.js` otomatis memasang **select2** (tema Bootstrap 5) pada `.form-select` / `.filter-select` dengan **≥ 8 pilihan** (atau atribut `data-search`; `data-no-search` = tidak diubah), termasuk di dalam modal. Event `onchange` tetap jalan |
+| Order sewa baru: periode awal & akhir tidak boleh keluar dari periode proyek | Tanggal di form dikunci `min` = mulai proyek, `max` = tenggat proyek; `Rental.create` juga menolak. **Perpanjang Sewa** tidak boleh melewati tenggat proyek (ubah tenggat proyek dulu) |
+| Order sewa baru: kasih tahu proyek ini butuh apa saja dan apa yang sudah ada | Panel **Kebutuhan Proyek Ini**: kebutuhan, sudah dipesan (order lain), di proyek sekarang, sisa belum dipesan, di order ini. Tombol **+ n** per alat dan **Pesan semua sisa kebutuhan** |
+| Durasi jangan bulan, jadikan hari (30 hari = 1 bulan) | Durasi = hari inklusif periode order, ditampilkan mis. `92 hari (3 bln 2 hr)` |
+| Semua tarif jadi harian | Tarif alat, tarif kebutuhan proyek & item order = **per hari**. Subtotal order = Qty × Tarif × Hari. **Rekap Tagihan / Invoice Bayangan: Jumlah = Hari × Qty × Tarif/hari** (input "Bulan Sewa" & kolom Bulan (M) dihapus). Invoice lama tetap tampil dengan rumus ÷ bulan sewa yang tersimpan. Nilai ganti / harga awal jual = 300 × tarif harian |
+| Proyek: tambah Kebutuhan, Terkirim, Sisa, Kepulangan, Di Proyek, Persentase | Daftar **Proyek**: kolom itu dihitung dari stok proyek (surat jalan selesai); alat yang sudah tiba di gudang tapi belum diinspeksi dihitung sudah pulang; "+n di jalan" untuk SJ yang masih jalan |
+| Rekap Project cukup Terkirim + total harga sewa | Daftar **Rekap Project**: Periode, Durasi, Terkirim (x / kebutuhan + %), **Total Harga Sewa** |
+| Persetujuan order: Menunggu ACC & Riwayat ACC jadi tab | `approvals.html`: tab **Menunggu ACC** (angka) dan **Riwayat ACC Terakhir** |
+| Rekap Project: tab Pengiriman / Pemulangan bisa tambah dari halaman ini | Detail Rekap Project: tombol **+ Surat Jalan Kirim** di tab Pengiriman dan **+ Surat Jalan Pemulangan** di tab Pemulangan (juga saat masih kosong) |
+| Pemulangan cukup sekali, berdasarkan stok proyek | **Surat Jalan Pemulangan per proyek**: modal yang sama di Proyek & Rekap Project, isinya stok proyek yang bisa dijemput (di proyek − sedang dijemput − menunggu inspeksi − dijual dari proyek). Satu SJ boleh berisi alat dari beberapa order; sistem membagi qty ke order sewa **paling lama dulu** (`alloc`), dan SJ tampil di rekap tiap order sebagai "SJ gabungan proyek" |
+| PR di-ACC langsung jadi PO | Term of payment, pajak, rekening & estimasi tiba diisi di **PR**. Saat Finance klik **ACC**, PO dibuat otomatis berstatus **Disetujui** (PR → *Dibuat PO*); Purchase tinggal **Pesan ke Supplier**. PO kedua dari PR yang sama ditolak |
+| Dipersimple | Form order sewa ditulis ulang (tanpa kolom durasi per baris, tanpa bagian status), daftar Rekap Project diringkas |
+
+```
+title 16 - Order Sewa (tarif harian) & Pemulangan per Proyek
+
+actor Logistik
+actor "Staff Piutang" as AR
+participant "Sistem" as Sys
+database "Stok Proyek" as SP
+
+Logistik->Sys:Order Sewa Baru → pilih pelanggan & proyek
+Sys-->Logistik:tanggal dikunci di periode proyek
+panel Kebutuhan Proyek Ini (kebutuhan / dipesan / di proyek / sisa)
+Logistik->Sys:"+ n" / "Pesan semua sisa kebutuhan" → qty
+subtotal = Qty × Tarif/hari × Hari → "Ajukan ACC"
+AR->Sys:"ACC"
+Logistik->Sys:"Surat Jalan Kirim" → serah terima
+Sys->SP:SJK: gudang → proyek (sewa mulai dihitung)
+Logistik->Sys:Proyek / Rekap Project → "Surat Jalan Pemulangan"
+Sys-->Logistik:stok proyek yang bisa dijemput (semua order)
+Logistik->Sys:qty jemput, gudang tujuan, driver, estimasi → buat SJ
+note right of Sys:qty dibagi ke order sewa paling lama dulu (alloc)
+Logistik->Sys:Berangkat → Tiba di Gudang → Terima & Inspeksi
+Sys->SP:SJR: proyek → gudang (sewa berhenti dihitung)
+status tiap order sewa ikut diperbarui
+AR->Sys:Rekap Tagihan: Hari × Qty × Tarif/hari
+```
+
+```
+title 16 - PR di-ACC langsung jadi PO
+
+actor Purchase
+actor Finance
+participant "Sistem" as Sys
+
+Purchase->Sys:Purchase Request: vendor, barang, term of payment, pajak, rekening, estimasi tiba → "Ajukan"
+Finance->Sys:"ACC"
+Sys->Sys:PO dibuat otomatis (status Disetujui), PR → Dibuat PO
+Purchase->Sys:"Pesan ke Supplier" → "Cetak PO"
+```
 
 ---
 
@@ -1161,7 +1227,7 @@ Ini bukan bagian dari flow. Bug yang ditemukan saat memetakan flow sudah diperba
 - Bon Merah ditolak kalau saldo akun tidak cukup.
 - Bon yang berasal dari pembayaran invoice tidak bisa dihapus dari Buku Kas & Bank, dan pembayaran invoice belum bisa dibatalkan.
 - Rekonsiliasi hanya melihat transaksi **di dalam periode** yang dipilih. Transaksi periode sebelumnya yang belum cocok tidak ikut terbawa.
-- Nilai klaim (alat rusak) default = 30% × harga sewa/bulan × 10, belum dari harga beli alat. Nilainya bisa diubah di detail klaim.
+- Nilai klaim (alat rusak) default = 30% × tarif sewa/hari × 300 (± 10 bulan sewa), belum dari harga beli alat. Nilainya bisa diubah di detail klaim.
 - Generate Laporan Kas memproses semua transaksi kasir sampai tanggal akhir periode yang dipilih (belum bisa pilih per transaksi).
 
 **Akuntansi & pajak**
