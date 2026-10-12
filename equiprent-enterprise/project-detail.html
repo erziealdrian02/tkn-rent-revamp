@@ -28,6 +28,7 @@
   <script src="assets/js/mock-data.js"></script>
   <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
+  <script src="assets/js/project-pickup.js"></script>
   <script>
     const pid = getUrlParam('id') || 'PRJ-001';
     const project = MockData.projects.find(p => p.id === pid) || MockData.projects[0];
@@ -42,8 +43,8 @@
     const sales = (MockData.sales || []).filter(s => s.projectId === project.id);
     const sendDocs = deliveries.filter(d => D.kindOf(d) !== 'PEMULANGAN');
     const pickDocs = deliveries.filter(d => D.kindOf(d) === 'PEMULANGAN');
-    const sendable = rentals.filter(r => ['Approved', 'Preparing', 'Partially Delivered', 'On Rental'].includes(r.status) && r.items.some(i => (i.delivered || 0) < i.quantity));
-    const pickable = rentals.filter(r => ['On Rental', 'Partially Returned', 'Overdue', 'Partially Delivered'].includes(r.status) && D.pickupRemaining(r).some(x => x.remaining > 0));
+    const sendable = rentals.filter(r => ['Approved', 'Preparing', 'Partially Delivered', 'On Rental'].includes(r.status) && BizLogic.Rental.recap(r).rows.some(x => x.sent + x.goingOut < x.need));
+    const pickBtn = (label, cls) => canProjectPickup(project.id) ? `<button class="btn ${cls} btn-sm" onclick="openProjectPickup('${project.id}')"><i class="bi bi-box-arrow-in-left me-1"></i>${label}</button>` : '';
     const pickMenu = (list, open, label, icon, cls) => {
       if (!list.length || !canDo('Deliveries', 'Create')) return '';
       if (list.length === 1) return `<a class="btn ${cls} btn-sm" href="rental-detail.html?id=${list[0].id}&open=${open}"><i class="bi ${icon} me-1"></i>${label}</a>`;
@@ -68,7 +69,7 @@
       <div class="detail-header-actions">
         ${canDo('Projects', 'Update') && !['Completed', 'Cancelled'].includes(project.status) ? '<button class="btn btn-outline-primary btn-sm" onclick="adjustDeadline()"><i class="bi bi-calendar-event me-1"></i>Ubah Tenggat</button>' : ''}
         ${pickMenu(sendable, 'delivery', 'Pengiriman (SJ Kirim)', 'bi-truck', 'btn-primary')}
-        ${pickMenu(pickable, 'pickup', 'Pemulangan (SJ Pulang)', 'bi-box-arrow-in-left', 'btn-outline-primary')}
+        ${pickBtn('Pemulangan (SJ Pulang)', 'btn-outline-primary')}
         ${canDo('Rentals', 'Create') ? `<a href="rental-create.html?project=${project.id}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-plus me-1"></i>Order Sewa</a>` : ''}
         ${canDo('Sales', 'Create') ? `<a href="sale-create.html?customer=${project.customerId}&project=${project.id}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-bag-plus me-1"></i>Jual Baru</a>` : ''}
         ${canDo('Sales', 'Create') && BizLogic.Sale.projectAvailable(project.id).some(x => x.available > 0) ? `<a href="sale-create.html?source=project&customer=${project.customerId}&project=${project.id}" class="btn btn-outline-success btn-sm" title="Alat hilang / dibeli di lokasi: dipulangkan dulu lalu dijual"><i class="bi bi-bag-check me-1"></i>Jual Alat di Proyek</a>` : ''}
@@ -147,7 +148,7 @@
         <div class="fs-13 text-muted">Nilai kebutuhan alat: <strong class="text-body">${formatRupiah(reqValue)}</strong></div>
         <a href="project-stock.html?id=${project.id}" class="btn btn-outline-primary btn-sm"><i class="bi bi-folder-check me-1"></i>Kelola Stok Proyek</a>
       </div>
-      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Nama Alat</th><th class="num">Harga Satuan</th><th class="num">A. Kebutuhan</th><th class="num">B. Terkirim</th><th class="num">C. Sisa (A−B)</th><th class="num">D. Dipulangkan</th><th class="num">Di Lokasi</th></tr></thead><tbody>
+      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Nama Alat</th><th class="num">Tarif / Hari</th><th class="num">A. Kebutuhan</th><th class="num">B. Terkirim</th><th class="num">C. Sisa (A−B)</th><th class="num">D. Dipulangkan</th><th class="num">Di Lokasi</th></tr></thead><tbody>
       ${stockSummary.map(r => `<tr><td class="fw-600">${r.equipment}</td><td class="num">${r.unitPrice ? formatRupiah(r.unitPrice) : '-'}</td>${n(r.required, 'fw-600')}${n(r.delivered)}<td class="num ${r.remaining > 0 ? 'qty-warn' : r.remaining < 0 ? 'qty-minus' : 'zero'}">${r.remaining < 0 ? 'lebih ' + formatNumber(-r.remaining) : formatNumber(r.remaining)}</td>${n(r.returned)}${n(r.onSite, 'col-strong')}</tr>`).join('') || '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada kebutuhan alat</td></tr>'}
       </tbody></table></div>
     </div>`;
@@ -169,11 +170,11 @@
     const pickRows = pickDocs.map(d => ({ d, r: returns.find(x => x.id === d.returnId || x.pickupId === d.id) }))
       .concat(returns.filter(r => !pickDocs.some(d => d.returnId === r.id || r.pickupId === d.id)).map(r => ({ d: null, r })));
     tc += `<div class="er-tab-content" id="tab-returns">
-      <div class="d-flex justify-content-end gap-2 mb-2">${pickMenu(pickable, 'pickup', 'Buat SJ Pemulangan', 'bi-box-arrow-in-left', 'btn-outline-primary')}</div>
+      <div class="d-flex justify-content-end gap-2 mb-2">${pickBtn('Buat SJ Pemulangan', 'btn-outline-primary')}</div>
       ${pickRows.length ? `<div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Surat Jalan Pemulangan</th><th>Rekap</th><th>Tanggal</th><th>Alat</th><th>Status Jalan</th><th>Inspeksi</th><th>Keterangan</th></tr></thead><tbody>
       ${pickRows.map(({ d, r }) => { const x = d || r, sale = (d && d.forSaleId) || (r && r.forSaleId);
         return `<tr><td>${d ? `<a href="delivery-detail.html?id=${d.id}" class="cell-link text-mono">${d.sjNo || d.id}</a>` : `<span class="text-mono">${r.sjNo || '-'}</span>`}</td>
-        <td>${x.rentalId ? `<a href="rental-detail.html?id=${x.rentalId}" class="cell-link">${x.rentalId}</a>` : '-'}</td>
+        <td>${x.alloc ? [...new Set(x.alloc.map(a => a.rentalId))].map(id => `<a href="rental-detail.html?id=${id}" class="cell-link">${id}</a>`).join(', ') || '-' : x.rentalId ? `<a href="rental-detail.html?id=${x.rentalId}" class="cell-link">${x.rentalId}</a>` : '-'}</td>
         <td>${formatDate(d ? d.deliveryDate : r.returnDate)}</td>
         <td class="fs-12">${(d ? d.items.map(i => esc(i.name) + ' ×' + i.qty) : r.items.map(i => esc(i.name) + ' ×' + i.sent)).join(', ')}</td>
         <td>${d ? statusBadge(shownStatus(d)) : '-'}</td>

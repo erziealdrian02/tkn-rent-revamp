@@ -48,7 +48,7 @@
       <div class="modal-body">
         <p class="fs-13 text-muted">Masukkan qty kebutuhan alat dan harga satuan untuk proyek ini.</p>
         <div class="er-table-wrapper"><table class="er-table">
-          <thead><tr><th>Nama Alat</th><th class="num" style="width:110px">Qty</th><th class="num" style="width:180px">Harga Satuan</th><th class="num" style="width:160px">Nilai</th><th style="width:40px"></th></tr></thead>
+          <thead><tr><th>Nama Alat</th><th class="num" style="width:110px">Qty</th><th class="num" style="width:180px">Tarif / Hari</th><th class="num" style="width:160px">Nilai</th><th style="width:40px"></th></tr></thead>
           <tbody id="reqBody"></tbody>
           <tfoot><tr><td colspan="3">TOTAL NILAI</td><td class="num" id="reqTotal">Rp 0</td><td></td></tr></tfoot>
         </table></div>
@@ -208,7 +208,7 @@
 
             <div class="er-table-wrapper"><table class="er-table">
               <thead><tr>
-                <th>No</th><th>Nama Alat</th><th class="num">Harga Satuan</th>
+                <th>No</th><th>Nama Alat</th><th class="num">Tarif / Hari</th>
                 <th class="num">A. Kebutuhan</th><th class="num">B. Terkirim</th><th class="num">C. Sisa (A−B)</th>
                 <th class="num">D. Dipulangkan</th><th class="num">Di Lokasi</th><th>Progress Kirim</th><th>Progress Pulang</th>
               </tr></thead>
@@ -301,7 +301,7 @@
     }
 
     function exportCSV() {
-      const rows = [['Proyek', 'Customer', 'Nama Alat', 'Harga Satuan', 'A. Kebutuhan', 'B. Terkirim', 'C. Sisa (A-B)', 'D. Dipulangkan', 'Di Lokasi']];
+      const rows = [['Proyek', 'Customer', 'Nama Alat', 'Tarif / Hari', 'A. Kebutuhan', 'B. Terkirim', 'C. Sisa (A-B)', 'D. Dipulangkan', 'Di Lokasi']];
       MockData.projects.forEach(p => L.projectSummary(p.id).forEach(r => rows.push([
         p.name, p.customerName, r.equipment, r.unitPrice, r.required, r.delivered, r.remaining, r.returned, r.onSite
       ])));

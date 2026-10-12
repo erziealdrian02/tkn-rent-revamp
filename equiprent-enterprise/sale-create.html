@@ -132,7 +132,7 @@
     }
     function setRow(i, k, v, quiet) {
       rows[i][k] = k === 'name' ? v : Number(v) || 0;
-      if (k === 'name' && v && !rows[i].unitPrice) rows[i].unitPrice = (SL.defaultRate(v) || 0) * 10; // harga awal = nilai ganti alat
+      if (k === 'name' && v && !rows[i].unitPrice) rows[i].unitPrice = (SL.defaultRate(v) || 0) * 300; // harga awal = nilai ganti alat (± 300 × tarif harian)
       if (k === 'name' && v && source() === 'project') { const a = projectStock().find(x => x.name === v); if (a) rows[i].qty = Math.min(rows[i].qty || 1, a.available); }
       if (quiet) { document.getElementById('sub' + i).textContent = formatRupiah(Math.round(rows[i].qty * rows[i].unitPrice)); calc(); }
       else renderItems();

@@ -91,6 +91,18 @@
                 onchange="showVendor()"></select></div>
             <div class="col-md-4"><label class="form-label form-label-er">Untuk Gudang</label><select
                 class="form-select" id="fBranch"></select></div>
+            <div class="col-md-5"><label class="form-label form-label-er">Term of Payment</label>
+              <div class="d-flex flex-wrap gap-3 pt-1">
+                <label class="d-flex align-items-center gap-1 fs-13"><input type="radio" name="fTerm" value="CASH" class="form-check-input m-0" onchange="onTerm()"> Cash</label>
+                <label class="d-flex align-items-center gap-1 fs-13"><input type="radio" name="fTerm" value="DP" class="form-check-input m-0" onchange="onTerm()"> Uang Muka + Pelunasan</label>
+                <label class="d-flex align-items-center gap-1 fs-13"><input type="radio" name="fTerm" value="TEMPO" class="form-check-input m-0" onchange="onTerm()" checked> Tempo</label>
+              </div></div>
+            <div class="col-md-2" id="fDpWrap"><label class="form-label form-label-er">Uang Muka (%)</label><input type="number" min="1" max="99" class="form-control" id="fDp" value="30"></div>
+            <div class="col-md-2" id="fDaysWrap"><label class="form-label form-label-er">Tempo (hari)</label><input type="number" min="0" class="form-control" id="fDays" value="30"></div>
+            <div class="col-md-3"><label class="form-label form-label-er">Pajak</label><select class="form-select" id="fTaxPr" onchange="calc()"><option value="0.11">PPN 11%</option><option value="0">Tanpa PPN</option></select></div>
+            <div class="col-md-4"><label class="form-label form-label-er">Rekening Pembayaran</label><select class="form-select" id="fAccountPr"></select></div>
+            <div class="col-md-3"><label class="form-label form-label-er">Estimasi Tiba</label><input type="date" class="form-control" id="fExpectedPr"></div>
+            <div class="col-12"><div class="alert alert-light border py-2 fs-12 mb-0"><i class="bi bi-lightning-charge me-1"></i>Saat PR di-<b>ACC Finance</b>, Purchase Order dibuat otomatis dari data ini (status Disetujui). Purchase tinggal klik <b>Pesan ke Supplier</b>.</div></div>
             <div class="col-12">
               <div class="border rounded p-2 bg-light fs-13" id="vendorInfo"><span class="text-muted">Pilih vendor untuk
                   melihat alamat, telepon & contact person</span></div>
@@ -215,11 +227,28 @@
       document.getElementById('fBranch').value = r ? r.branchId : 'BR-001';
       document.getElementById('fNotes').value = r ? r.notes : '';
       rows = r ? r.items.map(i => Object.assign({}, i)) : [{ name: '', unit: 'Unit', qty: 1, price: 0 }];
-      showVendor(); drawRows();
+      const t = (r && r.paymentTerm) || { type: 'TEMPO', days: 30 };
+      document.querySelector(`input[name="fTerm"][value="${t.type}"]`).checked = true;
+      document.getElementById('fDp').value = t.dpPercent || 30; document.getElementById('fDays').value = t.days != null ? t.days : 30;
+      document.getElementById('fAccountPr').innerHTML = MockData.accounts.filter(a => a.status !== 'Inactive').map(a => `<option value="${a.id}">${esc(a.name)}</option>`).join('');
+      if (r && r.accountId) document.getElementById('fAccountPr').value = r.accountId;
+      document.getElementById('fTaxPr').value = r && r.taxRate != null ? String(r.taxRate) : '0.11';
+      document.getElementById('fExpectedPr').value = (r && r.expectedDate) || '';
+      onTerm(); showVendor(); drawRows();
       bootstrap.Modal.getOrCreateInstance(document.getElementById('prModal')).show();
     }
+    function onTerm() {
+      const t = document.querySelector('input[name="fTerm"]:checked').value;
+      document.getElementById('fDpWrap').classList.toggle('d-none', t !== 'DP');
+      document.getElementById('fDaysWrap').classList.toggle('d-none', t === 'CASH');
+    }
+    function termData() {
+      const t = document.querySelector('input[name="fTerm"]:checked').value, days = Number(document.getElementById('fDays').value) || 0;
+      return t === 'CASH' ? { type: 'CASH' } : t === 'DP' ? { type: 'DP', dpPercent: Number(document.getElementById('fDp').value), days } : { type: 'TEMPO', days };
+    }
     function savePR(submit) {
-      const r = PR.save({ vendorId: document.getElementById('fVendor').value, date: document.getElementById('fDate').value, branchId: document.getElementById('fBranch').value, items: rows, notes: document.getElementById('fNotes').value }, editId, submit);
+      const r = PR.save({ vendorId: document.getElementById('fVendor').value, date: document.getElementById('fDate').value, branchId: document.getElementById('fBranch').value, items: rows, notes: document.getElementById('fNotes').value,
+        paymentTerm: termData(), taxRate: Number(document.getElementById('fTaxPr').value), accountId: document.getElementById('fAccountPr').value, expectedDate: document.getElementById('fExpectedPr').value }, editId, submit);
       if (!r.success) { showToast(r.error, 'error'); return; }
       bootstrap.Modal.getInstance(document.getElementById('prModal')).hide();
       showToast(r.request.id + (submit ? ' diajukan untuk ACC' : ' disimpan'), 'success');
@@ -238,6 +267,8 @@
           <div class="info-item"><span class="info-label">Alamat</span><span class="info-value">${esc(r.vendorAddress)}</span></div>
           <div class="info-item"><span class="info-label">No. Telepon</span><span class="info-value">${esc(r.vendorPhone)}</span></div>
           <div class="info-item"><span class="info-label">Contact Person</span><span class="info-value">${esc(r.vendorContact)}</span></div>
+          <div class="info-item"><span class="info-label">Term of Payment</span><span class="info-value">${esc(r.paymentTerm ? BizLogic.Purchase.termText(r) : '-')}</span></div>
+          <div class="info-item"><span class="info-label">Pajak</span><span class="info-value">${r.taxRate ? 'PPN ' + Math.round(r.taxRate * 100) + '%' : 'Tanpa PPN'}</span></div>
           <div class="info-item"><span class="info-label">Diminta</span><span class="info-value">${esc(r.requestedBy)} ${r.requestedAt ? '· ' + esc(r.requestedAt) : ''}</span></div>
           <div class="info-item"><span class="info-label">${r.rejectedBy ? 'Ditolak' : 'ACC'}</span><span class="info-value">${r.approvedBy ? esc(r.approvedBy) + ' · ' + esc(r.approvedAt) : r.rejectedBy ? esc(r.rejectedBy) + ' · ' + esc(r.rejectedAt) : '-'}${r.reviewNote ? `<div class="fs-12">${esc(r.reviewNote)}</div>` : ''}</span></div>
         </div>
@@ -249,7 +280,7 @@
       if (['Draft', 'Ditolak'].includes(r.status) && canCreate) f += `<button class="btn btn-outline-secondary" onclick="bootstrap.Modal.getInstance(document.getElementById('viewModal')).hide(); openPR('${r.id}')"><i class="bi bi-pencil me-1"></i>Ubah</button><button class="btn btn-primary" onclick="act('submit', '${r.id}')"><i class="bi bi-send me-1"></i>Ajukan</button>`;
       if (r.status === 'Diajukan' && canApprove) f += `<button class="btn btn-outline-danger" onclick="act('reject', '${r.id}')"><i class="bi bi-x-lg me-1"></i>Tolak</button><button class="btn btn-success" onclick="act('approve', '${r.id}')"><i class="bi bi-check-lg me-1"></i>ACC</button>`;
       if (r.status === 'Diajukan' && !canApprove) f += '<span class="badge bg-warning-subtle text-warning">Menunggu ACC Finance / Admin</span>';
-      if (r.status === 'Disetujui' && canCreate) f += `<a href="purchase-create.html?pr=${r.id}" class="btn btn-primary"><i class="bi bi-cart-plus me-1"></i>Buat Purchase Order</a>`;
+      if (r.status === 'Disetujui' && !r.poId && canCreate) f += `<a href="purchase-create.html?pr=${r.id}" class="btn btn-primary"><i class="bi bi-cart-plus me-1"></i>Buat Purchase Order</a>`;
       if (r.poId) f += `<a href="purchase-detail.html?id=${r.poId}" class="btn btn-outline-primary">Buka ${r.poId}</a>`;
       document.getElementById('viewFoot').innerHTML = f + '<button class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>';
       bootstrap.Modal.getOrCreateInstance(document.getElementById('viewModal')).show();
@@ -260,7 +291,8 @@
       if (kind === 'approve') r = PR.review(id, true, '');
       if (kind === 'reject') { const note = prompt('Alasan penolakan:'); if (note === null) return; r = PR.review(id, false, note); }
       if (!r.success) { showToast(r.error, 'error'); return; }
-      showToast(id + ' ' + r.request.status.toLowerCase(), 'success');
+      if (r.warning) showToast(r.warning, 'warning');
+      showToast(r.purchase ? `${id} di-ACC → ${r.purchase.id} dibuat otomatis` : id + ' ' + r.request.status.toLowerCase(), 'success');
       render(); viewPR(id);
     }
     render();

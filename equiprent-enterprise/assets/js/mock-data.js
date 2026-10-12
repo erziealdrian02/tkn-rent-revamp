@@ -17,24 +17,24 @@ const MockData = {
 
   // ---- ALAT BERAT (master, semua tersedia di gudang) ----
   equipment: [
-    {"id":"GEN-001","name":"Generator 50 KVA","category":"Generator","serial":"GN-2024-001","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":5000000},
-    {"id":"GEN-002","name":"Generator 50 KVA","category":"Generator","serial":"GN-2024-002","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":5000000},
-    {"id":"GEN-003","name":"Generator 100 KVA","category":"Generator","serial":"GN-2024-003","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":8500000},
-    {"id":"GEN-004","name":"Generator 100 KVA","category":"Generator","serial":"GN-2024-004","condition":"Good","branch":"Bekasi","branchId":"BR-002","availability":"Available","project":null,"status":"Available","rate":8500000},
-    {"id":"GEN-005","name":"Generator 50 KVA","category":"Generator","serial":"GN-2024-005","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":5000000},
-    {"id":"CAB-001","name":"Power Cable 50m","category":"Cable","serial":"CB-2024-001","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":500000},
-    {"id":"CAB-002","name":"Power Cable 50m","category":"Cable","serial":"CB-2024-002","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":500000},
-    {"id":"CAB-003","name":"Power Cable 100m","category":"Cable","serial":"CB-2024-003","condition":"Good","branch":"Bekasi","branchId":"BR-002","availability":"Available","project":null,"status":"Available","rate":900000},
-    {"id":"LAD-001","name":"Aluminium Ladder 6m","category":"Ladder","serial":"LD-2024-001","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":300000},
-    {"id":"LAD-002","name":"Aluminium Ladder 6m","category":"Ladder","serial":"LD-2024-002","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":300000},
-    {"id":"LAD-003","name":"Aluminium Ladder 8m","category":"Ladder","serial":"LD-2024-003","condition":"Good","branch":"Bekasi","branchId":"BR-002","availability":"Available","project":null,"status":"Available","rate":450000},
-    {"id":"WLD-001","name":"Welding Machine 400A","category":"Welding","serial":"WL-2024-001","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":3500000},
-    {"id":"WLD-002","name":"Welding Machine 400A","category":"Welding","serial":"WL-2024-002","condition":"Good","branch":"Bekasi","branchId":"BR-002","availability":"Available","project":null,"status":"Available","rate":3500000},
-    {"id":"CMP-001","name":"Air Compressor 10HP","category":"Compressor","serial":"AC-2024-001","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":4000000},
-    {"id":"CMP-002","name":"Air Compressor 10HP","category":"Compressor","serial":"AC-2024-002","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":4000000},
-    {"id":"LGT-001","name":"Tower Light 4x1000W","category":"Lighting","serial":"TL-2024-001","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":2500000},
-    {"id":"PMP-001","name":"Submersible Pump 4\"","category":"Pump","serial":"SP-2024-001","condition":"Good","branch":"Bekasi","branchId":"BR-002","availability":"Available","project":null,"status":"Available","rate":3000000},
-    {"id":"PMP-002","name":"Submersible Pump 4\"","category":"Pump","serial":"SP-2024-002","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":3000000},
+    {"id":"GEN-001","name":"Generator 50 KVA","category":"Generator","serial":"GN-2024-001","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":167000},
+    {"id":"GEN-002","name":"Generator 50 KVA","category":"Generator","serial":"GN-2024-002","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":167000},
+    {"id":"GEN-003","name":"Generator 100 KVA","category":"Generator","serial":"GN-2024-003","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":283000},
+    {"id":"GEN-004","name":"Generator 100 KVA","category":"Generator","serial":"GN-2024-004","condition":"Good","branch":"Bekasi","branchId":"BR-002","availability":"Available","project":null,"status":"Available","rate":283000},
+    {"id":"GEN-005","name":"Generator 50 KVA","category":"Generator","serial":"GN-2024-005","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":167000},
+    {"id":"CAB-001","name":"Power Cable 50m","category":"Cable","serial":"CB-2024-001","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":17000},
+    {"id":"CAB-002","name":"Power Cable 50m","category":"Cable","serial":"CB-2024-002","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":17000},
+    {"id":"CAB-003","name":"Power Cable 100m","category":"Cable","serial":"CB-2024-003","condition":"Good","branch":"Bekasi","branchId":"BR-002","availability":"Available","project":null,"status":"Available","rate":30000},
+    {"id":"LAD-001","name":"Aluminium Ladder 6m","category":"Ladder","serial":"LD-2024-001","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":10000},
+    {"id":"LAD-002","name":"Aluminium Ladder 6m","category":"Ladder","serial":"LD-2024-002","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":10000},
+    {"id":"LAD-003","name":"Aluminium Ladder 8m","category":"Ladder","serial":"LD-2024-003","condition":"Good","branch":"Bekasi","branchId":"BR-002","availability":"Available","project":null,"status":"Available","rate":15000},
+    {"id":"WLD-001","name":"Welding Machine 400A","category":"Welding","serial":"WL-2024-001","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":117000},
+    {"id":"WLD-002","name":"Welding Machine 400A","category":"Welding","serial":"WL-2024-002","condition":"Good","branch":"Bekasi","branchId":"BR-002","availability":"Available","project":null,"status":"Available","rate":117000},
+    {"id":"CMP-001","name":"Air Compressor 10HP","category":"Compressor","serial":"AC-2024-001","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":133000},
+    {"id":"CMP-002","name":"Air Compressor 10HP","category":"Compressor","serial":"AC-2024-002","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":133000},
+    {"id":"LGT-001","name":"Tower Light 4x1000W","category":"Lighting","serial":"TL-2024-001","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":83000},
+    {"id":"PMP-001","name":"Submersible Pump 4\"","category":"Pump","serial":"SP-2024-001","condition":"Good","branch":"Bekasi","branchId":"BR-002","availability":"Available","project":null,"status":"Available","rate":100000},
+    {"id":"PMP-002","name":"Submersible Pump 4\"","category":"Pump","serial":"SP-2024-002","condition":"Good","branch":"Cileungsi","branchId":"BR-001","availability":"Available","project":null,"status":"Available","rate":100000},
   ],
 
   // ---- ORDER SEWA / REKAP PROJECT — kosong ----
@@ -168,7 +168,7 @@ const MockData = {
     {"id":"1-1404","code":"1-1404","name":"Pinjaman Proyek Undip","group":"1-14"},
     {"id":"1-1405","code":"1-1405","name":"Pinjaman Surabaya","group":"1-14"},
     {"id":"1-1406","code":"1-1406","name":"Pinjaman Bali","group":"1-14"},
-    {"id":"1-1501","code":"1-1501","name":"Persediaan Barang Dagangan","group":"1-15","opening":7401000000},
+    {"id":"1-1501","code":"1-1501","name":"Persediaan Barang Dagangan","group":"1-15","opening":7418100000},
     {"id":"1-1502","code":"1-1502","name":"Persediaan Barang Dagangan Sumpit","group":"1-15"},
     {"id":"1-1601","code":"1-1601","name":"Uang Muka Import","group":"1-16"},
     {"id":"1-1602","code":"1-1602","name":"Uang Jaminan Sewa","group":"1-16","opening":25000000},
@@ -188,7 +188,7 @@ const MockData = {
     {"id":"2-3003","code":"2-3003","name":"Pinjaman Pemegang Saham","group":"2-3","opening":300000000},
     {"id":"2-3004","code":"2-3004","name":"Hutang Bank","group":"2-3","opening":450000000},
     {"id":"3-0001","code":"3-0001","name":"Modal","group":"3-0","opening":5000000000},
-    {"id":"3-0002","code":"3-0002","name":"Laba Ditahan","group":"3-0","opening":3197250000},
+    {"id":"3-0002","code":"3-0002","name":"Laba Ditahan","group":"3-0","opening":3214350000},
     {"id":"3-0003","code":"3-0003","name":"Laba / Rugi Berjalan","group":"3-0","system":true},
     {"id":"4-0001","code":"4-0001","name":"Penjualan","group":"4-0"},
     {"id":"4-0002","code":"4-0002","name":"Pendapatan Sewa","group":"4-0"},
@@ -465,7 +465,7 @@ const MockData = {
 
 // --- Persistence Logic ---
 // Naikkan angka ini setiap struktur data seed berubah, supaya localStorage lama di-reset.
-const MOCK_SCHEMA_VERSION = '13-data-bersih';
+const MOCK_SCHEMA_VERSION = '14-data-bersih-tarif-harian';
 
 (function() {
   const STORAGE_PREFIX = 'equiprent_';

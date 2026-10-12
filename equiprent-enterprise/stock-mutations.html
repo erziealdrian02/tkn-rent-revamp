@@ -403,7 +403,7 @@
         }
         if (createType === 'SALE') {
           const price = tr.querySelector('.row-price');
-          if (price && !Number(price.value)) price.value = L.defaultRate(eq) * 10;
+          if (price && !Number(price.value)) price.value = L.defaultRate(eq) * 300;
         }
         info.innerHTML = parts.join(' · ');
       });

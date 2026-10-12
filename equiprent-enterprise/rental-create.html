@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
@@ -19,141 +19,84 @@
         <div class="page-header">
           <div class="page-header-left">
             <h2 class="page-header-title">Order Sewa Baru</h2>
-            <p class="page-header-subtitle">Order sewa masuk ke Rekap Project setelah di-ACC Staff Piutang</p>
+            <p class="page-header-subtitle">Pilih proyek, cek kebutuhannya, lalu isi alat yang dipesan. Order masuk ke Rekap Project setelah di-ACC Staff Piutang.</p>
           </div>
         </div>
 
-        <!-- Section 1: Rental Information -->
+        <!-- 1. Informasi order -->
         <div class="form-section">
-          <h5 class="form-section-title"><i class="bi bi-info-circle me-2"></i>Informasi Order Sewa</h5>
+          <h5 class="form-section-title"><i class="bi bi-info-circle me-2"></i>Informasi Order</h5>
           <div class="row g-3">
             <div class="col-md-4">
-              <label class="form-label form-label-er">No. Rekap</label>
-              <input type="text" class="form-control" id="rentalId" readonly>
-            </div>
-            <div class="col-md-4">
               <label class="form-label form-label-er">Pelanggan *</label>
-              <select class="form-select" id="customerSelect" onchange="updateProjects()">
-                <option value="">Select Customer</option>
-              </select>
+              <select class="form-select" id="customerSelect" onchange="updateProjects()"></select>
             </div>
             <div class="col-md-4">
               <label class="form-label form-label-er">Proyek *</label>
-              <select class="form-select" id="projectSelect">
-                <option value="">Select Project</option>
-              </select>
+              <select class="form-select" id="projectSelect" onchange="onProjectChange()"></select>
+              <div class="fs-11 text-muted mt-1" id="projectPeriod"></div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
+              <label class="form-label form-label-er">Gudang Asal *</label>
+              <select class="form-select" id="branchSelect" onchange="renderRows()"></select>
+            </div>
+            <div class="col-6 col-md-3">
               <label class="form-label form-label-er">Periode Awal Sewa *</label>
-              <input type="date" class="form-control" id="startDate" value="2026-09-05">
+              <input type="date" class="form-control" id="startDate" onchange="onDateChange()">
             </div>
-            <div class="col-md-3">
+            <div class="col-6 col-md-3">
               <label class="form-label form-label-er">Akhir Sewa *</label>
-              <input type="date" class="form-control" id="endDate" value="2026-12-05">
+              <input type="date" class="form-control" id="endDate" onchange="onDateChange()">
             </div>
-            <div class="col-md-3">
-              <label class="form-label form-label-er">Gudang *</label>
-              <select class="form-select" id="branchSelect">
-                <option>Cileungsi Warehouse</option>
-                <option>Bekasi Warehouse</option>
-                <option>Balikpapan Warehouse</option>
-              </select>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label form-label-er">Durasi (bulan)</label>
-              <input type="number" class="form-control" value="3" id="durationInput">
+            <div class="col-md-2">
+              <label class="form-label form-label-er">Durasi</label>
+              <div class="form-control bg-light" id="durationText">-</div>
             </div>
             <div class="col-md-4">
               <label class="form-label form-label-er">No. PO Customer</label>
               <input type="text" class="form-control" id="poNumber" placeholder="mis. PO/APG/0426/001">
-              <div class="fs-11 text-muted mt-1">Rekap tagihan dikelompokkan per PO</div>
             </div>
-            <div class="col-md-8">
+            <div class="col-12">
               <label class="form-label form-label-er">Catatan</label>
-              <textarea class="form-control" rows="2" placeholder="Additional notes..." id="notesArea"></textarea>
+              <textarea class="form-control" rows="2" id="notesArea"></textarea>
             </div>
           </div>
         </div>
 
-        <!-- Section 2: Equipment Items -->
+        <!-- 2. Kebutuhan proyek -->
+        <div class="form-section" id="needsSection">
+          <h5 class="form-section-title d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span><i class="bi bi-clipboard-check me-2"></i>Kebutuhan Proyek Ini</span>
+            <button class="btn btn-outline-primary btn-sm" id="btnFillAll" onclick="fillRemaining()"><i class="bi bi-magic me-1"></i>Pesan semua sisa kebutuhan</button>
+          </h5>
+          <div id="needsBox"></div>
+        </div>
+
+        <!-- 3. Alat dipesan -->
         <div class="form-section">
-          <h5 class="form-section-title">
-            <i class="bi bi-tools me-2"></i>Kebutuhan Alat
-            <button class="btn btn-primary btn-sm float-end" onclick="addEquipmentRow()"><i class="bi bi-plus-lg me-1"></i>Tambah Alat Berat</button>
+          <h5 class="form-section-title d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span><i class="bi bi-tools me-2"></i>Alat yang Dipesan</span>
+            <button class="btn btn-primary btn-sm" onclick="addRow()"><i class="bi bi-plus-lg me-1"></i>Tambah Alat</button>
           </h5>
           <div class="er-table-wrapper">
-            <table class="er-table" id="equipmentTable">
-              <thead>
-                <tr>
-                  <th style="width:25%">Alat</th>
-                  <th>Tersedia</th>
-                  <th style="width:90px">Kebutuhan</th>
-                  <th style="width:140px">Tarif / Bulan</th>
-                  <th style="width:80px">Durasi</th>
-                  <th style="width:140px">Subtotal</th>
-                  <th style="width:60px"></th>
-                </tr>
-              </thead>
-              <tbody id="equipmentBody">
-                <tr data-row="0">
-                  <td>
-                    <select class="form-select form-select-sm" onchange="updateAvailability(this, 0)">
-                      <option value="">Select Equipment</option>
-                      <option value="gen50" data-rate="5000000" data-avail="19">Generator 50 KVA</option>
-                      <option value="gen100" data-rate="8500000" data-avail="12">Generator 100 KVA</option>
-                      <option value="cab50" data-rate="500000" data-avail="85">Power Cable 50m</option>
-                      <option value="cab100" data-rate="900000" data-avail="36">Power Cable 100m</option>
-                      <option value="lad6" data-rate="300000" data-avail="28">Aluminium Ladder 6m</option>
-                      <option value="lad8" data-rate="450000" data-avail="17">Aluminium Ladder 8m</option>
-                      <option value="wld" data-rate="3500000" data-avail="8">Welding Machine 400A</option>
-                      <option value="cmp" data-rate="4000000" data-avail="6">Air Compressor 10HP</option>
-                      <option value="lgt" data-rate="2500000" data-avail="9">Tower Light 4x1000W</option>
-                      <option value="pmp" data-rate="3000000" data-avail="7">Submersible Pump 4"</option>
-                    </select>
-                  </td>
-                  <td><span class="badge-status available" id="avail-0">-</span></td>
-                  <td><input type="number" class="form-control form-control-sm" value="1" min="1" onchange="calcRow(0)"></td>
-                  <td><input type="text" class="form-control form-control-sm" id="rate-0" readonly value="-"></td>
-                  <td><input type="number" class="form-control form-control-sm" value="3" onchange="calcRow(0)"></td>
-                  <td><strong id="subtotal-0">-</strong></td>
-                  <td><button class="btn-action danger" onclick="removeRow(this)"><i class="bi bi-trash"></i></button></td>
-                </tr>
-              </tbody>
+            <table class="er-table">
+              <thead><tr>
+                <th style="min-width:220px">Alat</th><th>Stok di Gudang</th><th class="num" style="width:110px">Qty</th>
+                <th class="num">Tarif / Hari</th><th class="num">Hari</th><th class="num">Subtotal</th><th style="width:44px"></th>
+              </tr></thead>
+              <tbody id="rowsBody"></tbody>
+              <tfoot id="rowsFoot"></tfoot>
             </table>
           </div>
+          <div class="fs-12 text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Subtotal = Qty × Tarif / Hari × Hari. Tarif diambil dari kebutuhan proyek (atau tarif alat bila belum ada). Tagihan sebenarnya dihitung dari tanggal surat jalan kirim / pulang.</div>
         </div>
 
-        <!-- Section 3: Summary -->
-        <div class="form-section">
-          <h5 class="form-section-title"><i class="bi bi-calculator me-2"></i>Summary</h5>
-          <div class="row justify-content-end">
-            <div class="col-md-4">
-              <table class="w-100">
-                <tr><td class="py-1 text-muted">Subtotal</td><td class="py-1 text-end fw-600" id="summarySubtotal">Rp 0</td></tr>
-                <tr><td class="py-1 text-muted">Discount</td><td class="py-1 text-end">
-                  <input type="text" class="form-control form-control-sm d-inline-block" style="width:140px;text-align:right" value="0" id="discountInput" onchange="calcSummary()">
-                </td></tr>
-                <tr class="border-top"><td class="py-2 fw-600">Estimated Total</td><td class="py-2 text-end fw-600 fs-5" style="color:var(--primary)" id="summaryTotal">Rp 0</td></tr>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- Section 4: Approval -->
-        <div class="form-section">
-          <h5 class="form-section-title"><i class="bi bi-check2-square me-2"></i>Approval Status</h5>
-          <div class="d-flex align-items-center gap-3">
-            <span class="badge-status draft">Draft</span>
-            <span class="text-muted fs-12">Order sewa perlu di-ACC Staff Piutang sebelum surat jalan dibuat</span>
-          </div>
-        </div>
-
-        <!-- Actions -->
+        <!-- Aksi -->
         <div class="d-flex justify-content-between align-items-center mt-3">
           <a href="rentals.html" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
           <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary" onclick="submitRental(true)"><i class="bi bi-save me-1"></i>Simpan Draft</button>
-            <button class="btn btn-primary" onclick="submitRental(false)"><i class="bi bi-send me-1"></i>Ajukan ACC</button>
+            <button class="btn btn-outline-secondary" onclick="submitRental(false)"><i class="bi bi-save me-1"></i>Simpan Draft</button>
+            <button class="btn btn-primary" onclick="submitRental(true)"><i class="bi bi-send me-1"></i>Ajukan ACC</button>
           </div>
         </div>
 
@@ -168,208 +111,128 @@
   <script src="assets/js/business-logic.js"></script>
   <script>
     const user = initApp('rentals.html', [{label:'Pelanggan & Order',href:'#'},{label:'Rekap Project',href:'rentals.html'},{label:'Order Sewa Baru'}], 'Order Sewa Baru');
+    const R = BizLogic.Rental, esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const names = BizLogic.StockLedger.equipmentNames();
+    let rows = []; // { name, qty }
 
-    document.getElementById('rentalId').value = MockData.generateId('RNT', 'rentals');
+    document.getElementById('customerSelect').innerHTML = '<option value="">Pilih pelanggan</option>' +
+      MockData.customers.filter(c => c.status !== 'Inactive').map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+    document.getElementById('branchSelect').innerHTML = MockData.branches.map(b => `<option value="${b.id}">${esc(b.name)}</option>`).join('');
 
-    // Populate customers
-    const cs = document.getElementById('customerSelect');
-    MockData.customers.filter(c=>c.status==='Active').forEach(c => {
-      const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; cs.appendChild(o);
-    });
+    const project = () => MockData.projects.find(p => p.id === document.getElementById('projectSelect').value);
+    const branchShort = () => BizLogic.Stock.branchShort(document.getElementById('branchSelect').value);
+    const days = () => R.durationDays(document.getElementById('startDate').value, document.getElementById('endDate').value);
+    const rate = name => BizLogic.Billing.unitPrice(document.getElementById('projectSelect').value, name);
 
     function updateProjects() {
       const cid = document.getElementById('customerSelect').value;
-      const ps = document.getElementById('projectSelect');
-      ps.innerHTML = '<option value="">Select Project</option>';
-      MockData.projects.filter(p=>p.customerId===cid).forEach(p => {
-        const o = document.createElement('option'); o.value = p.id; o.textContent = p.name; ps.appendChild(o);
-      });
+      const list = MockData.projects.filter(p => p.customerId === cid && p.status !== 'Completed');
+      document.getElementById('projectSelect').innerHTML = '<option value="">Pilih proyek</option>' +
+        list.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+      if (list.length === 1) document.getElementById('projectSelect').value = list[0].id;
+      onProjectChange();
     }
-    if (getUrlParam('customer')) { cs.value = getUrlParam('customer'); updateProjects(); }
-    if (getUrlParam('project')) { const pj = MockData.projects.find(p => p.id === getUrlParam('project')); if (pj) { cs.value = pj.customerId; updateProjects(); document.getElementById('projectSelect').value = pj.id; } }
 
-    let rowCount = 0;
-    
-    // Group equipment by name and get available quantities and standard rates
-    const equipmentCatalog = [];
-    MockData.stock.forEach(s => {
-      let cat = equipmentCatalog.find(c => c.name === s.equipment);
-      if(!cat) {
-        // Find rate from equipment list
-        const eq = MockData.equipment.find(e => e.name === s.equipment);
-        equipmentCatalog.push({
-          id: eq ? eq.id : s.equipment,
-          name: s.equipment,
-          rate: eq ? eq.rate : 0,
-          avail: s.available
-        });
-      } else {
-        cat.avail += s.available;
+    // Periode order dikunci di dalam periode proyek
+    function onProjectChange() {
+      const p = project(), s = document.getElementById('startDate'), e = document.getElementById('endDate');
+      s.min = e.min = (p && p.startDate) || ''; s.max = e.max = (p && p.endDate) || '';
+      document.getElementById('projectPeriod').textContent = p ? `Periode proyek: ${formatDate(p.startDate)} s/d ${p.endDate ? formatDate(p.endDate) : '-'}` : '';
+      if (p) {
+        const today = new Date().toISOString().split('T')[0];
+        if (!s.value || s.value < p.startDate || (p.endDate && s.value > p.endDate)) s.value = today > p.startDate && (!p.endDate || today <= p.endDate) ? today : p.startDate;
+        if (!e.value || e.value < s.value || (p.endDate && e.value > p.endDate)) e.value = p.endDate || s.value;
       }
-    });
+      onDateChange();
+    }
 
-    function getEquipmentOptions() {
-      let html = '<option value="">Select Equipment</option>';
-      equipmentCatalog.forEach(c => {
-        html += `<option value="${c.id}" data-name="${c.name}" data-rate="${c.rate}" data-avail="${c.avail}">${c.name}</option>`;
+    function onDateChange() {
+      const p = project(), s = document.getElementById('startDate').value, e = document.getElementById('endDate').value;
+      let warn = '';
+      if (p && s && s < p.startDate) warn = 'sebelum mulai proyek';
+      else if (p && p.endDate && e && e > p.endDate) warn = 'melewati tenggat proyek';
+      else if (s && e && e < s) warn = 'akhir sebelum awal';
+      document.getElementById('durationText').innerHTML = warn ? `<span class="text-danger">${warn}</span>` : R.durationText(days());
+      renderNeeds(); renderRows();
+    }
+
+    // ---------- Panel kebutuhan proyek ----------
+    function renderNeeds() {
+      const p = project(), box = document.getElementById('needsBox');
+      if (!p) { box.innerHTML = '<div class="text-muted fs-13">Pilih proyek untuk melihat kebutuhan alatnya.</div>'; document.getElementById('btnFillAll').disabled = true; return; }
+      const needs = R.projectNeeds(p.id);
+      document.getElementById('btnFillAll').disabled = !needs.some(n => n.remaining > 0);
+      if (!needs.length) { box.innerHTML = `<div class="text-muted fs-13">Proyek ini belum punya daftar kebutuhan alat. <a href="project-detail.html?id=${p.id}">Isi kebutuhan proyek</a> atau langsung tambah alat di bawah.</div>`; return; }
+      box.innerHTML = `<div class="er-table-wrapper"><table class="er-table">
+        <thead><tr><th>Alat</th><th class="num">Tarif / Hari</th><th class="num">Kebutuhan</th><th class="num">Sudah Dipesan</th><th class="num">Di Proyek Sekarang</th><th class="num">Sisa Belum Dipesan</th><th class="num">Di Order Ini</th><th></th></tr></thead>
+        <tbody>${needs.map(n => { const inThis = (rows.find(r => r.name === n.name) || {}).qty || 0; const left = n.remaining - inThis; return `<tr>
+          <td class="fw-600">${esc(n.name)}</td><td class="num">${formatRupiah(n.unitPrice)}</td><td class="num">${n.need}</td><td class="num">${n.ordered}</td>
+          <td class="num">${n.onSite}</td>
+          <td class="num ${n.remaining ? 'fw-600 text-warning' : 'text-success'}">${n.remaining ? n.remaining : '<i class="bi bi-check-circle"></i> terpenuhi'}</td>
+          <td class="num">${inThis || '-'}</td>
+          <td class="text-end">${left > 0 ? `<button class="btn btn-outline-primary btn-sm py-0" onclick="takeNeed('${esc(n.name).replace(/'/g, "\\'")}', ${left})"><i class="bi bi-plus-lg"></i> ${left}</button>` : ''}</td></tr>`; }).join('')}</tbody>
+      </table></div>`;
+    }
+    function takeNeed(name, qty) {
+      const r = rows.find(x => x.name === name);
+      if (r) r.qty += qty; else { rows = rows.filter(x => x.name); rows.push({ name, qty }); }
+      renderNeeds(); renderRows();
+    }
+    function fillRemaining() {
+      const p = project(); if (!p) return;
+      R.projectNeeds(p.id).forEach(n => {
+        const r = rows.find(x => x.name === n.name);
+        if (n.remaining > 0 && (!r || r.qty < n.remaining)) { if (r) r.qty = n.remaining; else rows.push({ name: n.name, qty: n.remaining }); }
       });
-      return html;
+      rows = rows.filter(x => x.name);
+      renderNeeds(); renderRows();
     }
 
-    function addEquipmentRow() {
-      const tbody = document.getElementById('equipmentBody');
-      const idx = rowCount++;
-      const row = document.createElement('tr');
-      row.setAttribute('data-row', idx);
-      row.innerHTML = `
-        <td>
-          <select class="form-select form-select-sm" onchange="updateAvailability(this, ${idx})">
-            ${getEquipmentOptions()}
-          </select>
-        </td>
-        <td><span class="badge-status available" id="avail-${idx}">-</span></td>
-        <td><input type="number" class="form-control form-control-sm" value="1" min="1" onchange="updateAvailability(this.closest('tr').querySelector('select'), ${idx})"></td>
-        <td><input type="text" class="form-control form-control-sm" id="rate-${idx}" readonly value="-"></td>
-        <td><input type="number" class="form-control form-control-sm" value="3" onchange="calcRow(${idx})"></td>
-        <td><strong id="subtotal-${idx}">-</strong></td>
-        <td><button class="btn-action danger" onclick="removeRow(this)"><i class="bi bi-trash"></i></button></td>
-      `;
-      tbody.appendChild(row);
-    }
-
-    function removeRow(btn) {
-      btn.closest('tr').remove();
-      calcSummary();
-    }
-
-    // Stok tersedia di gudang (Branch) yang dipilih — sama dengan yang dicek saat persetujuan.
-    // Tarif: harga satuan di kebutuhan proyek (dipakai saat menagih), kalau tidak ada pakai tarif alat.
-    function updateAvailability(sel, idx) {
-      const opt = sel.options[sel.selectedIndex];
-      const name = opt.dataset.name;
-      const branch = document.getElementById('branchSelect').value.replace(' Warehouse', '');
-      const avail = name ? BizLogic.Stock.getAvailable(name, branch) : '-';
-      const rate = name ? BizLogic.Billing.unitPrice(document.getElementById('projectSelect').value, name) : 0;
-      opt.dataset.rate = rate;
-      const qty = Number(sel.closest('tr').querySelector('[type="number"]').value) || 0;
-      const badge = document.getElementById(`avail-${idx}`);
-      badge.textContent = avail === '-' ? '-' : avail + ' unit di ' + branch;
-      badge.className = 'badge-status ' + (avail !== '-' && qty > avail ? 'overdue' : 'available');
-      document.getElementById(`rate-${idx}`).value = rate > 0 ? formatRupiah(rate) : '-';
-      sel.closest('tr').querySelector('[type="number"]').__rate = Number(rate);
-      calcRow(idx);
-    }
-
-    function refreshAllRows() {
-      document.querySelectorAll('#equipmentBody tr[data-row]').forEach(tr => updateAvailability(tr.querySelector('select'), tr.dataset.row));
-    }
-    document.getElementById('branchSelect').addEventListener('change', refreshAllRows);
-    document.getElementById('projectSelect').addEventListener('change', refreshAllRows);
-
-    function calcRow(idx) {
-      const row = document.querySelector(`tr[data-row="${idx}"]`);
-      if (!row) return;
-      const inputs = row.querySelectorAll('input[type="number"]');
-      const qty = Number(inputs[0].value);
-      const duration = Number(inputs[1].value);
-      const sel = row.querySelector('select');
-      const opt = sel.options[sel.selectedIndex];
-      const rate = Number(opt.dataset?.rate || 0);
-      const sub = qty * rate * duration;
-      document.getElementById(`subtotal-${idx}`).textContent = sub > 0 ? formatRupiah(sub) : '-';
-      calcSummary();
-    }
-
-    function calcSummary() {
+    // ---------- Baris alat ----------
+    function addRow() { rows.push({ name: '', qty: 1 }); renderRows(); }
+    function setRow(i, k, v) { rows[i][k] = k === 'qty' ? Math.max(0, Number(v) || 0) : v; renderNeeds(); renderRows(); }
+    function renderRows() {
+      const d = days(), br = branchShort();
       let subtotal = 0;
-      document.querySelectorAll('[id^="subtotal-"]').forEach(el => {
-        const val = el.textContent.replace(/[^\d]/g, '');
-        subtotal += Number(val) || 0;
-      });
-      const discount = Number(document.getElementById('discountInput').value.replace(/[^\d]/g, '')) || 0;
-      document.getElementById('summarySubtotal').textContent = formatRupiah(subtotal);
-      document.getElementById('summaryTotal').textContent = formatRupiah(subtotal - discount);
-    }
-    
-    function submitRental(isDraft) {
-      const cusId = document.getElementById('customerSelect').value;
-      const prjId = document.getElementById('projectSelect').value;
-      if(!cusId || !prjId) {
-        showToast('Please select a customer and project', 'danger');
-        return;
-      }
-      
-      const items = [];
-      document.querySelectorAll('#equipmentBody tr').forEach(row => {
-        const sel = row.querySelector('select');
-        if(!sel.value) return;
-        const opt = sel.options[sel.selectedIndex];
-        const inputs = row.querySelectorAll('input[type="number"]');
-        
-        items.push({
-          equipmentId: sel.value,
-          name: opt.dataset.name,
-          quantity: Number(inputs[0].value),
-          rate: Number(opt.dataset.rate),
-          duration: Number(inputs[1].value),
-          subtotal: Number(inputs[0].value) * Number(opt.dataset.rate) * Number(inputs[1].value)
-        });
-      });
-      
-      if(items.length === 0) {
-        showToast('Please add at least one item', 'danger');
-        return;
-      }
-      
-      let subtotal = items.reduce((s, i) => s + i.subtotal, 0);
-      let discount = Number(document.getElementById('discountInput').value.replace(/[^\d]/g, '')) || 0;
-
-      const newRnt = {
-        id: document.getElementById('rentalId').value,
-        customerId: cusId,
-        customerName: MockData.customers.find(c=>c.id===cusId)?.name,
-        projectId: prjId,
-        poNumber: document.getElementById('poNumber').value.trim(),
-        projectName: MockData.projects.find(p=>p.id===prjId)?.name,
-        rentalDate: document.getElementById('startDate').value,
-        returnDate: document.getElementById('endDate').value,
-        branch: document.getElementById('branchSelect').value,
-        branchId: BizLogic.StockLedger.warehouseIdOf(document.getElementById('branchSelect').value),
-        totalItems: items.length,
-        deliveryStatus: 'Pending',
-        status: isDraft ? 'Draft' : 'Draft', // Saved as draft first, then submitted
-        invoiceStatus: 'Draft',
-        notes: document.getElementById('notesArea').value,
-        items: items,
-        subtotal: subtotal,
-        discount: discount,
-        total: subtotal - discount,
-        createdBy: user.name || 'Admin',
-        createdAt: new Date().toISOString().replace('T',' ').substring(0,16)
-      };
-      
-      MockData.rentals.push(newRnt);
-      MockData.save('rentals');
-      
-      if (!isDraft) {
-        BizLogic.Rental.submit(newRnt.id);
-      } else {
-        BizLogic.Activity.log(`Rental ${newRnt.id} created as Draft`, 'info');
-      }
-      
-      showToast(`Rental ${newRnt.id} saved!`, 'success');
-      setTimeout(()=>window.location.href='rentals.html', 1000);
+      document.getElementById('rowsBody').innerHTML = rows.map((r, i) => {
+        const avail = r.name ? BizLogic.Stock.getAvailable(r.name, br) : null, price = r.name ? rate(r.name) : 0, sub = r.qty * price * d;
+        subtotal += sub;
+        const dup = r.name && rows.findIndex(x => x.name === r.name) !== i;
+        return `<tr>
+          <td><select class="form-select form-select-sm" onchange="setRow(${i}, 'name', this.value)"><option value="">Pilih alat</option>${names.map(n => `<option ${n === r.name ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
+            ${dup ? '<div class="fs-11 text-danger">Alat ini sudah ada di baris lain</div>' : ''}</td>
+          <td>${avail == null ? '-' : `<span class="badge-status ${r.qty > avail ? 'overdue' : 'available'}">${avail} unit di ${esc(br)}</span>`}</td>
+          <td><input type="number" min="1" class="form-control form-control-sm text-end" value="${r.qty}" onchange="setRow(${i}, 'qty', this.value)"></td>
+          <td class="num">${price ? formatRupiah(price) : '-'}</td><td class="num">${d || '-'}</td>
+          <td class="num fw-600">${sub ? formatRupiah(sub) : '-'}</td>
+          <td><button class="btn-action danger" title="Hapus" onclick="rows.splice(${i}, 1); renderNeeds(); renderRows()"><i class="bi bi-trash"></i></button></td></tr>`;
+      }).join('') || '<tr><td colspan="7" class="text-center text-muted py-4">Belum ada alat. Klik <b>+</b> di kebutuhan proyek atau <b>Tambah Alat</b>.</td></tr>';
+      const disc = Number(document.getElementById('discountInput')?.value) || 0;
+      document.getElementById('rowsFoot').innerHTML = rows.length ? `
+        <tr><td colspan="5" class="text-end">Subtotal</td><td class="num">${formatRupiah(subtotal)}</td><td></td></tr>
+        <tr><td colspan="5" class="text-end">Diskon</td><td class="num"><input type="number" min="0" class="form-control form-control-sm text-end ms-auto" style="max-width:150px" id="discountInput" value="${disc}" onchange="renderRows()"></td><td></td></tr>
+        <tr class="fw-700"><td colspan="5" class="text-end">Estimasi Total</td><td class="num" style="color:var(--primary)">${formatRupiah(subtotal - disc)}</td><td></td></tr>` : '';
     }
 
-    // Initialize first row empty
-    document.getElementById('equipmentBody').innerHTML = '';
-    addEquipmentRow();
+    function submitRental(submit) {
+      const res = R.create({
+        customerId: document.getElementById('customerSelect').value, projectId: document.getElementById('projectSelect').value,
+        branch: document.getElementById('branchSelect').value, poNumber: document.getElementById('poNumber').value,
+        rentalDate: document.getElementById('startDate').value, returnDate: document.getElementById('endDate').value,
+        notes: document.getElementById('notesArea').value, discount: Number(document.getElementById('discountInput')?.value) || 0,
+        items: rows.map(r => ({ name: r.name, quantity: r.qty }))
+      }, submit);
+      if (!res.success) { showToast(res.error, 'error'); return; }
+      showToast(`Order sewa ${res.rental.id} ${submit ? 'diajukan ke Staff Piutang' : 'disimpan sebagai draft'}`, 'success');
+      setTimeout(() => window.location.href = 'rental-detail.html?id=' + res.rental.id, 800);
+    }
+
+    // ---------- Init ----------
+    const pj = MockData.projects.find(p => p.id === getUrlParam('project'));
+    const cid = pj ? pj.customerId : getUrlParam('customer');
+    if (cid) document.getElementById('customerSelect').value = cid;
+    updateProjects();
+    if (pj) { document.getElementById('projectSelect').value = pj.id; onProjectChange(); }
   </script>
 </body>
 </html>
-
-
-
-
-
-

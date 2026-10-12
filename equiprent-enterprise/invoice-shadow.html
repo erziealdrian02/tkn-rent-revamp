@@ -35,7 +35,6 @@
               <div class="col-6 col-md-2 d-flex align-items-end"><label class="d-flex align-items-center gap-2 fs-13 mb-2"><input type="checkbox" class="form-check-input m-0" id="fTax" checked onchange="recalc()"> PPN <span id="taxPct"></span></label></div>
               <div class="col-6 col-md-3 rent-only"><label class="form-label form-label-er">Periode Awal</label><input type="date" class="form-control" id="fStart" onchange="onPeriodChange()"></div>
               <div class="col-6 col-md-3 rent-only"><label class="form-label form-label-er">Periode Akhir</label><input type="date" class="form-control" id="fEnd" onchange="onPeriodChange()"></div>
-              <div class="col-6 col-md-2 rent-only"><label class="form-label form-label-er" title="Pembagi harga satuan per bulan">Bulan Sewa (hari)</label><input type="number" class="form-control text-end" id="fMonthDays" min="1" oninput="recalc()"></div>
             </div>
           </div>
         </div>
@@ -95,7 +94,6 @@
     let items = [];
     const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
     const isRent = () => document.getElementById('fType').value === 'Sewa';
-    const monthDays = () => Number(document.getElementById('fMonthDays').value) || Bill.monthDays();
 
     document.getElementById('fCustomer').innerHTML = '<option value="">- Pilih customer -</option>' + MockData.customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
     document.getElementById('fAccount').innerHTML = MockData.accounts.filter(a => a.kind !== 'Kas').map(a => `<option value="${a.id}">${a.name}</option>`).join('');
@@ -141,14 +139,14 @@
       const qty = Number(it.qty) || 0, price = Number(it.unitPrice) || 0;
       if (!isRent()) return { days: null, amount: Math.round(qty * price) };
       const days = it.startDate && it.endDate && it.endDate >= it.startDate ? Bill.days(it.startDate, it.endDate) : 0;
-      return { days, amount: Math.round(qty * days * price / monthDays()) };
+      return { days, amount: Math.round(qty * days * price) };
     }
 
     function renderItems() {
       const rent = isRent();
       document.querySelectorAll('.rent-only').forEach(el => el.classList.toggle('d-none', !rent));
       document.getElementById('itemsHead').innerHTML = rent
-        ? '<tr><th style="width:40px">No</th><th>Nama Barang</th><th class="num" style="width:90px">Qty</th><th class="num" style="width:150px">Harga Satuan</th><th style="width:150px">Awal</th><th style="width:150px">Akhir</th><th class="num" style="width:70px">Hari</th><th class="num">Total</th><th style="width:44px"></th></tr>'
+        ? '<tr><th style="width:40px">No</th><th>Nama Barang</th><th class="num" style="width:90px">Qty</th><th class="num" style="width:150px">Tarif / Hari</th><th style="width:150px">Awal</th><th style="width:150px">Akhir</th><th class="num" style="width:70px">Hari</th><th class="num">Total</th><th style="width:44px"></th></tr>'
         : '<tr><th style="width:40px">No</th><th>Deskripsi</th><th class="num" style="width:90px">Qty</th><th class="num" style="width:160px">Harga Satuan</th><th class="num">Total</th><th style="width:44px"></th></tr>';
       document.getElementById('itemsBody').innerHTML = items.map((it, n) => `<tr>
         <td>${n + 1}</td>
@@ -162,7 +160,7 @@
         <td><button class="btn-action" title="Hapus" onclick="removeItem(${n})"><i class="bi bi-trash"></i></button></td>
       </tr>`).join('') || `<tr><td colspan="${rent ? 9 : 6}" class="text-center text-muted py-4">Belum ada barang - klik <strong>Tambah Barang</strong>. Boleh disimpan kosong dulu.</td></tr>`;
       document.getElementById('formulaNote').innerHTML = rent
-        ? `<strong>Hari</strong> = Akhir − Awal + 1 &nbsp;·&nbsp; <strong>Total</strong> = Qty × Hari × Harga Satuan ÷ <span id="mdText"></span> (bulan sewa)`
+        ? `<strong>Hari</strong> = Akhir − Awal + 1 &nbsp;·&nbsp; <strong>Total</strong> = Qty × Hari × Tarif / Hari`
         : '<strong>Total</strong> = Qty × Harga Satuan';
       recalc();
     }
@@ -185,8 +183,6 @@
         if (rent) document.getElementById('days-' + n).textContent = c.days || '-';
         document.getElementById('amt-' + n).textContent = formatRupiah(c.amount);
       });
-      const md = document.getElementById('mdText');
-      if (md) md.textContent = monthDays();
       const taxRate = document.getElementById('fTax').checked ? (settings.taxRate || 0) : 0;
       const tax = Math.round(subtotal * taxRate);
       const span = rent ? 7 : 4;
@@ -203,7 +199,6 @@
         type: document.getElementById('fType').value,
         periodStart: isRent() ? document.getElementById('fStart').value : '',
         periodEnd: isRent() ? document.getElementById('fEnd').value : '',
-        monthDays: monthDays(),
         items: items,
         invoiceDate: document.getElementById('fInvDate').value,
         dueDays: document.getElementById('fDue').value,
@@ -227,7 +222,6 @@
       document.getElementById('fType').value = editing.type;
       document.getElementById('fStart').value = editing.periodStart || '';
       document.getElementById('fEnd').value = editing.periodEnd || '';
-      document.getElementById('fMonthDays').value = editing.monthDays || Bill.monthDays();
       document.getElementById('fTax').checked = editing.taxRate > 0;
       document.getElementById('fInvDate').value = editing.invoiceDate;
       document.getElementById('fDue').value = Bill.days(editing.invoiceDate, editing.dueDate) - 1;
@@ -238,7 +232,6 @@
       document.getElementById('fCustomer').value = getUrlParam('customer') || '';
       onCustomerChange();
       if (getUrlParam('project')) { document.getElementById('fProject').value = getUrlParam('project'); onProjectChange(); }
-      document.getElementById('fMonthDays').value = Bill.monthDays();
       document.getElementById('fInvDate').value = today;
       document.getElementById('fDue').value = settings.paymentTermDays || 30;
     }
