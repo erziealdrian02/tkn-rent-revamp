@@ -35,7 +35,7 @@
     const ret = MockData.returns.find(r => r.id === rid) || MockData.returns[2];
     initApp('returns.html', [{ label: 'Rekap Stok', href: '#' }, { label: 'Pengembalian', href: 'returns.html' }, { label: ret.id }], ret.id);
 
-    const hasMissing = ret.items.some(i => i.damaged > 0);
+    const hasMissing = ret.items.some(i => i.damaged > 0 || i.lost > 0);
     const relatedClaims = MockData.claims.filter(c => c.returnId === ret.id);
 
     document.getElementById('detailHeader').innerHTML = `
@@ -44,7 +44,7 @@
         <div class="detail-header-info">
           <h2>${ret.id} ${statusBadge(ret.status)}</h2>
           <div class="detail-meta">
-            ${ret.rentalId ? `<span class="detail-meta-item"><i class="bi bi-file-earmark-text"></i>Rekap <a href="rental-detail.html?id=${ret.rentalId}">${ret.rentalId}</a></span>` : ''}
+            ${ret.rentalId ? `<span class="detail-meta-item"><i class="bi bi-file-earmark-text"></i><a href="rental-detail.html?id=${ret.rentalId}">${BizLogic.Rental.title(ret.rentalId)}</a></span>` : ''}
             ${ret.forSaleId ? `<span class="detail-meta-item"><i class="bi bi-bag-check"></i>Dipulangkan untuk dijual: <a href="sale-detail.html?id=${ret.forSaleId}">${ret.forSaleId}</a></span>` : ''}
             ${ret.pickupId ? `<span class="detail-meta-item"><i class="bi bi-truck"></i>Surat jalan pemulangan <a href="delivery-detail.html?id=${ret.pickupId}">${ret.sjNo}</a></span>` : ''}
             <span class="detail-meta-item"><i class="bi bi-folder"></i>${ret.projectName}</span>
@@ -54,7 +54,7 @@
         </div>
       </div>
       <div class="detail-header-actions">
-        ${ret.status === 'Completed' && hasMissing && !relatedClaims.length ? '<button class="btn btn-warning btn-sm" onclick="createClaim()"><i class="bi bi-exclamation-triangle me-1"></i>Buat Klaim Kerusakan</button>' : ''}
+        ${ret.status === 'Completed' && hasMissing && !relatedClaims.length ? '<button class="btn btn-warning btn-sm" onclick="createClaim()"><i class="bi bi-exclamation-triangle me-1"></i>Buat Klaim (Rusak / Hilang)</button>' : ''}
         ${ret.status === 'Inspection' && canDo('Returns', 'Update') ? '<button class="btn btn-success btn-sm" onclick="completeReturn()"><i class="bi bi-check-lg me-1"></i>Selesai Inspeksi</button>' : ''}
       </div>`;
 
@@ -63,11 +63,13 @@
     // Return Info
     body += `<div class="info-grid mb-4">
       <div class="info-item"><span class="info-label">No. Pengembalian</span><span class="info-value text-mono">${ret.id}</span></div>
-      <div class="info-item"><span class="info-label">Rekap Project</span><span class="info-value">${(x => x.alloc && x.alloc.length ? [...new Set(x.alloc.map(a => a.rentalId))].map(id => `<a href="rental-detail.html?id=${id}" class="cell-link">${id}</a>`).join(', ') : x.rentalId ? `<a href="rental-detail.html?id=${x.rentalId}" class="cell-link">${x.rentalId}</a>` : '-')(ret)}</span></div>
+      <div class="info-item"><span class="info-label">PO</span><span class="info-value">${(x => x.alloc && x.alloc.length ? [...new Set(x.alloc.map(a => a.rentalId))].map(id => `<a href="rental-detail.html?id=${id}" class="cell-link">${BizLogic.Rental.label(id)}</a>`).join(', ') : x.rentalId ? `<a href="rental-detail.html?id=${x.rentalId}" class="cell-link">${BizLogic.Rental.label(x.rentalId)}</a>` : '-')(ret)}</span></div>
       <div class="info-item"><span class="info-label">Proyek</span><span class="info-value">${ret.projectName}</span></div>
       <div class="info-item"><span class="info-label">Pelanggan</span><span class="info-value">${ret.customerName}</span></div>
       <div class="info-item"><span class="info-label">Tanggal Tiba</span><span class="info-value">${formatDate(ret.returnDate)}</span></div>
       <div class="info-item"><span class="info-label">Diinspeksi oleh</span><span class="info-value">${ret.inspectedBy || 'Belum'}</span></div>
+      ${ret.lostNo ? `<div class="info-item"><span class="info-label">Dokumen Hilang</span><span class="info-value"><a href="stock-mutations.html?q=${encodeURIComponent(ret.lostNo)}" class="text-mono">${ret.lostNo}</a></span></div>` : ''}
+      ${ret.extraNo ? `<div class="info-item"><span class="info-label">Kepulangan Lebih (Adjustment)</span><span class="info-value"><a href="stock-mutations.html?q=${encodeURIComponent(ret.extraNo)}" class="text-mono">${ret.extraNo}</a></span></div>` : ''}
     </div>`;
 
     // Equipment Classification Table
@@ -77,6 +79,8 @@
         <th>Alat</th><th class="num">Dijemput</th>
         <th><span class="badge-status good">Baik</span></th>
         <th><span class="badge-status damaged">Rusak</span></th>
+        <th><span class="badge-status overdue">Hilang</span></th>
+        <th title="Unit yang datang melebihi stok proyek"><span class="badge-status reserved">Lebih</span></th>
         <th>Catatan</th>
       </tr></thead>
       <tbody id="classBody">
@@ -85,12 +89,17 @@
         <td class="num"><strong>${item.sent}</strong></td>
         <td><input type="number" class="form-control form-control-sm" style="width:70px" value="${item.good}" min="0" max="${item.sent}" onchange="validateRow(${idx})"></td>
         <td><input type="number" class="form-control form-control-sm" style="width:70px" value="${item.damaged}" min="0" onchange="validateRow(${idx})"></td>
+        <td><input type="number" class="form-control form-control-sm" style="width:70px" value="${item.lost || 0}" min="0" onchange="validateRow(${idx})"></td>
+        <td><input type="number" class="form-control form-control-sm row-extra" style="width:70px" value="${item.extra || 0}" min="0" onchange="validateRow(${idx})"></td>
         <td><input type="text" class="form-control form-control-sm" value="${item.damageNotes || ''}" placeholder="Catatan kerusakan..."></td>
       </tr>`).join('')}
       </tbody>
     </table></div>
-    ${ret.status !== 'Completed' ? `<p class="fs-12 text-muted mb-3"><i class="bi bi-info-circle me-1"></i>Isi jumlah Baik &amp; Rusak. Kalau ada alat yang <strong>tidak ikut kembali</strong>, qty pemulangan otomatis dikurangi dan sisanya tetap tercatat di proyek.
-      Alat yang hilang di proyek dijual ke pelanggan lewat <a href="sale-create.html?source=project&customer=${ret.customerId}&project=${ret.projectId}">Jual Alat di Proyek</a> (dipulangkan administratif dulu).</p>` : ''}
+    ${ret.status !== 'Completed' ? `<div class="fs-12 text-muted mb-3"><i class="bi bi-info-circle me-1"></i><strong>Baik + Rusak + Hilang = Dijemput.</strong>
+      <ul class="mb-0 mt-1 ps-4"><li><strong>Rusak</strong> masuk stok rusak gudang, lalu diproses di <a href="stock.html#kondisi">Stok Gudang → Perbaikan</a> (bisa jadi alat lain, mis. pipa dipotong).</li>
+      <li><strong>Hilang</strong> keluar dari stok proyek dan diklaim ganti ke pelanggan.</li>
+      <li><strong>Lebih</strong> = unit yang datang melebihi stok proyek (mis. stok proyek 15, yang datang 20 → isi 5). Dicatat terpisah sebagai <em>Kepulangan Lebih (adjustment)</em>; laporan pemulangan ke pelanggan tetap sesuai stok proyek.</li>
+      <li>Kalau ada alat yang <strong>tidak ikut kembali</strong> (bukan hilang), qty pemulangan dikurangi dan sisanya tetap tercatat di proyek.</li></ul></div>` : ''}
     <div id="validationMsg" class="mb-3"></div>`;
 
     // Related Claims
@@ -117,7 +126,7 @@
       const rows = document.querySelectorAll('#classBody tr');
       for (let idx = 0; idx < rows.length; idx++) {
         const row = rows[idx];
-        const inputs = row.querySelectorAll('input[type="number"]');
+        const inputs = row.querySelectorAll('input[type="number"]:not(.row-extra)');
         const sent = ret.items[idx].sent;
         const total = Array.from(inputs).reduce((s, i) => s + Number(i.value), 0);
 
@@ -131,12 +140,12 @@
     function validateRow(idx) {
       const row = document.querySelectorAll('#classBody tr')[idx];
       if (!row) return;
-      const inputs = row.querySelectorAll('input[type="number"]');
+      const inputs = row.querySelectorAll('input[type="number"]:not(.row-extra)');
       const sent = ret.items[idx].sent;
       const total = Array.from(inputs).reduce((s, i) => s + Number(i.value), 0);
       const msg = document.getElementById('validationMsg');
       if (total > sent) {
-        msg.innerHTML = `<div class="alert alert-danger py-2 fs-12"><i class="bi bi-exclamation-triangle me-1"></i><strong>${ret.items[idx].name}</strong>: baik + rusak (${total}) melebihi qty dijemput (${sent})</div>`;
+        msg.innerHTML = `<div class="alert alert-danger py-2 fs-12"><i class="bi bi-exclamation-triangle me-1"></i><strong>${ret.items[idx].name}</strong>: baik + rusak + hilang (${total}) melebihi qty dijemput (${sent}). Unit yang datang lebih isi di kolom <strong>Lebih</strong>.</div>`;
       } else if (total < sent) {
         msg.innerHTML = `<div class="alert alert-warning py-2 fs-12"><i class="bi bi-info-circle me-1"></i><strong>${ret.items[idx].name}</strong>: ${sent - total} unit tidak ikut kembali, tetap tercatat di proyek.</div>`;
       } else {
@@ -155,17 +164,19 @@
       const rowsEl = document.querySelectorAll('#classBody tr');
       const cls = ret.items.map((item, idx) => {
         const inputs = rowsEl[idx].querySelectorAll('input[type="number"]');
-        return { name: item.name, sent: item.sent, good: Number(inputs[0].value) || 0, damaged: Number(inputs[1].value) || 0, damageNotes: rowsEl[idx].querySelector('input[type="text"]').value };
+        return { name: item.name, sent: item.sent, good: Number(inputs[0].value) || 0, damaged: Number(inputs[1].value) || 0, lost: Number(inputs[2].value) || 0, extra: Number(inputs[3].value) || 0, damageNotes: rowsEl[idx].querySelector('input[type="text"]').value };
       });
-      const over = cls.filter(c => c.good + c.damaged > c.sent);
-      if (over.length) { showToast(over.map(c => c.name + ': baik + rusak melebihi qty dijemput').join('<br>'), 'danger'); return; }
-      const short = cls.filter(c => c.good + c.damaged < c.sent);
-      if (short.length && !confirm(short.map(c => `${c.name}: ${c.sent - c.good - c.damaged} unit tidak ikut kembali`).join('\n') + '\n\nQty pemulangan dikurangi, sisanya tetap tercatat di proyek. Lanjutkan?')) return;
-      short.forEach(c => BizLogic.Return.adjustQty(ret.id, c.name, c.good + c.damaged));
-      if (!ret.items.length) { showToast('Tidak ada alat yang kembali', 'warning'); setTimeout(() => location.reload(), 800); return; }
-      const classifiedItems = ret.items.map(it => { const c = cls.find(x => x.name === it.name); return { good: c.good, damaged: c.damaged, damageNotes: c.damageNotes }; });
+      const used = c => c.good + c.damaged + c.lost;
+      const over = cls.filter(c => used(c) > c.sent);
+      if (over.length) { showToast(over.map(c => c.name + ': baik + rusak + hilang melebihi qty dijemput (isi kelebihan di kolom Lebih)').join('<br>'), 'danger'); return; }
+      const short = cls.filter(c => used(c) < c.sent);
+      if (short.length && !confirm(short.map(c => `${c.name}: ${c.sent - used(c)} unit tidak ikut kembali`).join('\n') + '\n\nQty pemulangan dikurangi, sisanya tetap tercatat di proyek. Lanjutkan?')) return;
+      short.forEach(c => BizLogic.Return.adjustQty(ret.id, c.name, used(c)));
+      const extraOnly = cls.filter(c => c.extra > 0 && !ret.items.some(i => i.name === c.name)).map(c => ({ name: c.name, qty: c.extra }));
+      if (!ret.items.length && !extraOnly.length) { showToast('Tidak ada alat yang kembali', 'warning'); setTimeout(() => location.reload(), 800); return; }
+      const classifiedItems = ret.items.map(it => { const c = cls.find(x => x.name === it.name); return { good: c.good, damaged: c.damaged, lost: c.lost, extra: c.extra, damageNotes: c.damageNotes }; });
 
-      const result = BizLogic.Return.completeInspection(ret.id, classifiedItems);
+      const result = BizLogic.Return.completeInspection(ret.id, classifiedItems, extraOnly);
       if (result.success) {
         showToast('Inspeksi selesai, stok masuk gudang', 'success');
         setTimeout(() => location.reload(), 800);

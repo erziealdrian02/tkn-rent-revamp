@@ -1,6 +1,6 @@
 /* ============================================================
-   Surat Jalan Pemulangan per PROYEK (dipakai di Proyek & Rekap Project)
-   Jemput dari stok proyek sekaligus dalam satu SJ; sistem membagi qty ke order sewa (yang paling lama dulu).
+   Surat Jalan Pemulangan per PROYEK (dipakai di Proyek & Rekap PO)
+   Jemput dari stok proyek sekaligus dalam satu SJ; sistem membagi qty ke PO (yang paling lama dulu).
    ============================================================ */
 function canProjectPickup(projectId) {
   return canDo('Deliveries', 'Create') && BizLogic.Delivery.projectPickupRemaining(projectId).some(function(x) { return x.remaining > 0; });
@@ -19,8 +19,8 @@ function openProjectPickup(projectId, opts) {
   var html = '<div class="modal fade" id="projectPickupModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">' +
     '<div class="modal-header"><h5 class="modal-title"><i class="bi bi-box-arrow-in-left me-2"></i>Surat Jalan Pemulangan · ' + esc(project.name) + '</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>' +
     '<div class="modal-body">' +
-    '<div class="alert alert-light border py-2 fs-13 mb-3">Jemput alat dari <b>stok proyek</b> dalam satu surat jalan, tidak perlu per order sewa. Sistem otomatis membagi qty ke order sewa yang paling lama dulu. ' +
-    'Setelah tiba di gudang alat diinspeksi (baik / rusak). Alat hilang tidak dijemput: jual lewat <b>Jual Alat di Proyek</b>.</div>' +
+    '<div class="alert alert-light border py-2 fs-13 mb-3">Jemput alat dari <b>stok proyek</b> dalam satu surat jalan, tidak perlu per PO. Sistem otomatis membagi qty ke PO yang paling lama dulu. ' +
+    'Setelah tiba di gudang alat diinspeksi: baik / rusak / hilang. Kalau yang datang <b>lebih</b> dari stok proyek, catat kelebihannya di kolom <b>Lebih</b> saat inspeksi (adjustment).</div>' +
     '<div class="row g-3 mb-3">' +
     '<div class="col-md-4"><label class="form-label form-label-er">Tanggal Jemput</label><input type="date" class="form-control" id="ppDate" value="' + (opts.date && opts.date > today ? opts.date : today) + '"></div>' +
     '<div class="col-md-4"><label class="form-label form-label-er">Gudang Tujuan</label><select class="form-select" id="ppBranch">' + MockData.branches.map(function(b) { return '<option value="' + b.id + '"' + (b.id === opts.branchId ? ' selected' : '') + '>' + esc(b.name) + '</option>'; }).join('') + '</select></div>' +

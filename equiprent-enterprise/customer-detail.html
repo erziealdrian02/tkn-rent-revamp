@@ -50,12 +50,12 @@
       </div>
       <div class="detail-header-actions">
         ${canDo('Projects', 'Create') ? `<a href="project-create.html?customer=${cust.id}" class="btn btn-outline-primary btn-sm"><i class="bi bi-folder-plus me-1"></i>Proyek Baru</a>` : ''}
-        ${canDo('Rentals', 'Create') ? `<a href="rental-create.html?customer=${cust.id}" class="btn btn-outline-primary btn-sm"><i class="bi bi-file-earmark-plus me-1"></i>Order Sewa</a>` : ''}
+        ${canDo('Rentals', 'Create') ? `<a href="rental-create.html?customer=${cust.id}" class="btn btn-outline-primary btn-sm"><i class="bi bi-file-earmark-plus me-1"></i>PO</a>` : ''}
         ${canDo('Sales', 'Create') ? `<a href="sale-create.html?customer=${cust.id}" class="btn btn-outline-primary btn-sm"><i class="bi bi-bag-plus me-1"></i>Jual Baru</a>` : ''}
         ${editButton({ docType: 'Pelanggan', docId: cust.id, docLabel: cust.name, link: 'customer-detail.html?id=' + cust.id }, `<a href="customers.html?edit=${cust.id}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Ubah Profil</a>`, { label: 'Ajukan Perubahan' })}
       </div>`;
 
-    const tabs = [['overview', 'Ringkasan'], ['projects', 'Proyek', projects.length], ['rentals', 'Rekap Project', rentals.length], ['sales', 'Penjualan', sales.length], ['invoices', 'Invoice & Piutang', invoices.length], ['profile', 'Profil']];
+    const tabs = [['overview', 'Ringkasan'], ['projects', 'Proyek', projects.length], ['rentals', 'Rekap PO', rentals.length], ['sales', 'Penjualan', sales.length], ['invoices', 'Invoice & Piutang', invoices.length], ['profile', 'Profil']];
     document.getElementById('detailTabs').innerHTML = tabs.map(([k, l, n], i) => `<button class="er-tab ${i === 0 ? 'active' : ''}" data-tab="${k}" onclick="switchTab('${k}')">${l}${n != null ? `<span class="er-tab-count">${n}</span>` : ''}</button>`).join('');
 
     const kpi = (c, i, l, v) => `<div class="col-6 col-lg-3"><div class="kpi-card"><div class="kpi-icon ${c}"><i class="bi ${i}"></i></div><div class="kpi-content"><div class="kpi-value fs-5">${v}</div><div class="kpi-label">${l}</div></div></div></div>`;
@@ -78,7 +78,7 @@
         <div class="d-flex justify-content-between align-items-start gap-2"><a href="project-detail.html?id=${p.id}" class="fw-600 cell-link">${esc(p.name)}</a>${statusBadge(p.status)}</div>
         <div class="fs-12 text-muted mb-2">${p.id} · ${formatDate(p.startDate)} – tenggat <strong>${formatDate(p.endDate)}</strong>${daysText(p, st.days)}</div>
         <div class="fs-13">${st.r.length} sewa · ${st.s2.length} jual · piutang ${formatRupiah(st.inv)}</div>
-        <div class="fs-12 mt-1">${st.r.map(x => `<a href="rental-detail.html?id=${x.id}" class="me-2">${x.id}</a>`).join('')}${st.s2.map(x => `<a href="sale-detail.html?id=${x.id}" class="me-2">${x.id}</a>`).join('')}</div>
+        <div class="fs-12 mt-1">${st.r.map(x => `<a href="rental-detail.html?id=${x.id}" class="me-2">${BizLogic.Rental.label(x.id)}</a>`).join('')}${st.s2.map(x => `<a href="sale-detail.html?id=${x.id}" class="me-2">${x.id}</a>`).join('')}</div>
       </div></div>`; }).join('') || '<div class="col-12 text-muted fs-13">Belum ada proyek.</div>'}</div>
     </div>`;
 
@@ -88,8 +88,8 @@
       </tbody></table></div></div>`;
 
     tc += `<div class="er-tab-content" id="tab-rentals">
-      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No. Penyewaan</th><th>Proyek</th><th>Tanggal</th><th>Estimasi Kembali</th><th class="num">Nilai</th><th>Status</th></tr></thead><tbody>
-      ${rentals.map(r => `<tr><td><a href="rental-detail.html?id=${r.id}" class="cell-link text-mono">${r.id}</a></td><td><a href="project-detail.html?id=${r.projectId}" class="cell-link">${esc(r.projectName)}</a></td><td>${formatDate(r.rentalDate)}</td><td>${formatDate(BizLogic.Rental.estimatedReturn(r))}</td><td class="num fw-600">${formatRupiah(r.total)}</td><td>${statusBadge(r.status)}</td></tr>`).join('') || '<tr><td colspan="6" class="text-center text-muted py-4">Belum ada penyewaan</td></tr>'}
+      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>No. PO</th><th>Proyek</th><th>Tanggal</th><th>Estimasi Kembali</th><th class="num">Nilai</th><th>Status</th></tr></thead><tbody>
+      ${rentals.map(r => `<tr><td><a href="rental-detail.html?id=${r.id}" class="cell-link text-mono">${BizLogic.Rental.label(r.id)}</a></td><td><a href="project-detail.html?id=${r.projectId}" class="cell-link">${esc(r.projectName)}</a></td><td>${formatDate(r.rentalDate)}</td><td>${formatDate(BizLogic.Rental.estimatedReturn(r))}</td><td class="num fw-600">${formatRupiah(r.total)}</td><td>${statusBadge(r.status)}</td></tr>`).join('') || '<tr><td colspan="6" class="text-center text-muted py-4">Belum ada PO</td></tr>'}
       </tbody></table></div></div>`;
 
     tc += `<div class="er-tab-content" id="tab-sales">

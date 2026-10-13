@@ -18,45 +18,45 @@ const MockData = {
   projects: [
     { id: 'PRJ-001', name: 'Project Data Center Jakarta', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', startDate: '2026-07-01', endDate: '2026-12-31', totalRentals: 3, activeEquipment: 15, status: 'Active',
       requirements: [
-        { equipment: 'Generator 50 KVA', qty: 4, unitPrice: 167000 },
-        { equipment: 'Power Cable 50m', qty: 15, unitPrice: 17000 },
-        { equipment: 'Aluminium Ladder 6m', qty: 3, unitPrice: 10000 },
-        { equipment: 'Tower Light 4x1000W', qty: 4, unitPrice: 83000 },
-        { equipment: 'Air Compressor 10HP', qty: 2, unitPrice: 133000 },
-        { equipment: 'Submersible Pump 4"', qty: 3, unitPrice: 100000 },
-        { equipment: 'Welding Machine 400A', qty: 2, unitPrice: 117000 },
+        { equipment: 'Generator 50 KVA', qty: 4, unitPrice: 5000000 },
+        { equipment: 'Power Cable 50m', qty: 15, unitPrice: 500000 },
+        { equipment: 'Aluminium Ladder 6m', qty: 3, unitPrice: 300000 },
+        { equipment: 'Tower Light 4x1000W', qty: 4, unitPrice: 2500000 },
+        { equipment: 'Air Compressor 10HP', qty: 2, unitPrice: 4000000 },
+        { equipment: 'Submersible Pump 4"', qty: 3, unitPrice: 3000000 },
+        { equipment: 'Welding Machine 400A', qty: 2, unitPrice: 3500000 },
       ] },
     { id: 'PRJ-002', name: 'Project Data Center Bekasi', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', startDate: '2026-08-01', endDate: '2027-02-28', totalRentals: 2, activeEquipment: 8, status: 'Active',
       requirements: [
-        { equipment: 'Generator 100 KVA', qty: 3, unitPrice: 283000 },
-        { equipment: 'Power Cable 100m', qty: 10, unitPrice: 30000 },
+        { equipment: 'Generator 100 KVA', qty: 3, unitPrice: 8500000 },
+        { equipment: 'Power Cable 100m', qty: 10, unitPrice: 900000 },
       ] },
     { id: 'PRJ-003', name: 'Project Infrastructure Expansion', customerId: 'CUS-002', customerName: 'PT Infrastruktur Nusantara', startDate: '2026-06-15', endDate: '2026-11-30', totalRentals: 2, activeEquipment: 12, status: 'Active',
       requirements: [
-        { equipment: 'Generator 100 KVA', qty: 2, unitPrice: 283000 },
-        { equipment: 'Aluminium Ladder 8m', qty: 5, unitPrice: 15000 },
-        { equipment: 'Submersible Pump 4"', qty: 2, unitPrice: 100000 },
-        { equipment: 'Welding Machine 400A', qty: 3, unitPrice: 117000 },
-        { equipment: 'Air Compressor 10HP', qty: 1, unitPrice: 133000 },
+        { equipment: 'Generator 100 KVA', qty: 2, unitPrice: 8500000 },
+        { equipment: 'Aluminium Ladder 8m', qty: 5, unitPrice: 450000 },
+        { equipment: 'Submersible Pump 4"', qty: 2, unitPrice: 3000000 },
+        { equipment: 'Welding Machine 400A', qty: 3, unitPrice: 3500000 },
+        { equipment: 'Air Compressor 10HP', qty: 1, unitPrice: 4000000 },
       ] },
     { id: 'PRJ-004', name: 'Project Warehouse Renovation', customerId: 'CUS-003', customerName: 'PT Mitra Teknologi', startDate: '2026-08-15', endDate: '2026-10-31', totalRentals: 1, activeEquipment: 5, status: 'Active',
       requirements: [
-        { equipment: 'Air Compressor 10HP', qty: 2, unitPrice: 133000 },
-        { equipment: 'Welding Machine 400A', qty: 1, unitPrice: 117000 },
-        { equipment: 'Generator 50 KVA', qty: 1, unitPrice: 167000 },
+        { equipment: 'Air Compressor 10HP', qty: 2, unitPrice: 4000000 },
+        { equipment: 'Welding Machine 400A', qty: 1, unitPrice: 3500000 },
+        { equipment: 'Generator 50 KVA', qty: 1, unitPrice: 5000000 },
       ] },
     { id: 'PRJ-005', name: 'Project Bridge Construction', customerId: 'CUS-004', customerName: 'PT Karya Engineering', startDate: '2026-05-01', endDate: '2026-08-31', totalRentals: 2, activeEquipment: 0, status: 'Completed',
       requirements: [
-        { equipment: 'Generator 100 KVA', qty: 1, unitPrice: 283000 },
-        { equipment: 'Power Cable 100m', qty: 5, unitPrice: 30000 },
-        { equipment: 'Submersible Pump 4"', qty: 2, unitPrice: 100000 },
-        { equipment: 'Aluminium Ladder 8m', qty: 4, unitPrice: 15000 },
+        { equipment: 'Generator 100 KVA', qty: 1, unitPrice: 8500000 },
+        { equipment: 'Power Cable 100m', qty: 5, unitPrice: 900000 },
+        { equipment: 'Submersible Pump 4"', qty: 2, unitPrice: 3000000 },
+        { equipment: 'Aluminium Ladder 8m', qty: 4, unitPrice: 450000 },
       ] },
     { id: 'PRJ-006', name: 'Project Office Tower', customerId: 'CUS-002', customerName: 'PT Infrastruktur Nusantara', startDate: '2026-09-01', endDate: '2027-06-30', totalRentals: 0, activeEquipment: 0, status: 'Planning',
       requirements: [
-        { equipment: 'Generator 100 KVA', qty: 4, unitPrice: 283000 },
-        { equipment: 'Tower Light 4x1000W', qty: 6, unitPrice: 83000 },
-        { equipment: 'Power Cable 100m', qty: 12, unitPrice: 30000 },
+        { equipment: 'Generator 100 KVA', qty: 4, unitPrice: 8500000 },
+        { equipment: 'Tower Light 4x1000W', qty: 6, unitPrice: 2500000 },
+        { equipment: 'Power Cable 100m', qty: 12, unitPrice: 900000 },
       ] },
   ],
 
@@ -65,24 +65,24 @@ const MockData = {
 
   // ---- EQUIPMENT ----
   equipment: [
-    { id: 'GEN-001', name: 'Generator 50 KVA', category: 'Generator', serial: 'GN-2024-001', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-001', status: 'On Rental', rate: 167000 },
-    { id: 'GEN-002', name: 'Generator 50 KVA', category: 'Generator', serial: 'GN-2024-002', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 167000 },
-    { id: 'GEN-003', name: 'Generator 100 KVA', category: 'Generator', serial: 'GN-2024-003', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-003', status: 'On Rental', rate: 283000 },
-    { id: 'GEN-004', name: 'Generator 100 KVA', category: 'Generator', serial: 'GN-2024-004', condition: 'Good', branch: 'Bekasi', branchId: 'BR-002', availability: 'Available', project: null, status: 'Available', rate: 283000 },
-    { id: 'GEN-005', name: 'Generator 50 KVA', category: 'Generator', serial: 'GN-2024-005', condition: 'Maintenance', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Maintenance', project: null, status: 'Maintenance', rate: 167000 },
-    { id: 'CAB-001', name: 'Power Cable 50m', category: 'Cable', serial: 'CB-2024-001', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-001', status: 'On Rental', rate: 17000 },
-    { id: 'CAB-002', name: 'Power Cable 50m', category: 'Cable', serial: 'CB-2024-002', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 17000 },
-    { id: 'CAB-003', name: 'Power Cable 100m', category: 'Cable', serial: 'CB-2024-003', condition: 'Good', branch: 'Bekasi', branchId: 'BR-002', availability: 'On Rental', project: 'PRJ-002', status: 'On Rental', rate: 30000 },
-    { id: 'LAD-001', name: 'Aluminium Ladder 6m', category: 'Ladder', serial: 'LD-2024-001', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 10000 },
-    { id: 'LAD-002', name: 'Aluminium Ladder 6m', category: 'Ladder', serial: 'LD-2024-002', condition: 'Damaged', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Damaged', project: null, status: 'Damaged', rate: 10000 },
-    { id: 'LAD-003', name: 'Aluminium Ladder 8m', category: 'Ladder', serial: 'LD-2024-003', condition: 'Good', branch: 'Bekasi', branchId: 'BR-002', availability: 'On Rental', project: 'PRJ-003', status: 'On Rental', rate: 15000 },
-    { id: 'WLD-001', name: 'Welding Machine 400A', category: 'Welding', serial: 'WL-2024-001', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 117000 },
-    { id: 'WLD-002', name: 'Welding Machine 400A', category: 'Welding', serial: 'WL-2024-002', condition: 'Good', branch: 'Bekasi', branchId: 'BR-002', availability: 'Reserved', project: null, status: 'Reserved', rate: 117000 },
-    { id: 'CMP-001', name: 'Air Compressor 10HP', category: 'Compressor', serial: 'AC-2024-001', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-004', status: 'On Rental', rate: 133000 },
-    { id: 'CMP-002', name: 'Air Compressor 10HP', category: 'Compressor', serial: 'AC-2024-002', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 133000 },
-    { id: 'LGT-001', name: 'Tower Light 4x1000W', category: 'Lighting', serial: 'TL-2024-001', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-001', status: 'On Rental', rate: 83000 },
-    { id: 'PMP-001', name: 'Submersible Pump 4"', category: 'Pump', serial: 'SP-2024-001', condition: 'Good', branch: 'Bekasi', branchId: 'BR-002', availability: 'Available', project: null, status: 'Available', rate: 100000 },
-    { id: 'PMP-002', name: 'Submersible Pump 4"', category: 'Pump', serial: 'SP-2024-002', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-003', status: 'On Rental', rate: 100000 },
+    { id: 'GEN-001', name: 'Generator 50 KVA', category: 'Generator', serial: 'GN-2024-001', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-001', status: 'On Rental', rate: 5000000 },
+    { id: 'GEN-002', name: 'Generator 50 KVA', category: 'Generator', serial: 'GN-2024-002', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 5000000 },
+    { id: 'GEN-003', name: 'Generator 100 KVA', category: 'Generator', serial: 'GN-2024-003', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-003', status: 'On Rental', rate: 8500000 },
+    { id: 'GEN-004', name: 'Generator 100 KVA', category: 'Generator', serial: 'GN-2024-004', condition: 'Good', branch: 'Bekasi', branchId: 'BR-002', availability: 'Available', project: null, status: 'Available', rate: 8500000 },
+    { id: 'GEN-005', name: 'Generator 50 KVA', category: 'Generator', serial: 'GN-2024-005', condition: 'Maintenance', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Maintenance', project: null, status: 'Maintenance', rate: 5000000 },
+    { id: 'CAB-001', name: 'Power Cable 50m', category: 'Cable', serial: 'CB-2024-001', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-001', status: 'On Rental', rate: 500000 },
+    { id: 'CAB-002', name: 'Power Cable 50m', category: 'Cable', serial: 'CB-2024-002', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 500000 },
+    { id: 'CAB-003', name: 'Power Cable 100m', category: 'Cable', serial: 'CB-2024-003', condition: 'Good', branch: 'Bekasi', branchId: 'BR-002', availability: 'On Rental', project: 'PRJ-002', status: 'On Rental', rate: 900000 },
+    { id: 'LAD-001', name: 'Aluminium Ladder 6m', category: 'Ladder', serial: 'LD-2024-001', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 300000 },
+    { id: 'LAD-002', name: 'Aluminium Ladder 6m', category: 'Ladder', serial: 'LD-2024-002', condition: 'Damaged', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Damaged', project: null, status: 'Damaged', rate: 300000 },
+    { id: 'LAD-003', name: 'Aluminium Ladder 8m', category: 'Ladder', serial: 'LD-2024-003', condition: 'Good', branch: 'Bekasi', branchId: 'BR-002', availability: 'On Rental', project: 'PRJ-003', status: 'On Rental', rate: 450000 },
+    { id: 'WLD-001', name: 'Welding Machine 400A', category: 'Welding', serial: 'WL-2024-001', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 3500000 },
+    { id: 'WLD-002', name: 'Welding Machine 400A', category: 'Welding', serial: 'WL-2024-002', condition: 'Good', branch: 'Bekasi', branchId: 'BR-002', availability: 'Reserved', project: null, status: 'Reserved', rate: 3500000 },
+    { id: 'CMP-001', name: 'Air Compressor 10HP', category: 'Compressor', serial: 'AC-2024-001', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-004', status: 'On Rental', rate: 4000000 },
+    { id: 'CMP-002', name: 'Air Compressor 10HP', category: 'Compressor', serial: 'AC-2024-002', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'Available', project: null, status: 'Available', rate: 4000000 },
+    { id: 'LGT-001', name: 'Tower Light 4x1000W', category: 'Lighting', serial: 'TL-2024-001', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-001', status: 'On Rental', rate: 2500000 },
+    { id: 'PMP-001', name: 'Submersible Pump 4"', category: 'Pump', serial: 'SP-2024-001', condition: 'Good', branch: 'Bekasi', branchId: 'BR-002', availability: 'Available', project: null, status: 'Available', rate: 3000000 },
+    { id: 'PMP-002', name: 'Submersible Pump 4"', category: 'Pump', serial: 'SP-2024-002', condition: 'Good', branch: 'Cileungsi', branchId: 'BR-001', availability: 'On Rental', project: 'PRJ-003', status: 'On Rental', rate: 3000000 },
   ],
 
   // ---- RENTALS ----
@@ -93,11 +93,11 @@ const MockData = {
       totalItems: 3, deliveryStatus: 'Completed', status: 'On Rental', invoiceStatus: 'Issued',
       notes: 'Priority delivery needed',
       items: [
-        { equipmentId: 'GEN-001', name: 'Generator 50 KVA', quantity: 2, rate: 167000, duration: 92, subtotal: 30728000 },
-        { equipmentId: 'CAB-001', name: 'Power Cable 50m', quantity: 10, rate: 17000, duration: 92, subtotal: 15640000 },
-        { equipmentId: 'LAD-001', name: 'Aluminium Ladder 6m', quantity: 3, rate: 10000, duration: 92, subtotal: 2760000 },
+        { equipmentId: 'GEN-001', name: 'Generator 50 KVA', quantity: 2, rate: 5000000, duration: 3, subtotal: 30000000 },
+        { equipmentId: 'CAB-001', name: 'Power Cable 50m', quantity: 10, rate: 500000, duration: 3, subtotal: 15000000 },
+        { equipmentId: 'LAD-001', name: 'Aluminium Ladder 6m', quantity: 3, rate: 300000, duration: 3, subtotal: 2700000 },
       ],
-      subtotal: 49128000, discount: 2781000, total: 46347000,
+      subtotal: 47700000, discount: 2700000, total: 45000000,
       createdBy: 'Admin', createdAt: '2026-07-28 09:15'
     },
     {
@@ -106,10 +106,10 @@ const MockData = {
       totalItems: 2, deliveryStatus: 'Completed', status: 'On Rental', invoiceStatus: 'Paid',
       notes: '',
       items: [
-        { equipmentId: 'LGT-001', name: 'Tower Light 4x1000W', quantity: 4, rate: 83000, duration: 93, subtotal: 30876000 },
-        { equipmentId: 'CMP-001', name: 'Air Compressor 10HP', quantity: 2, rate: 133000, duration: 93, subtotal: 24738000 },
+        { equipmentId: 'LGT-001', name: 'Tower Light 4x1000W', quantity: 4, rate: 2500000, duration: 4, subtotal: 40000000 },
+        { equipmentId: 'CMP-001', name: 'Air Compressor 10HP', quantity: 2, rate: 4000000, duration: 4, subtotal: 32000000 },
       ],
-      subtotal: 55614000, discount: 0, total: 55614000,
+      subtotal: 72000000, discount: 0, total: 72000000,
       createdBy: 'Admin', createdAt: '2026-08-10 14:30'
     },
     {
@@ -119,10 +119,10 @@ const MockData = {
       totalItems: 2, deliveryStatus: 'Preparing', status: 'Preparing', invoiceStatus: 'Draft',
       notes: 'Additional equipment for phase 2',
       items: [
-        { equipmentId: 'PMP-002', name: 'Submersible Pump 4"', quantity: 3, rate: 100000, duration: 91, subtotal: 27300000 },
-        { equipmentId: 'WLD-001', name: 'Welding Machine 400A', quantity: 2, rate: 117000, duration: 91, subtotal: 21294000 },
+        { equipmentId: 'PMP-002', name: 'Submersible Pump 4"', quantity: 3, rate: 3000000, duration: 3, subtotal: 27000000 },
+        { equipmentId: 'WLD-001', name: 'Welding Machine 400A', quantity: 2, rate: 3500000, duration: 3, subtotal: 21000000 },
       ],
-      subtotal: 48594000, discount: 3037000, total: 45557000,
+      subtotal: 48000000, discount: 3000000, total: 45000000,
       createdBy: 'Rental Staff', createdAt: '2026-08-28 10:00'
     },
     {
@@ -131,82 +131,82 @@ const MockData = {
       totalItems: 3, deliveryStatus: 'Completed', status: 'On Rental', invoiceStatus: 'Partially Paid',
       notes: '',
       items: [
-        { equipmentId: 'GEN-003', name: 'Generator 100 KVA', quantity: 2, rate: 283000, duration: 93, subtotal: 52638000 },
-        { equipmentId: 'LAD-003', name: 'Aluminium Ladder 8m', quantity: 5, rate: 15000, duration: 93, subtotal: 6975000 },
-        { equipmentId: 'PMP-002', name: 'Submersible Pump 4"', quantity: 2, rate: 100000, duration: 93, subtotal: 18600000 },
+        { equipmentId: 'GEN-003', name: 'Generator 100 KVA', quantity: 2, rate: 8500000, duration: 4, subtotal: 68000000 },
+        { equipmentId: 'LAD-003', name: 'Aluminium Ladder 8m', quantity: 5, rate: 450000, duration: 4, subtotal: 9000000 },
+        { equipmentId: 'PMP-002', name: 'Submersible Pump 4"', quantity: 2, rate: 3000000, duration: 4, subtotal: 24000000 },
       ],
-      subtotal: 78213000, discount: 5937000, total: 72276000,
+      subtotal: 101000000, discount: 7700000, total: 93300000,
       createdBy: 'Admin', createdAt: '2026-07-10 08:45'
     },
     {
-      id: 'RNT-005', customerId: 'CUS-002', customerName: 'PT Infrastruktur Nusantara', projectId: 'PRJ-003', projectName: 'Project Infrastructure Expansion',
+      id: 'RNT-005', poNumber: 'PO/INF/0826/011', customerId: 'CUS-002', customerName: 'PT Infrastruktur Nusantara', projectId: 'PRJ-003', projectName: 'Project Infrastructure Expansion',
       rentalDate: '2026-08-20', returnDate: '2026-11-20', branch: 'Cileungsi', branchId: 'BR-001',
       totalItems: 2, deliveryStatus: 'Preparing', status: 'Preparing', invoiceStatus: 'Issued',
       notes: 'Rush delivery',
       items: [
-        { equipmentId: 'WLD-001', name: 'Welding Machine 400A', quantity: 3, rate: 117000, duration: 93, subtotal: 32643000 },
-        { equipmentId: 'CMP-002', name: 'Air Compressor 10HP', quantity: 1, rate: 133000, duration: 93, subtotal: 12369000 },
+        { equipmentId: 'WLD-001', name: 'Welding Machine 400A', quantity: 3, rate: 3500000, duration: 4, subtotal: 42000000 },
+        { equipmentId: 'CMP-002', name: 'Air Compressor 10HP', quantity: 1, rate: 4000000, duration: 4, subtotal: 16000000 },
       ],
-      subtotal: 45012000, discount: 0, total: 45012000,
+      subtotal: 58000000, discount: 0, total: 58000000,
       createdBy: 'Rental Staff', createdAt: '2026-08-18 11:20'
     },
     {
-      id: 'RNT-006', customerId: 'CUS-003', customerName: 'PT Mitra Teknologi', projectId: 'PRJ-004', projectName: 'Project Warehouse Renovation',
+      id: 'RNT-006', poNumber: 'PO/MTK/0826/003', customerId: 'CUS-003', customerName: 'PT Mitra Teknologi', projectId: 'PRJ-004', projectName: 'Project Warehouse Renovation',
       rentalDate: '2026-08-20', returnDate: '2026-10-20', branch: 'Cileungsi', branchId: 'BR-001',
       totalItems: 2, deliveryStatus: 'Completed', status: 'On Rental', invoiceStatus: 'Issued',
       notes: '',
       items: [
-        { equipmentId: 'CMP-001', name: 'Air Compressor 10HP', quantity: 2, rate: 133000, duration: 62, subtotal: 16492000 },
-        { equipmentId: 'WLD-001', name: 'Welding Machine 400A', quantity: 1, rate: 117000, duration: 62, subtotal: 7254000 },
+        { equipmentId: 'CMP-001', name: 'Air Compressor 10HP', quantity: 2, rate: 4000000, duration: 3, subtotal: 24000000 },
+        { equipmentId: 'WLD-001', name: 'Welding Machine 400A', quantity: 1, rate: 3500000, duration: 3, subtotal: 10500000 },
       ],
-      subtotal: 23746000, discount: 0, total: 23746000,
+      subtotal: 34500000, discount: 0, total: 34500000,
       createdBy: 'Admin', createdAt: '2026-08-15 09:00'
     },
     {
-      id: 'RNT-007', customerId: 'CUS-004', customerName: 'PT Karya Engineering', projectId: 'PRJ-005', projectName: 'Project Bridge Construction',
+      id: 'RNT-007', poNumber: 'PO/KE/0526/007', customerId: 'CUS-004', customerName: 'PT Karya Engineering', projectId: 'PRJ-005', projectName: 'Project Bridge Construction',
       rentalDate: '2026-05-15', returnDate: '2026-08-15', branch: 'Bekasi', branchId: 'BR-002',
       totalItems: 2, deliveryStatus: 'Completed', status: 'Completed', invoiceStatus: 'Paid',
       notes: '',
       items: [
-        { equipmentId: 'GEN-004', name: 'Generator 100 KVA', quantity: 1, rate: 283000, duration: 93, subtotal: 26319000 },
-        { equipmentId: 'CAB-003', name: 'Power Cable 100m', quantity: 5, rate: 30000, duration: 93, subtotal: 13950000 },
+        { equipmentId: 'GEN-004', name: 'Generator 100 KVA', quantity: 1, rate: 8500000, duration: 4, subtotal: 34000000 },
+        { equipmentId: 'CAB-003', name: 'Power Cable 100m', quantity: 5, rate: 900000, duration: 4, subtotal: 18000000 },
       ],
-      subtotal: 40269000, discount: 0, total: 40269000,
+      subtotal: 52000000, discount: 0, total: 52000000,
       createdBy: 'Admin', createdAt: '2026-05-10 10:30'
     },
     {
-      id: 'RNT-008', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', projectId: 'PRJ-002', projectName: 'Project Data Center Bekasi',
+      id: 'RNT-008', poNumber: 'PO/DCI/0826/040', customerId: 'CUS-001', customerName: 'PT Data Center Indonesia', projectId: 'PRJ-002', projectName: 'Project Data Center Bekasi',
       rentalDate: '2026-08-10', returnDate: '2026-11-10', branch: 'Bekasi', branchId: 'BR-002',
       totalItems: 2, deliveryStatus: 'Completed', status: 'On Rental', invoiceStatus: 'Issued',
       notes: '',
       items: [
-        { equipmentId: 'GEN-004', name: 'Generator 100 KVA', quantity: 2, rate: 283000, duration: 93, subtotal: 52638000 },
-        { equipmentId: 'CAB-003', name: 'Power Cable 100m', quantity: 8, rate: 30000, duration: 93, subtotal: 22320000 },
+        { equipmentId: 'GEN-004', name: 'Generator 100 KVA', quantity: 2, rate: 8500000, duration: 4, subtotal: 68000000 },
+        { equipmentId: 'CAB-003', name: 'Power Cable 100m', quantity: 8, rate: 900000, duration: 4, subtotal: 28800000 },
       ],
-      subtotal: 74958000, discount: 2684000, total: 72274000,
+      subtotal: 96800000, discount: 3500000, total: 93300000,
       createdBy: 'Admin', createdAt: '2026-08-05 13:15'
     },
     {
-      id: 'RNT-009', customerId: 'CUS-003', customerName: 'PT Mitra Teknologi', projectId: 'PRJ-004', projectName: 'Project Warehouse Renovation',
+      id: 'RNT-009', poNumber: 'PO/MTK/0926/005', customerId: 'CUS-003', customerName: 'PT Mitra Teknologi', projectId: 'PRJ-004', projectName: 'Project Warehouse Renovation',
       rentalDate: '2026-09-10', returnDate: '2026-10-31', branch: 'Cileungsi', branchId: 'BR-001',
       totalItems: 1, deliveryStatus: 'Pending', status: 'Pending Approval', invoiceStatus: 'Draft',
       notes: 'Waiting for manager approval',
       items: [
-        { equipmentId: 'GEN-002', name: 'Generator 50 KVA', quantity: 1, rate: 167000, duration: 52, subtotal: 8684000 },
+        { equipmentId: 'GEN-002', name: 'Generator 50 KVA', quantity: 1, rate: 5000000, duration: 2, subtotal: 10000000 },
       ],
-      subtotal: 8684000, discount: 0, total: 8684000,
+      subtotal: 10000000, discount: 0, total: 10000000,
       createdBy: 'Rental Staff', createdAt: '2026-09-03 16:00'
     },
     {
-      id: 'RNT-010', customerId: 'CUS-004', customerName: 'PT Karya Engineering', projectId: 'PRJ-005', projectName: 'Project Bridge Construction',
+      id: 'RNT-010', poNumber: 'PO/KE/0626/002', customerId: 'CUS-004', customerName: 'PT Karya Engineering', projectId: 'PRJ-005', projectName: 'Project Bridge Construction',
       rentalDate: '2026-06-01', returnDate: '2026-08-31', branch: 'Bekasi', branchId: 'BR-002',
       totalItems: 2, deliveryStatus: 'Completed', status: 'Completed', invoiceStatus: 'Paid',
       notes: '',
       items: [
-        { equipmentId: 'PMP-001', name: 'Submersible Pump 4"', quantity: 2, rate: 100000, duration: 92, subtotal: 18400000 },
-        { equipmentId: 'LAD-003', name: 'Aluminium Ladder 8m', quantity: 4, rate: 15000, duration: 92, subtotal: 5520000 },
+        { equipmentId: 'PMP-001', name: 'Submersible Pump 4"', quantity: 2, rate: 3000000, duration: 3, subtotal: 18000000 },
+        { equipmentId: 'LAD-003', name: 'Aluminium Ladder 8m', quantity: 4, rate: 450000, duration: 3, subtotal: 5400000 },
       ],
-      subtotal: 23920000, discount: 409000, total: 23511000,
+      subtotal: 23400000, discount: 400000, total: 23000000,
       createdBy: 'Admin', createdAt: '2026-05-28 09:45'
     },
   ],
@@ -844,7 +844,7 @@ const MockData = {
 
 // --- Persistence Logic ---
 // Naikkan angka ini setiap struktur data seed berubah, supaya localStorage lama di-reset.
-const MOCK_SCHEMA_VERSION = '14-tarif-harian';
+const MOCK_SCHEMA_VERSION = '15-po-bulanan';
 
 (function() {
   const STORAGE_PREFIX = 'equiprent_';

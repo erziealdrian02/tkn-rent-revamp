@@ -23,7 +23,7 @@
             <div class="kpi-icon blue"><i class="bi bi-file-earmark-text"></i></div>
             <div class="kpi-content">
               <div class="kpi-value" id="kpiActiveRentals">0</div>
-              <div class="kpi-label">Penyewaan Aktif</div>
+              <div class="kpi-label">PO Aktif</div>
             </div>
           </div>
           <div class="kpi-card">
@@ -61,7 +61,7 @@
           <div class="col-lg-4">
             <div class="er-card">
               <div class="er-card-header">
-                <h5 class="er-card-title">Status Penyewaan</h5>
+                <h5 class="er-card-title">Status PO</h5>
               </div>
               <div class="er-card-body" style="height:260px;display:flex;align-items:center;justify-content:center;">
                 <canvas id="rentalStatusChart"></canvas>
@@ -95,13 +95,13 @@
           <div class="col-12">
             <div class="er-card border-danger border-opacity-50">
               <div class="er-card-header bg-danger bg-opacity-10">
-                <h5 class="er-card-title text-danger"><i class="bi bi-exclamation-triangle me-1"></i> Penyewaan Terlambat</h5>
+                <h5 class="er-card-title text-danger"><i class="bi bi-exclamation-triangle me-1"></i> PO Terlambat</h5>
               </div>
               <div class="er-card-body p-0">
                 <div class="er-table-wrapper">
                   <table class="er-table">
                     <thead>
-                      <tr><th>Rekap Project</th><th>Pelanggan</th><th>Akhir Sewa</th><th>Terlambat</th><th>Status</th><th>Aksi</th></tr>
+                      <tr><th>Rekap PO</th><th>Pelanggan</th><th>Akhir Sewa</th><th>Terlambat</th><th>Status</th><th>Aksi</th></tr>
                     </thead>
                     <tbody id="overdueRentalsBody"></tbody>
                   </table>
@@ -224,7 +224,7 @@
     if (overdueRentals.length > 0) {
       overdueBody.innerHTML = overdueRentals.map(r => `
         <tr>
-          <td><a href="rental-detail.html?id=${r.id}" class="cell-link text-mono">${r.id}</a></td>
+          <td><a href="rental-detail.html?id=${r.id}" class="cell-link text-mono">${BizLogic.Rental.label(r.id)}</a></td>
           <td>${r.customerName}</td>
           <td>${formatDate(r.returnDate)}</td>
           <td><span class="badge bg-danger">${BizLogic.Rental.getOverdueDays(r)} hari</span></td>
@@ -233,7 +233,7 @@
         </tr>
       `).join('');
     } else {
-      overdueBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3"><i class="bi bi-check-circle text-success me-2"></i>Tidak ada penyewaan terlambat</td></tr>';
+      overdueBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3"><i class="bi bi-check-circle text-success me-2"></i>Tidak ada PO terlambat</td></tr>';
     }
 
     // Upcoming Deliveries
@@ -251,7 +251,7 @@
     const upcomingRet = MockData.rentals.filter(r => ['On Rental', 'Partially Returned'].includes(r.status) && !BizLogic.Rental.isOverdue(r));
     document.getElementById('upcomingReturns').innerHTML = upcomingRet.length ? upcomingRet.slice(0,5).map(r => `
       <tr>
-        <td><a href="rental-detail.html?id=${r.id}" class="cell-link">${r.id}</a></td>
+        <td><a href="rental-detail.html?id=${r.id}" class="cell-link">${BizLogic.Rental.label(r.id)}</a></td>
         <td>${r.projectName}</td>
         <td>${formatDate(r.returnDate)}</td>
         <td>${r.items.length} tipe</td>

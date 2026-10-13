@@ -47,14 +47,14 @@
     const D = BizLogic.Delivery;
     const bar = (pct, cls) => `<div class="progress-thin flex-grow-1"><span class="${cls || (pct >= 100 ? 'done' : '')}" style="width:${pct}%"></span></div>`;
     const pct = (a, b) => b ? Math.min(100, Math.round(a / b * 100)) : 0;
-    // Rekap stok per proyek (sama seperti Rekap Project, tapi digabung semua order sewa)
+    // Rekap stok per proyek (sama seperti Rekap PO, tapi digabung semua PO)
     function stats(p) {
       const rows = BizLogic.StockLedger.projectSummary(p.id), sum = k => rows.reduce((s, r) => s + r[k], 0);
       const moving = kind => MockData.deliveries.filter(d => d.projectId === p.id && D.kindOf(d) === kind && D.TRANSIT.includes(d.status)).reduce((s, d) => s + d.items.reduce((t, i) => t + i.qty, 0), 0);
-      // alat yang sudah tiba di gudang tapi belum diinspeksi dihitung sudah pulang (sama dgn Rekap Project)
+      // alat yang sudah tiba di gudang tapi belum diinspeksi dihitung sudah pulang (sama dgn Rekap PO)
       const atWarehouse = MockData.returns.filter(r => r.projectId === p.id && r.status !== 'Completed').reduce((s, r) => s + r.items.reduce((t, i) => t + i.sent, 0), 0);
       const need = sum('required'), sent = sum('delivered'), back = sum('returned') + atWarehouse;
-      return { need, sent, back, onSite: sent - back, left: Math.max(0, need - sent), goingOut: moving('SEWA'), goingBack: moving('PEMULANGAN'), pctSent: pct(sent, need), pctBack: pct(back, sent) };
+      return { need, sent, back, onSite: sum('onSite') - atWarehouse, left: Math.max(0, need - sent), goingOut: moving('SEWA'), goingBack: moving('PEMULANGAN'), pctSent: pct(sent, need), pctBack: pct(back, sent) };
     }
     const n = (v, cls) => `<td class="num ${v ? (cls || '') : 'zero'}">${formatNumber(v)}</td>`;
     function filterData(){

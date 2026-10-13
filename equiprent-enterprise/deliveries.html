@@ -71,7 +71,7 @@
       if (m == null || m <= 0) return '';
       return `<div class="fs-11 text-danger">Telat ${D.durationText(m)}</div>`;
     }
-    const orderLink = d => d.saleId ? `<a href="sale-detail.html?id=${d.saleId}" class="cell-link">${d.saleId}</a>` : (x => x.alloc && x.alloc.length ? [...new Set(x.alloc.map(a => a.rentalId))].map(id => `<a href="rental-detail.html?id=${id}" class="cell-link">${id}</a>`).join(', ') : x.rentalId ? `<a href="rental-detail.html?id=${x.rentalId}" class="cell-link">${x.rentalId}</a>` : '-')(d);
+    const orderLink = d => d.saleId ? `<a href="sale-detail.html?id=${d.saleId}" class="cell-link">${d.saleId}</a>` : (x => x.alloc && x.alloc.length ? [...new Set(x.alloc.map(a => a.rentalId))].map(id => `<a href="rental-detail.html?id=${id}" class="cell-link">${BizLogic.Rental.label(id)}</a>`).join(', ') : x.rentalId ? `<a href="rental-detail.html?id=${x.rentalId}" class="cell-link">${BizLogic.Rental.label(x.rentalId)}</a>` : '-')(d);
 
     function renderKpis() {
       const list = MockData.deliveries.filter(open);

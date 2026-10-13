@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Detail Rekap Project - EquipRent Enterprise</title>
+  <title>Detail Rekap PO - EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -67,7 +67,7 @@
   <script>
     const rentalId = getUrlParam('id') || 'RNT-001';
     const rental = MockData.rentals.find(r => r.id === rentalId) || MockData.rentals[0];
-    const user = initApp('rentals.html', [{label:'Pelanggan & Order',href:'#'},{label:'Rekap Project',href:'rentals.html'},{label:rental.id}], 'Rekap Project ' + rental.id);
+    const user = initApp('rentals.html', [{label:'Pelanggan & Order',href:'#'},{label:'Rekap PO',href:'rentals.html'},{label:BizLogic.Rental.label(rental)}], BizLogic.Rental.title(rental));
     const pctBar = (pct, cls) => `<div class="progress-thin flex-grow-1"><span class="${cls || (pct >= 100 ? 'done' : '')}" style="width:${pct}%"></span></div>`;
 
     // Populate delivery modal dropdowns
@@ -134,7 +134,7 @@
         <div class="detail-header-left">
           <div class="detail-header-icon"><i class="bi bi-file-earmark-text"></i></div>
           <div class="detail-header-info">
-            <h2>${rental.id} ${statusBadge(shownStatus)}</h2>
+            <h2>${BizLogic.Rental.title(rental)} ${statusBadge(shownStatus)}</h2>
             <div class="detail-meta">
               <span class="detail-meta-item"><i class="bi bi-people"></i><a href="customer-detail.html?id=${rental.customerId}">${rental.customerName}</a></span>
               <span class="detail-meta-item"><i class="bi bi-folder"></i><a href="project-detail.html?id=${rental.projectId}">${rental.projectName}</a></span>
@@ -214,10 +214,10 @@
           ${kpi('green', 'bi-geo-alt', 'Masih di Proyek', formatNumber(rt.onSite), rt.onSite ? 'belum dipulangkan' : 'semua sudah kembali')}
         </div>
         <div class="info-grid mb-4">
-          <div class="info-item"><span class="info-label">No. Rekap</span><span class="info-value text-mono">${rental.id}</span></div>
+          <div class="info-item"><span class="info-label">Kode Internal</span><span class="info-value text-mono">${rental.id}</span></div>
           <div class="info-item"><span class="info-label">Pelanggan</span><span class="info-value"><a href="customer-detail.html?id=${rental.customerId}">${rental.customerName}</a></span></div>
           <div class="info-item"><span class="info-label">Proyek</span><span class="info-value"><a href="project-detail.html?id=${rental.projectId}">${rental.projectName}</a></span></div>
-          <div class="info-item"><span class="info-label">No. PO Customer</span><span class="info-value text-mono">${rental.poNumber || '-'}</span></div>
+          <div class="info-item"><span class="info-label">No. PO</span><span class="info-value text-mono">${rental.poNumber || '-'}</span></div>
           <div class="info-item"><span class="info-label">Periode Awal Sewa</span><span class="info-value">${formatDate(rental.rentalDate)}</span></div>
           <div class="info-item"><span class="info-label">Akhir Sewa</span><span class="info-value">${formatDate(rental.returnDate)}${isOverdue ? ' <span class="badge bg-danger ms-1">lewat ' + overdueDays + ' hari</span>' : ''}</span></div>
           <div class="info-item"><span class="info-label">Gudang</span><span class="info-value">${rental.branch}</span></div>
@@ -247,7 +247,7 @@
       tc += `<div class="er-tab-content" id="tab-equipment">
         <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Alat</th><th class="num">Kebutuhan</th><th class="num">Terkirim</th><th class="num">Dikirim (di jalan)</th>
           <th class="num">Kepulangan</th><th class="num">Dipulangkan (di jalan)</th><th class="num">Di Proyek</th><th style="min-width:120px">% Terkirim</th><th style="min-width:120px">% Kepulangan</th>
-          <th class="num">Tarif / Hari</th><th class="num">Subtotal</th></tr></thead><tbody>
+          <th class="num">Tarif / Bulan</th><th class="num">Subtotal</th></tr></thead><tbody>
         ${recap.rows.map(r => { const item = rental.items.find(i => i.name === r.name) || {};
           return `<tr><td class="fw-600">${r.name}</td>${nCell(r.need, 'fw-600')}${nCell(r.sent)}${nCell(r.goingOut, 'qty-warn')}${nCell(r.back)}${nCell(r.goingBack, 'qty-warn')}${nCell(r.onSite, 'col-strong')}
             ${pctCell(r.pctSent)}${pctCell(r.pctBack, 'back')}<td class="num">${formatRupiah(item.rate)}</td><td class="num fw-600">${formatRupiah(item.subtotal)}</td></tr>`; }).join('')}
@@ -355,7 +355,7 @@
     function submitRental() {
       const result = BizLogic.Rental.submit(rental.id);
       if (!result.success) { showToast(result.error, 'error'); return; }
-      showToast('Order sewa diajukan untuk ACC Staff Piutang', 'success');
+      showToast('PO diajukan untuk ACC Staff Piutang', 'success');
       setTimeout(() => location.reload(), 600);
     }
 
@@ -377,8 +377,8 @@
 
     function approveRental() {
       BizLogic.showConfirmModal(
-        'ACC Order Sewa',
-        'ACC penyewaan <strong>' + rental.id + '</strong>? Stok alat akan dipesan dan surat jalan bisa dibuat.<br><span class="fs-13 text-muted">Piutang customer: ' + formatRupiah(BizLogic.Customer.summary(rental.customerId).outstanding) + '</span>',
+        'ACC PO',
+        'ACC PO <strong>' + rental.id + '</strong>? Stok alat akan dipesan dan surat jalan bisa dibuat.<br><span class="fs-13 text-muted">Piutang customer: ' + formatRupiah(BizLogic.Customer.summary(rental.customerId).outstanding) + '</span>',
         '<i class="bi bi-check-lg me-1"></i>Approve', 'btn-success',
         function(fields) {
           const result = BizLogic.Rental.approve(rental.id, fields.notes);
@@ -488,7 +488,7 @@
       }
     }
 
-    // ──── SURAT JALAN PEMULANGAN (per stok proyek, bisa gabung beberapa order sewa) ────
+    // ──── SURAT JALAN PEMULANGAN (per stok proyek, bisa gabung beberapa PO) ────
     function openPickupModal() {
       const est = rental.logisticsEstimate;
       openProjectPickup(rental.projectId, { branchId: rental.branchId, date: est && est.returnDate });

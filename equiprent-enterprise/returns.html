@@ -23,7 +23,7 @@
             <div class="table-search"><i class="bi bi-search"></i><input type="text" placeholder="Search returns..." id="searchInput" oninput="filterData()"></div>
             <select class="filter-select" id="statusFilter" onchange="filterData()"><option value="">Semua Status</option><option value="Inspection">Menunggu Inspeksi</option><option value="Completed">Selesai</option></select>
           </div></div>
-          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Return #</th><th>Rekap Project</th><th>Proyek</th><th>Pelanggan</th><th>Tgl. Kembali</th><th>Item</th><th>Status</th><th>Aksi</th></tr></thead>
+          <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Return #</th><th>Rekap PO</th><th>Proyek</th><th>Pelanggan</th><th>Tgl. Kembali</th><th>Item</th><th>Status</th><th>Aksi</th></tr></thead>
           <tbody id="tableBody"></tbody></table></div>
         </div></div>
       </div>
@@ -32,6 +32,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
+  <script src="assets/js/business-logic.js"></script>
   <script src="assets/js/app.js"></script>
   <script>
     initApp('returns.html',[{label:'Rekap Stok',href:'#'},{label:'Pengembalian'}],'Pengembalian');
@@ -44,7 +45,7 @@
       });
       document.getElementById('tableBody').innerHTML=data.map(r=>`<tr>
         <td><a href="return-detail.html?id=${r.id}" class="cell-link text-mono">${r.id}</a></td>
-        <td>${(x => x.alloc && x.alloc.length ? [...new Set(x.alloc.map(a => a.rentalId))].map(id => `<a href="rental-detail.html?id=${id}" class="cell-link">${id}</a>`).join(', ') : x.rentalId ? `<a href="rental-detail.html?id=${x.rentalId}" class="cell-link">${x.rentalId}</a>` : '-')(r)}</td>
+        <td>${(x => x.alloc && x.alloc.length ? [...new Set(x.alloc.map(a => a.rentalId))].map(id => `<a href="rental-detail.html?id=${id}" class="cell-link">${BizLogic.Rental.label(id)}</a>`).join(', ') : x.rentalId ? `<a href="rental-detail.html?id=${x.rentalId}" class="cell-link">${BizLogic.Rental.label(x.rentalId)}</a>` : '-')(r)}</td>
         <td>${r.projectName}</td><td>${r.customerName}</td><td>${formatDate(r.returnDate)}</td>
         <td>${r.items.length} tipe</td><td>${statusBadge(r.status)}</td>
         <td><a href="return-detail.html?id=${r.id}" class="btn-action"><i class="bi bi-eye"></i></a></td>

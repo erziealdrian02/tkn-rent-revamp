@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Sewa Baru - EquipRent Enterprise</title>
+  <title>PO Baru - EquipRent Enterprise</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -18,14 +18,14 @@
       <div class="app-content">
         <div class="page-header">
           <div class="page-header-left">
-            <h2 class="page-header-title">Order Sewa Baru</h2>
-            <p class="page-header-subtitle">Pilih proyek, cek kebutuhannya, lalu isi alat yang dipesan. Order masuk ke Rekap Project setelah di-ACC Staff Piutang.</p>
+            <h2 class="page-header-title">PO Baru</h2>
+            <p class="page-header-subtitle">PO dari customer untuk satu proyek: isi No. PO, cek kebutuhan proyek, lalu alat yang dipesan. PO bisa dikirim setelah di-ACC Staff Piutang.</p>
           </div>
         </div>
 
         <!-- 1. Informasi order -->
         <div class="form-section">
-          <h5 class="form-section-title"><i class="bi bi-info-circle me-2"></i>Informasi Order</h5>
+          <h5 class="form-section-title"><i class="bi bi-info-circle me-2"></i>Informasi PO</h5>
           <div class="row g-3">
             <div class="col-md-4">
               <label class="form-label form-label-er">Pelanggan *</label>
@@ -37,8 +37,9 @@
               <div class="fs-11 text-muted mt-1" id="projectPeriod"></div>
             </div>
             <div class="col-md-4">
-              <label class="form-label form-label-er">Gudang Asal *</label>
-              <select class="form-select" id="branchSelect" onchange="renderRows()"></select>
+              <label class="form-label form-label-er">No. PO Customer *</label>
+              <input type="text" class="form-control" id="poNumber" placeholder="mis. PO/APG/0426/001">
+              <div class="fs-11 text-muted mt-1">Nomor PO / kontrak dari customer. Satu proyek bisa banyak PO.</div>
             </div>
             <div class="col-6 col-md-3">
               <label class="form-label form-label-er">Periode Awal Sewa *</label>
@@ -48,13 +49,13 @@
               <label class="form-label form-label-er">Akhir Sewa *</label>
               <input type="date" class="form-control" id="endDate" onchange="onDateChange()">
             </div>
-            <div class="col-md-2">
+            <div class="col-md-3">
               <label class="form-label form-label-er">Durasi</label>
               <div class="form-control bg-light" id="durationText">-</div>
             </div>
-            <div class="col-md-4">
-              <label class="form-label form-label-er">No. PO Customer</label>
-              <input type="text" class="form-control" id="poNumber" placeholder="mis. PO/APG/0426/001">
+            <div class="col-md-3">
+              <label class="form-label form-label-er">Gudang Asal *</label>
+              <select class="form-select" id="branchSelect" onchange="renderRows()"></select>
             </div>
             <div class="col-12">
               <label class="form-label form-label-er">Catatan</label>
@@ -82,13 +83,13 @@
             <table class="er-table">
               <thead><tr>
                 <th style="min-width:220px">Alat</th><th>Stok di Gudang</th><th class="num" style="width:110px">Qty</th>
-                <th class="num">Tarif / Hari</th><th class="num">Hari</th><th class="num">Subtotal</th><th style="width:44px"></th>
+                <th class="num">Tarif / Bulan</th><th class="num">Bulan</th><th class="num">Subtotal</th><th style="width:44px"></th>
               </tr></thead>
               <tbody id="rowsBody"></tbody>
               <tfoot id="rowsFoot"></tfoot>
             </table>
           </div>
-          <div class="fs-12 text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Subtotal = Qty × Tarif / Hari × Hari. Tarif diambil dari kebutuhan proyek (atau tarif alat bila belum ada). Tagihan sebenarnya dihitung dari tanggal surat jalan kirim / pulang.</div>
+          <div class="fs-12 text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Subtotal = Qty × Tarif / Bulan × Bulan (bulan kalender yang dilalui; tanggal di bulan yang sama = 1 bulan). Tarif diambil dari kebutuhan proyek (atau tarif alat bila belum ada). Tagihan sebenarnya dihitung dari tanggal surat jalan kirim / pulang.</div>
         </div>
 
         <!-- Aksi -->
@@ -110,7 +111,7 @@
   <script src="assets/js/app.js"></script>
   <script src="assets/js/business-logic.js"></script>
   <script>
-    const user = initApp('rentals.html', [{label:'Pelanggan & Order',href:'#'},{label:'Rekap Project',href:'rentals.html'},{label:'Order Sewa Baru'}], 'Order Sewa Baru');
+    const user = initApp('rentals.html', [{label:'Pelanggan & Order',href:'#'},{label:'Rekap PO',href:'rentals.html'},{label:'PO Baru'}], 'PO Baru');
     const R = BizLogic.Rental, esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
     const names = BizLogic.StockLedger.equipmentNames();
     let rows = []; // { name, qty }
@@ -121,7 +122,7 @@
 
     const project = () => MockData.projects.find(p => p.id === document.getElementById('projectSelect').value);
     const branchShort = () => BizLogic.Stock.branchShort(document.getElementById('branchSelect').value);
-    const days = () => R.durationDays(document.getElementById('startDate').value, document.getElementById('endDate').value);
+    const days = () => R.durationMonths(document.getElementById('startDate').value, document.getElementById('endDate').value); // jumlah bulan
     const rate = name => BizLogic.Billing.unitPrice(document.getElementById('projectSelect').value, name);
 
     function updateProjects() {
@@ -152,7 +153,7 @@
       if (p && s && s < p.startDate) warn = 'sebelum mulai proyek';
       else if (p && p.endDate && e && e > p.endDate) warn = 'melewati tenggat proyek';
       else if (s && e && e < s) warn = 'akhir sebelum awal';
-      document.getElementById('durationText').innerHTML = warn ? `<span class="text-danger">${warn}</span>` : R.durationText(days());
+      document.getElementById('durationText').innerHTML = warn ? `<span class="text-danger">${warn}</span>` : R.durationText(document.getElementById('startDate').value, document.getElementById('endDate').value);
       renderNeeds(); renderRows();
     }
 
@@ -164,7 +165,7 @@
       document.getElementById('btnFillAll').disabled = !needs.some(n => n.remaining > 0);
       if (!needs.length) { box.innerHTML = `<div class="text-muted fs-13">Proyek ini belum punya daftar kebutuhan alat. <a href="project-detail.html?id=${p.id}">Isi kebutuhan proyek</a> atau langsung tambah alat di bawah.</div>`; return; }
       box.innerHTML = `<div class="er-table-wrapper"><table class="er-table">
-        <thead><tr><th>Alat</th><th class="num">Tarif / Hari</th><th class="num">Kebutuhan</th><th class="num">Sudah Dipesan</th><th class="num">Di Proyek Sekarang</th><th class="num">Sisa Belum Dipesan</th><th class="num">Di Order Ini</th><th></th></tr></thead>
+        <thead><tr><th>Alat</th><th class="num">Tarif / Bulan</th><th class="num">Kebutuhan</th><th class="num">Sudah Dipesan</th><th class="num">Di Proyek Sekarang</th><th class="num">Sisa Belum Dipesan</th><th class="num">Di Order Ini</th><th></th></tr></thead>
         <tbody>${needs.map(n => { const inThis = (rows.find(r => r.name === n.name) || {}).qty || 0; const left = n.remaining - inThis; return `<tr>
           <td class="fw-600">${esc(n.name)}</td><td class="num">${formatRupiah(n.unitPrice)}</td><td class="num">${n.need}</td><td class="num">${n.ordered}</td>
           <td class="num">${n.onSite}</td>
@@ -223,7 +224,7 @@
         items: rows.map(r => ({ name: r.name, quantity: r.qty }))
       }, submit);
       if (!res.success) { showToast(res.error, 'error'); return; }
-      showToast(`Order sewa ${res.rental.id} ${submit ? 'diajukan ke Staff Piutang' : 'disimpan sebagai draft'}`, 'success');
+      showToast(`PO ${res.rental.poNumber} ${submit ? 'diajukan ke Staff Piutang' : 'disimpan sebagai draft'}`, 'success');
       setTimeout(() => window.location.href = 'rental-detail.html?id=' + res.rental.id, 800);
     }
 

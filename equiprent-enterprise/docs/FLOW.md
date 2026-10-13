@@ -9,6 +9,11 @@ Semua isi diambil dari kode prototype saat ini (`*.html` + `assets/js/business-l
 > (alat hilang dipulangkan administratif lalu dijual); Buku Kas jadi form **kasir** → **Generate** (Accounting) → Jurnal → **COA per bulan** dengan pie chart.
 > Diagram lama di bagian 2–4 & 9 masih memakai istilah lama; aturan di bagian 13 yang berlaku.
 >
+> **Update hasil ketemu owner (13 Okt 2026, batch 7)** — lihat [bagian 17](#17-revisi-owner-po-tarif-bulanan-pemulangan-lebih-hilang--perbaikan):
+> "Rekap Project" jadi **Rekap PO** (Customer → Proyek → **PO** → Pengiriman); **tarif kembali per bulan** (tanggal di bulan yang sama = 1 bulan);
+> inspeksi pemulangan **Baik / Rusak / Hilang / Lebih**; alat rusak masuk **Perbaikan** (bisa jadi alat lain); Rekap Stock dikelompokkan per PO.
+> Aturan tarif harian di bagian 16 **tidak berlaku lagi**.
+>
 > **Update setelah uji coba (12 Okt 2026, batch 6)** — lihat [bagian 16](#16-revisi-setelah-uji-coba-tarif-harian-pemulangan-per-proyek-pr--po):
 > **semua tarif sekarang per hari** (tagihan = Hari × Qty × Tarif/hari, tanpa "Bulan Sewa"); order sewa dikunci di periode proyek
 > dan menampilkan kebutuhan proyek; **pemulangan berdasarkan stok proyek** (satu SJ untuk beberapa order sewa); **ACC PR langsung membuat PO**;
@@ -54,13 +59,14 @@ Cara baca diagram:
 | 13 | [Rekap Project, Jual Alat di Proyek & Kasir → Jurnal → COA](#13-rekap-project-jual-alat-di-proyek--kasir--jurnal--coa) | Catatan user batch 3: rekap per proyek + persentase, hapus Hilang, kasir, generate, kategori jurnal, COA bulanan |
 | 15 | [Revisi setelah User Guide: Kasir → Logistik, urutan Logistik → Piutang, keterlambatan](#15-revisi-setelah-user-guide) | Role Kasir dihapus, Logistik di atas Piutang, keterlambatan hanya dideteksi |
 | 16 | [Revisi setelah uji coba: tarif harian, pemulangan per proyek, PR → PO](#16-revisi-setelah-uji-coba-tarif-harian-pemulangan-per-proyek-pr--po) | Tarif & durasi harian, order sewa dalam periode proyek + panel kebutuhan, kolom Proyek / Rekap Project, tab Persetujuan, pemulangan per stok proyek, ACC PR = PO, select2 |
+| 17 | [Revisi owner: PO, tarif bulanan, pemulangan lebih / hilang & perbaikan](#17-revisi-owner-po-tarif-bulanan-pemulangan-lebih-hilang--perbaikan) | Hierarki Customer → Proyek → PO → Pengiriman, tarif per bulan kalender, kepulangan lebih (adjustment), hilang diklaim, perbaikan bisa jadi alat lain, Rekap Stock per PO |
 | 14 | [DATA TKN.xlsx: Logistik, Rekap Tagihan, Rekap Stock & LAPKEU](#14-data-tknxlsx-logistik-rekap-tagihan-rekap-stock--lapkeu) | Gabung role ke Logistik, denda telat ke Logistik, format rekap tagihan (PO, DPP 11/12, PPN 12%), matriks rekap stock, nomor SJ, kode transaksi |
 
 ---
 
 ## Ringkasan alur (versi teks)
 
-1. **Siapkan data**: Pelanggan → Proyek. Kebutuhan alat + **Tarif per hari** diisi di proyek, dan tarif ini yang dipakai saat menagih.
+1. **Siapkan data**: Pelanggan → Proyek → PO. Kebutuhan alat + **Tarif per bulan** diisi di proyek, dan tarif ini yang dipakai saat menagih.
 2. **Penyewaan**: buat sewa → *Submit for Approval* → Manager *Setujui*. Stok gudang jadi **dipesan**.
 3. **Pengiriman**: *Create Delivery* → Depart → Arrive → *Complete Handover (PoD)*. Stok pindah gudang → proyek (SJK). **Sewa mulai dihitung dari tanggal ini.**
 4. **Tagihan**: tiap periode buka *Rekap Tagihan* → *Buat Invoice*.
@@ -504,7 +510,7 @@ database Data
 Finance->BL:sidebar Piutang → Rekap Tagihan
 BL-->Finance:tabel "Belum Ditagih (s/d hari ini)" → klik "Rekap" pada proyek
 note right of BL:Periode otomatis: sehari setelah invoice terakhir\n(atau tanggal SJK pertama) s/d akhir bulan itu
-Sys->BL:1 baris = 1 SJ Kirim × alat\nAwal = tgl SJK atau awal periode\nAkhir = tgl SJR/HL atau akhir periode\nTotal = Qty × Hari × Tarif / hari proyek
+Sys->BL:1 baris = 1 SJ Kirim × alat\nAwal = tgl SJK atau awal periode\nAkhir = tgl SJR/HL atau akhir periode\nTotal = Qty × Bulan × Tarif / bulan proyek (bulan kalender, bulan yang sama = 1)
 opt alat belum pulang tapi mau dihitung sampai tanggal tertentu
   Finance->BL:ubah tanggal di kolom "B. Akhir"
 end
@@ -1121,6 +1127,51 @@ Purchase->Sys:Purchase Request: vendor, barang, term of payment, pajak, rekening
 Finance->Sys:"ACC"
 Sys->Sys:PO dibuat otomatis (status Disetujui), PR → Dibuat PO
 Purchase->Sys:"Pesan ke Supplier" → "Cetak PO"
+```
+
+---
+
+## 17. Revisi owner: PO, tarif bulanan, pemulangan lebih, hilang & perbaikan
+
+Catatan dari pertemuan dengan owner (13 Okt 2026, batch 7). Menggantikan aturan tarif harian di bagian 16.
+
+| Catatan owner | Di prototype |
+|---|---|
+| Hierarki: Customer → Project → **PO** → Pengiriman. PO = kontrak dari customer, satu proyek bisa banyak PO, satu PO bisa berkali-kali kirim; hitungan tetap per proyek | Menu **Rekap PO** (dulu Rekap Project) mengelompokkan PO per proyek. **PO Baru** dibuat dari proyek (tombol di detail proyek / tab PO), **No. PO wajib** dan unik per customer. Semua tautan menampilkan No. PO (kode internal RNT-xxx tetap ada). Tagihan & stok tetap dihitung per proyek |
+| Pengiriman tetap formatnya, penyewaan dirombak jadi PO | Surat jalan kirim tetap per PO. Istilah "order sewa / penyewaan / rekap project" di tampilan diganti PO |
+| Pemulangan lebih: kirim 15, pulang 20 → ke customer tetap 15, sisa 5 dicatat terpisah | Inspeksi punya kolom **Lebih**. Kelebihan diposting sebagai dokumen **KL – Kepulangan Lebih (Adjustment)** ke gudang, tidak mengurangi stok proyek dan **tidak masuk** total pemulangan di laporan customer |
+| Perbaikan & rusak diadakan lagi. Contoh: kirim pipa 15m ×20, pulang 12 baik, 6 rusak, 2 hilang; 6 rusak diperbaiki jadi pipa 10m | Inspeksi: **Baik / Rusak / Hilang**. Rusak → stok rusak gudang → **Stok Gudang → Rincian Kondisi & Perbaikan → Perbaikan**: qty diproses, afkir, dan **hasil boleh alat lain** (ketik nama baru, mis. Pipa 10m). Dokumen **PBK** (rusak → perbaikan), **PBS** (hasil → stok tersedia), **AF** (afkir). Ada riwayat perbaikan |
+| Hilang tetap minta ganti ke customer | Hilang diposting **HL – Hilang di Proyek** (stok proyek berkurang, tagihan sewa berhenti di tanggal itu). **Buat Klaim (Rusak / Hilang)**: hilang = nilai ganti (tarif/bulan × 10), rusak = 30% nilai ganti; nilai bisa diubah |
+| CSV Rekap Stock PRJ ikut PO; kepulangan tidak per PO | **Stok Proyek → Format Rekap Stock** & Export CSV: Pengiriman per PO (SJ, total kirim & sisa per PO), total pengiriman, sisa kebutuhan; Pemulangan (semua SJ, tidak per PO); Hilang; **Sisa alat di proyek = kirim − pulang − hilang**; Kepulangan lebih di bagian terpisah (tidak dihitung) |
+| Harga per **bulan**, bukan per hari; tanggal di bulan yang sama tetap 1 bulan | **Bulan = jumlah bulan kalender yang dilalui** (5–20 Okt = 1, 25 Sep–10 Okt = 2). Rekap Tagihan: **Jumlah = Bulan × Qty × Tarif/bulan** (kolom Hari tetap sebagai info). PO: subtotal = qty × tarif/bulan × bulan. Invoice lama (harian / ÷ 30) tetap tampil dengan rumusnya sendiri |
+
+```
+title 17 - PO, pemulangan & perbaikan
+
+actor Logistik
+actor "Staff Piutang" as AR
+participant "Sistem" as Sys
+database "Stok" as ST
+
+Logistik->Sys:Proyek → "PO Baru": No. PO customer, alat, qty, tarif/bulan
+AR->Sys:"ACC" PO
+loop satu PO bisa berkali-kali kirim
+  Logistik->Sys:"Surat Jalan Kirim" → serah terima
+  Sys->ST:SJK gudang → proyek
+end
+Logistik->Sys:"Surat Jalan Pemulangan" (stok proyek, dari PO mana saja)
+Logistik->Sys:Inspeksi: Baik / Rusak / Hilang + Lebih
+Sys->ST:SJR baik & rusak → gudang
+opt ada yang hilang
+  Sys->ST:HL proyek → hilang
+  AR->Sys:"Buat Klaim (Rusak / Hilang)" → invoice klaim
+end
+opt datang lebih dari stok proyek
+  Sys->ST:KL kepulangan lebih → gudang (adjustment, tidak masuk laporan customer)
+end
+Logistik->Sys:Stok Gudang → "Perbaikan": afkir sebagian, sisanya jadi alat sama / alat lain
+Sys->ST:PBK rusak → perbaikan, PBS → stok tersedia, AF afkir
+AR->Sys:Rekap Tagihan: Bulan × Qty × Tarif/bulan
 ```
 
 ---

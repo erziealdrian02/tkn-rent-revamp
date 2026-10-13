@@ -96,7 +96,7 @@
     const remaining = Inv.outstanding(inv);
     const isShadow = status === 'Shadow';
     const isRent = inv.type === 'Sewa';
-    const isRecap = isRent && (!!inv.monthDays || !!inv.daily); // tabel sewa: Qty × Hari × Tarif harian (invoice lama: ÷ bulan sewa)
+    const isRecap = isRent && (!!inv.monthDays || !!inv.daily || !!inv.monthly); // tabel sewa: Qty × Bulan × Tarif/bulan (invoice lama: hari ÷ bulan sewa / harian)
     const canRecap = isShadow && isRent && inv.projectId;
 
     document.getElementById('actions').innerHTML = `
@@ -114,10 +114,10 @@
       : inv.fromShadow ? `<div class="alert alert-light border py-2 fs-13"><i class="bi bi-file-earmark-check me-1"></i>Diterbitkan dari invoice bayangan${inv.shadowEstimate != null ? ' (total saat bayangan ' + formatRupiah(inv.shadowEstimate) + ')' : ''}.</div>` : '';
 
     const itemsHead = isRecap
-      ? `<tr><th>No</th><th>Nama Barang</th><th>SJ Kirim</th><th class="text-end">Qty</th><th>Awal</th><th>Akhir</th><th class="text-end">Hari</th><th class="text-end">${inv.monthDays ? 'Harga Satuan' : 'Tarif / Hari'}</th><th class="text-end">Total</th></tr>`
+      ? `<tr><th>No</th><th>Nama Barang</th><th>SJ Kirim</th><th class="text-end">Qty</th><th>Awal</th><th>Akhir</th><th class="text-end">${inv.monthly ? 'Bulan' : 'Hari'}</th><th class="text-end">${inv.monthDays ? 'Harga Satuan' : inv.daily ? 'Tarif / Hari' : 'Tarif / Bulan'}</th><th class="text-end">Total</th></tr>`
       : '<tr><th>No</th><th style="width:55%">Deskripsi</th><th class="text-end">Qty</th><th class="text-end">Harga Satuan</th><th class="text-end">Total</th></tr>';
     const itemsBody = inv.items.map((it, n) => isRecap
-      ? `<tr><td>${n + 1}</td><td>${it.desc}</td><td class="text-mono fs-12">${it.sjDelivery || '<span class="text-muted">manual</span>'}${it.sjReturn ? '<br><span class="text-muted">↩ ' + it.sjReturn + '</span>' : ''}</td><td class="text-end">${it.qty}</td><td>${formatDate(it.startDate)}</td><td>${formatDate(it.endDate)}${it.adjusted ? ' <i class="bi bi-pencil-square text-warning" title="Tanggal di-adjust"></i>' : ''}</td><td class="text-end">${it.days}</td><td class="text-end">${formatRupiah(it.unitPrice)}</td><td class="text-end">${formatRupiah(it.amount)}</td></tr>`
+      ? `<tr><td>${n + 1}</td><td>${it.desc}</td><td class="text-mono fs-12">${it.sjDelivery || '<span class="text-muted">manual</span>'}${it.sjReturn ? '<br><span class="text-muted">↩ ' + it.sjReturn + '</span>' : ''}</td><td class="text-end">${it.qty}</td><td>${formatDate(it.startDate)}</td><td>${formatDate(it.endDate)}${it.adjusted ? ' <i class="bi bi-pencil-square text-warning" title="Tanggal di-adjust"></i>' : ''}</td><td class="text-end">${inv.monthly ? it.months : it.days}</td><td class="text-end">${formatRupiah(it.unitPrice)}</td><td class="text-end">${formatRupiah(it.amount)}</td></tr>`
       : `<tr><td>${n + 1}</td><td>${it.desc}</td><td class="text-end">${it.qty}</td><td class="text-end">${formatRupiah(it.unitPrice)}</td><td class="text-end">${formatRupiah(it.amount)}</td></tr>`
     ).join('') || `<tr><td colspan="${isRecap ? 9 : 5}" class="text-center text-muted py-4">Belum ada barang${isShadow ? ' - klik <strong>Ubah Barang</strong> untuk menambahkan' : ''}</td></tr>`;
 
@@ -157,7 +157,7 @@
       </div>
 
       <div class="er-table-wrapper"><table class="w-100 invoice-items-table mb-0 ${isRecap ? 'rent' : ''}"><thead>${itemsHead}</thead><tbody>${itemsBody}</tbody></table></div>
-      ${isRecap ? `<p class="fs-12 text-muted mt-2 mb-0">${inv.monthDays ? `Total = Qty × Hari × Harga Satuan ÷ ${inv.monthDays}` : 'Total = Qty × Hari × Tarif / Hari'}. Hari = Akhir − Awal + 1.</p>` : ''}
+      ${isRecap ? `<p class="fs-12 text-muted mt-2 mb-0">${inv.monthDays ? `Total = Qty × Hari × Harga Satuan ÷ ${inv.monthDays}. Hari = Akhir − Awal + 1` : inv.daily ? 'Total = Qty × Hari × Tarif / Hari. Hari = Akhir − Awal + 1' : 'Total = Qty × Bulan × Tarif / Bulan. Bulan = bulan kalender yang dilalui (tanggal di bulan yang sama = 1 bulan)'}.</p>` : ''}
 
       <div class="invoice-summary mt-4">
         <table>

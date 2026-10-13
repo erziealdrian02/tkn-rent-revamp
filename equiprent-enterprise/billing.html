@@ -70,11 +70,11 @@
                 <button class="btn btn-sm btn-outline-primary" onclick="addManual()"><i class="bi bi-plus-lg me-1"></i>Tambah baris</button>
               </div>
               <div class="er-table-wrapper"><table class="er-table">
-                <thead><tr><th>No</th><th>Nama Barang / Keterangan</th><th style="width:90px">Qty</th><th style="width:150px">Tarif / Hari</th><th style="width:150px">Awal</th><th style="width:150px">Akhir</th><th class="num">Hari</th><th class="num">Total</th><th></th></tr></thead>
+                <thead><tr><th>No</th><th>Nama Barang / Keterangan</th><th style="width:90px">Qty</th><th style="width:150px">Tarif / Bulan</th><th style="width:150px">Awal</th><th style="width:150px">Akhir</th><th class="num">Bulan</th><th class="num">Total</th><th></th></tr></thead>
                 <tbody id="manualBody"></tbody>
                 <tfoot id="manualFoot"></tfoot>
               </table></div>
-              <div class="fs-12 text-muted mt-1"><i class="bi bi-info-circle me-1"></i>Isi tanggal → dihitung Qty × Hari × Tarif / hari. Tanpa tanggal → Qty × Harga (mis. ongkos kirim, biaya lain).</div>
+              <div class="fs-12 text-muted mt-1"><i class="bi bi-info-circle me-1"></i>Isi tanggal → dihitung Qty × Bulan × Tarif / bulan (tanggal di bulan yang sama = 1 bulan). Tanpa tanggal → Qty × Harga (mis. ongkos kirim, biaya lain).</div>
             </div>
 
             <div id="stockBox">
@@ -83,7 +83,7 @@
               <thead><tr>
                 <th rowspan="2">No</th><th rowspan="2">Nama Barang</th><th rowspan="2">SJ Kirim / Pulang</th>
                 <th colspan="2" class="text-center">Periode Sewa</th>
-                <th rowspan="2" class="num">Hari (D)</th><th rowspan="2" class="num">Qty (Q)</th><th rowspan="2" class="num">Tarif / Hari (P)</th><th rowspan="2" class="num text-nowrap">Jumlah<div class="fw-normal">D×Q×P</div></th>
+                <th rowspan="2" class="num">Hari (D)</th><th rowspan="2" class="num">Bulan (M)</th><th rowspan="2" class="num">Qty (Q)</th><th rowspan="2" class="num">Tarif / Bulan (P)</th><th rowspan="2" class="num text-nowrap">Jumlah<div class="fw-normal">M×Q×P</div></th>
               </tr><tr><th>Awal</th><th>Akhir</th></tr></thead>
               <tbody id="recapBody"></tbody>
               <tfoot id="recapFoot"></tfoot>
@@ -91,8 +91,8 @@
 
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mt-3">
               <div class="fs-12 text-muted" style="max-width:640px">
-                <div><strong>Hari (D)</strong> = Tanggal Akhir − Tanggal Awal + 1 &nbsp;·&nbsp; <strong>Jumlah</strong> = Hari × Qty × Tarif / Hari &nbsp;·&nbsp; <strong>PPN</strong> = 12% × DPP (11/12 × total)</div>
-                <div class="mt-1">Awal = tanggal SJ kirim, Akhir = tanggal SJ pulang. Baris dikelompokkan per <strong>No. PO customer</strong> (diisi di order sewa).</div>
+                <div><strong>Bulan (M)</strong> = jumlah bulan kalender yang dilalui (tanggal di bulan yang sama = 1 bulan) &nbsp;·&nbsp; <strong>Jumlah</strong> = Bulan × Qty × Tarif / Bulan &nbsp;·&nbsp; Hari (D) sebagai info &nbsp;·&nbsp; <strong>PPN</strong> = 12% × DPP (11/12 × total)</div>
+                <div class="mt-1">Awal = tanggal SJ kirim, Akhir = tanggal SJ pulang. Baris dikelompokkan per <strong>No. PO customer</strong> (diisi di PO).</div>
                 <div class="mt-1"><i class="bi bi-info-circle me-1"></i>Alat yang <strong>belum dipulangkan</strong> memakai tanggal akhir periode; tanggalnya bisa di-adjust di kolom Akhir.</div>
               </div>
               <div class="d-flex flex-wrap gap-2 align-items-end">
@@ -229,7 +229,7 @@
       manual.forEach((r, i) => {
         const l = String(r.desc || '').trim() ? calc.lines[n++] : null;
         const d = document.getElementById('mDays' + i), a = document.getElementById('mAmt' + i);
-        if (d) d.textContent = l && l.days ? l.days : '-';
+        if (d) d.textContent = l && l.months ? l.months : '-';
         if (a) a.textContent = l ? formatRupiah(l.amount) : '-';
       });
       currentLines = calc.lines;
@@ -278,7 +278,7 @@
         <div>Periode Sewa : ${formatDate(ps)} s/d ${formatDate(pe)}${pos.length ? ` &nbsp;·&nbsp; PO: ${pos.map(esc).join(', ')}` : ''}</div>`;
       let lastPo = null, n = 0;
       document.getElementById('recapBody').innerHTML = currentLines.map(l => {
-        const head = l.po !== lastPo ? `<tr class="table-light"><td colspan="9" class="fw-700">${l.po ? 'PO ' + esc(l.po) : 'Tanpa No. PO'}${l.rentalId ? ` <a href="rental-detail.html?id=${l.rentalId}" class="fw-normal fs-12 ms-1">${l.rentalId}</a>` : ''}</td></tr>` : '';
+        const head = l.po !== lastPo ? `<tr class="table-light"><td colspan="10" class="fw-700">${l.rentalId ? `<a href="rental-detail.html?id=${l.rentalId}" class="cell-link">${esc(BizLogic.Rental.title(l.rentalId))}</a> <span class="fw-normal fs-12 text-muted">${l.rentalId}</span>` : l.po ? esc(l.po) : 'Tanpa No. PO'}</td></tr>` : '';
         lastPo = l.po; n++;
         return head + `<tr>
         <td class="text-muted">${n}</td>
@@ -288,13 +288,14 @@
         <td class="text-nowrap">${l.adjustable
           ? `<input type="date" class="form-control form-control-sm ${l.adjusted ? 'border-warning' : ''}" style="width:135px" value="${l.end}" min="${l.start}" max="${pe}" onchange="setOverride('${l.key.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', this.value)">`
           : formatDate(l.end)}</td>
-        <td class="num">${l.days}</td>
+        <td class="num text-muted">${l.days}</td>
+        <td class="num fw-600">${l.months}</td>
         <td class="num">${formatNumber(l.qty)}</td>
         <td class="num">${formatRupiah(l.unitPrice)}</td>
         <td class="num fw-600">${formatRupiah(l.amount)}</td>
-      </tr>`; }).join('') || '<tr><td colspan="9" class="text-center text-muted py-4">Tidak ada alat yang disewa pada periode ini</td></tr>';
+      </tr>`; }).join('') || '<tr><td colspan="10" class="text-center text-muted py-4">Tidak ada alat yang disewa pada periode ini</td></tr>';
 
-      renderTotals('recapFoot', 9);
+      renderTotals('recapFoot', 10);
       document.getElementById('btnCreate').innerHTML = '<i class="bi bi-receipt me-1"></i>' + (shadow && shadow.projectId === pid ? 'Terbitkan ' + shadow.id : 'Buat Invoice');
     }
 
@@ -318,11 +319,11 @@
       const ps = document.getElementById('fStart').value, pe = document.getElementById('fEnd').value;
       const sub = currentLines.reduce((s, l) => s + l.amount, 0), t = BizLogic.Tax.ppn(sub, document.getElementById('fTax').checked ? settings.taxRate : 0);
       const rows = [['REKAPITULASI TAGIHAN'], ['Kepada Yth', p.customerName], ['Proyek', p.name], ['Periode Sewa', ps + ' s/d ' + pe], [],
-        ['PO', 'Nama Barang', 'SJ Kirim', 'SJ Pulang', 'Awal', 'Akhir', 'Hari (D)', 'Qty (Q)', 'Tarif / Hari (P)', 'Jumlah (DxQxP)']];
-      currentLines.forEach(l => rows.push([l.po || '', l.desc || l.equipment, l.sjDelivery || '', l.sjReturn || (l.manual ? '' : 'belum pulang'), l.start || '', l.end || '', l.days, l.qty, l.unitPrice, l.amount]));
-      rows.push([], ['', '', '', '', '', '', '', '', 'TOTAL', sub]);
-      if (t.tax) rows.push(['', '', '', '', '', '', '', '', 'DPP 11/12', t.dpp], ['', '', '', '', '', '', '', '', 'PPN 12%', t.tax]);
-      rows.push(['', '', '', '', '', '', '', '', 'TOTAL TAGIHAN', sub + t.tax]);
+        ['PO', 'Nama Barang', 'SJ Kirim', 'SJ Pulang', 'Awal', 'Akhir', 'Hari (D)', 'Bulan (M)', 'Qty (Q)', 'Tarif / Bulan (P)', 'Jumlah (MxQxP)']];
+      currentLines.forEach(l => rows.push([l.po || '', l.desc || l.equipment, l.sjDelivery || '', l.sjReturn || (l.manual ? '' : 'belum pulang'), l.start || '', l.end || '', l.days, l.months, l.qty, l.unitPrice, l.amount]));
+      rows.push([], ['', '', '', '', '', '', '', '', '', 'TOTAL', sub]);
+      if (t.tax) rows.push(['', '', '', '', '', '', '', '', '', 'DPP 11/12', t.dpp], ['', '', '', '', '', '', '', '', '', 'PPN 12%', t.tax]);
+      rows.push(['', '', '', '', '', '', '', '', '', 'TOTAL TAGIHAN', sub + t.tax]);
       downloadCSV(`rekap-tagihan-${p.id}-${document.getElementById('fStart').value}.csv`, rows);
     }
 

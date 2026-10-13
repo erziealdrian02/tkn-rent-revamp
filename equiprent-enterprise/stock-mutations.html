@@ -403,7 +403,7 @@
         }
         if (createType === 'SALE') {
           const price = tr.querySelector('.row-price');
-          if (price && !Number(price.value)) price.value = L.defaultRate(eq) * 300;
+          if (price && !Number(price.value)) price.value = L.defaultRate(eq) * 10;
         }
         info.innerHTML = parts.join(' · ');
       });
@@ -459,6 +459,7 @@
       downloadCSV('perpindahan-stok-' + today + '.csv', rows);
     }
 
+    if (getUrlParam('q')) document.getElementById('searchInput').value = getUrlParam('q');
     render();
 
     // Deep link: stock-mutations.html?new=DELIVERY&project=PRJ-001

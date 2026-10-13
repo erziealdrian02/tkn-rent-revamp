@@ -575,7 +575,7 @@ function performGlobalSearch(query) {
   const q = query.toLowerCase();
   let html = '';
 
-  const grpRentals = (typeof t !== 'undefined') ? t('search_rentals_group') : 'Penyewaan';
+  const grpRentals = (typeof t !== 'undefined') ? t('search_rentals_group') : 'PO';
   const grpProjects = (typeof t !== 'undefined') ? t('search_projects_group') : 'Proyek';
   const grpEquipment = (typeof t !== 'undefined') ? t('search_equipment_group') : 'Alat Berat';
   const grpCustomers = (typeof t !== 'undefined') ? t('search_customers_group') : 'Pelanggan';

@@ -31,7 +31,7 @@
         <div class="er-card">
           <div class="er-tabs">
             <button class="er-tab active" data-tab="recap" onclick="switchTab('recap')">Rekap per Gudang</button>
-            <button class="er-tab" data-tab="condition" onclick="switchTab('condition')">Rincian Kondisi</button>
+            <button class="er-tab" data-tab="condition" onclick="switchTab('condition')">Rincian Kondisi &amp; Perbaikan</button>
           </div>
 
           <div class="er-tab-content active" id="tab-recap">
@@ -55,12 +55,38 @@
                 <thead><tr><th>Nama Alat</th><th>Gudang</th><th class="num">Stok Fisik</th><th class="num">Tersedia</th><th class="num">Dipesan</th><th class="num">Rusak</th><th></th></tr></thead>
                 <tbody id="condBody"></tbody>
               </table></div>
+              <p class="fs-12 text-muted mt-2 mb-3"><i class="bi bi-info-circle me-1"></i>Alat <strong>rusak</strong> dari pengembalian diproses lewat tombol <strong>Perbaikan</strong>: sebagian bisa diafkir, sisanya kembali tersedia sebagai alat yang sama atau <strong>alat lain</strong> (mis. Pipa 15m penyok dipotong jadi Pipa 10m).</p>
+              <h6 class="fw-600 mb-2"><i class="bi bi-tools me-1"></i>Riwayat Perbaikan</h6>
+              <div class="er-table-wrapper"><table class="er-table">
+                <thead><tr><th>Tanggal</th><th>Gudang</th><th>Alat Rusak</th><th class="num">Diproses</th><th>Hasil</th><th class="num">Afkir</th><th>Dokumen</th></tr></thead>
+                <tbody id="repairBody"></tbody>
+              </table></div>
             </div>
           </div>
         </div>
       </div>
     </main>
   </div>
+  <!-- Perbaikan -->
+  <div class="modal fade" id="repairModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-tools me-2"></i>Perbaikan Alat Rusak</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <div class="alert alert-light border py-2 fs-13 mb-3" id="rpInfo"></div>
+      <div class="row g-3 mb-3">
+        <div class="col-md-4"><label class="form-label form-label-er">Qty Diproses</label><input type="number" min="1" class="form-control" id="rpQty" oninput="rpCalc()"></div>
+        <div class="col-md-4"><label class="form-label form-label-er">Afkir (tidak bisa diperbaiki)</label><input type="number" min="0" class="form-control" id="rpScrap" value="0" oninput="rpCalc()"></div>
+        <div class="col-md-4"><label class="form-label form-label-er">Tanggal</label><input type="date" class="form-control" id="rpDate"></div>
+      </div>
+      <div class="d-flex justify-content-between align-items-center mb-2"><h6 class="fw-600 mb-0">Hasil Perbaikan (masuk stok tersedia)</h6>
+        <button class="btn btn-outline-primary btn-sm" onclick="rpAdd()"><i class="bi bi-plus-lg me-1"></i>Tambah Hasil</button></div>
+      <div class="er-table-wrapper"><table class="er-table"><thead><tr><th>Jadi Alat</th><th style="width:130px" class="num">Qty</th><th style="width:44px"></th></tr></thead><tbody id="rpOut"></tbody></table></div>
+      <datalist id="rpNames"></datalist>
+      <div class="fs-12 text-muted mt-2" id="rpHint"></div>
+      <div class="mt-3"><label class="form-label form-label-er">Catatan</label><input type="text" class="form-control" id="rpNotes" placeholder="mis. ujung penyok dipotong"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button><button class="btn btn-primary" onclick="rpSave()"><i class="bi bi-check-lg me-1"></i>Simpan Perbaikan</button></div>
+  </div></div></div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/i18n.js"></script>
   <script src="assets/js/mock-data.js"></script>
@@ -158,21 +184,59 @@
           <td class="num"><span class="badge-status available">${s.available}</span></td>
           ${cell(s.reserved || 0)}
           <td class="num">${s.damaged ? `<span class="badge-status damaged">${s.damaged}</span>` : '<span class="text-muted">0</span>'}</td>
-          <td class="text-end">${s.damaged && canDo('Stock', 'Update') ? `<button class="btn btn-outline-success btn-sm py-0" onclick="markRepaired('${eq.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', '${w.id}', ${s.damaged})" title="Alat rusak sudah diperbaiki, kembali ke stok tersedia"><i class="bi bi-check2 me-1"></i>Sudah baik</button>` : ''}</td>
+          <td class="text-end">${s.damaged && canDo('Stock', 'Update') ? `<button class="btn btn-outline-primary btn-sm py-0" onclick="openRepair('${eq.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', '${w.id}')" title="Perbaiki / afkir alat rusak"><i class="bi bi-tools me-1"></i>Perbaikan</button>` : ''}</td>
         </tr>`);
       }));
       document.getElementById('condBody').innerHTML = rows.join('') || '<tr><td colspan="7" class="text-center text-muted py-4">Tidak ada data</td></tr>';
     }
 
-    // Modul perbaikan dihapus: alat rusak yang sudah dibetulkan langsung dikembalikan ke stok tersedia (yang tidak bisa → Afkir di Perpindahan Stok)
-    function markRepaired(eq, wh, max) {
-      const q = parseInt(prompt(eq + ': berapa unit sudah baik? (maks ' + max + ')', max), 10);
-      if (!q) return;
-      if (q < 1 || q > max) { showToast('Qty 1 - ' + max, 'error'); return; }
-      BizLogic.Stock.repairComplete(eq, wh, q);
-      BizLogic.Activity.log(q + ' unit ' + eq + ' rusak sudah baik, kembali tersedia', 'success');
-      showToast(q + ' unit ' + eq + ' kembali tersedia', 'success');
-      location.reload();
+    // ---------- Perbaikan: alat rusak → afkir / tersedia (alat sama atau alat lain) ----------
+    let rp = null, rpRows = [];
+    const rpEsc = v => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    function openRepair(eq, wh) {
+      const dmg = BizLogic.Stock.takeable(eq, wh, 'damaged');
+      rp = { eq, wh, dmg };
+      document.getElementById('rpInfo').innerHTML = `<strong>${rpEsc(eq)}</strong> rusak di <strong>${rpEsc(BizLogic.Stock.branchShort(wh))}</strong>: ${dmg} unit.`;
+      document.getElementById('rpQty').value = dmg; document.getElementById('rpQty').max = dmg;
+      document.getElementById('rpScrap').value = 0;
+      document.getElementById('rpDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('rpNotes').value = '';
+      document.getElementById('rpNames').innerHTML = equipment.map(n => `<option value="${rpEsc(n)}">`).join('');
+      rpRows = [{ equipment: eq, qty: dmg }];
+      rpDraw();
+      new bootstrap.Modal(document.getElementById('repairModal')).show();
+    }
+    function rpAdd() { rpRows.push({ equipment: '', qty: 0 }); rpDraw(); }
+    function rpDraw() {
+      document.getElementById('rpOut').innerHTML = rpRows.map((r, i) => `<tr>
+        <td><input class="form-control form-control-sm" list="rpNames" value="${rpEsc(r.equipment)}" placeholder="Nama alat (boleh alat baru)" oninput="rpRows[${i}].equipment = this.value"></td>
+        <td><input type="number" min="0" class="form-control form-control-sm text-end" value="${r.qty}" oninput="rpRows[${i}].qty = Number(this.value) || 0; rpCalc()"></td>
+        <td><button class="btn-action danger" onclick="rpRows.splice(${i}, 1); rpDraw()"><i class="bi bi-trash"></i></button></td></tr>`).join('')
+        || '<tr><td colspan="3" class="text-muted text-center py-3">Semua diafkir</td></tr>';
+      rpCalc();
+    }
+    function rpCalc() {
+      const q = Number(document.getElementById('rpQty').value) || 0, sc = Number(document.getElementById('rpScrap').value) || 0;
+      const out = rpRows.reduce((s, r) => s + (Number(r.qty) || 0), 0);
+      document.getElementById('rpHint').innerHTML = `${q - sc} unit diperbaiki → hasil ${out} unit${rpRows.some(r => r.equipment && r.equipment !== rp.eq) ? ' (ada yang jadi alat lain)' : ''}, ${sc} unit afkir.`;
+    }
+    function rpSave() {
+      const r = BizLogic.Repair.create({ warehouseId: rp.wh, equipment: rp.eq, qty: document.getElementById('rpQty').value, scrap: document.getElementById('rpScrap').value,
+        outputs: rpRows, date: document.getElementById('rpDate').value, notes: document.getElementById('rpNotes').value });
+      if (!r.success) { showToast(r.error, 'error'); return; }
+      showToast('Perbaikan disimpan: ' + r.docs.map(d => d.no).join(', '), 'success');
+      setTimeout(() => location.reload(), 700);
+    }
+    function renderRepairs() {
+      const rows = BizLogic.Repair.list().map(g => {
+        const out = g.docs.find(d => d.type === 'REPAIR_OUT'), inn = g.docs.find(d => d.type === 'REPAIR_IN'), af = g.docs.find(d => d.type === 'DISPOSAL');
+        const src = out || af, wh = src.from.id;
+        return { date: src.date, wh, eq: src.items[0].equipment, qty: (out ? out.items[0].qty : 0) + (af ? af.items[0].qty : 0),
+          res: inn ? inn.items.map(i => `${i.qty} ${rpEsc(i.equipment)}`).join(', ') : '-', scrap: af ? af.items[0].qty : 0, docs: g.docs.map(d => d.no).join(', ') };
+      }).sort((a, b) => b.date.localeCompare(a.date));
+      document.getElementById('repairBody').innerHTML = rows.map(r => `<tr><td>${formatDate(r.date)}</td><td>${rpEsc(BizLogic.Stock.branchShort(r.wh))}</td><td class="fw-600">${rpEsc(r.eq)}</td>
+        <td class="num">${r.qty}</td><td>${r.res}</td><td class="num">${r.scrap || '-'}</td><td class="text-mono fs-12">${r.docs}</td></tr>`).join('')
+        || '<tr><td colspan="7" class="text-center text-muted py-3">Belum ada perbaikan</td></tr>';
     }
 
     function exportCSV() {
@@ -185,6 +249,8 @@
     renderCards();
     renderRecap();
     renderCondition();
+    renderRepairs();
+    if (location.hash === '#kondisi') switchTab('condition');
   </script>
 </body>
 </html>

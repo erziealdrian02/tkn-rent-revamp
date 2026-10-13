@@ -48,7 +48,7 @@
       <div class="modal-body">
         <p class="fs-13 text-muted">Masukkan qty kebutuhan alat dan harga satuan untuk proyek ini.</p>
         <div class="er-table-wrapper"><table class="er-table">
-          <thead><tr><th>Nama Alat</th><th class="num" style="width:110px">Qty</th><th class="num" style="width:180px">Tarif / Hari</th><th class="num" style="width:160px">Nilai</th><th style="width:40px"></th></tr></thead>
+          <thead><tr><th>Nama Alat</th><th class="num" style="width:110px">Qty</th><th class="num" style="width:180px">Tarif / Bulan</th><th class="num" style="width:160px">Nilai</th><th style="width:40px"></th></tr></thead>
           <tbody id="reqBody"></tbody>
           <tfoot><tr><td colspan="3">TOTAL NILAI</td><td class="num" id="reqTotal">Rp 0</td><td></td></tr></tfoot>
         </table></div>
@@ -79,10 +79,10 @@
 
     function totals(summary) {
       return summary.reduce((t, r) => {
-        t.required += r.required; t.delivered += r.delivered; t.returned += r.returned; t.onSite += r.onSite;
+        t.required += r.required; t.delivered += r.delivered; t.returned += r.returned; t.lost += r.lost || 0; t.onSite += r.onSite;
         t.remaining += Math.max(r.remaining, 0); t.value += r.required * r.unitPrice;
         return t;
-      }, { required: 0, delivered: 0, returned: 0, onSite: 0, remaining: 0, value: 0 });
+      }, { required: 0, delivered: 0, returned: 0, lost: 0, onSite: 0, remaining: 0, value: 0 });
     }
 
     function pct(a, b) { return b ? Math.min(100, Math.round(a / b * 100)) : 0; }
@@ -105,43 +105,83 @@
 
     function num(v, cls) { return `<td class="num ${v === 0 ? 'zero' : ''} ${cls || ''}">${formatNumber(v)}</td>`; }
 
-    // Format sheet REKAP STOCK: baris = surat jalan, kolom = alat
-    function matrixHtml(p, summary, deliveries, returns) {
+    // Format sheet REKAP STOCK: baris = surat jalan, kolom = alat.
+    // Pengiriman dikelompokkan per PO; pemulangan tidak per PO (dari PO mana saja); hilang dipisah;
+    // kepulangan lebih (adjustment) dicatat terpisah dan tidak masuk total pemulangan ke customer.
+    function matrixRows(p) {
+      const summary = L.projectSummary(p.id).sort((a, b) => (b.required - a.required) || a.equipment.localeCompare(b.equipment));
       const eqs = summary.map(r => r.equipment);
+      const dl = L.projectDocs(p.id, 'DELIVERY'), rt = L.projectDocs(p.id, 'RETURN'), hl = L.projectDocs(p.id, 'LOST'), kl = L.projectExtraDocs(p.id);
+      const q = (d, eq) => d.items.filter(i => i.equipment === eq).reduce((s, i) => s + i.qty, 0);
+      const sum = (docs, eq) => docs.reduce((s, d) => s + q(d, eq), 0);
+      const vals = fn => eqs.map(fn);
+      const rows = [];
+      const doc = d => rows.push({ kind: 'doc', date: d.date, no: d.no, v: vals(eq => q(d, eq)) });
+      rows.push({ kind: 'section', label: 'PENGIRIMAN' });
+      const pos = MockData.rentals.filter(r => r.projectId === p.id && BizLogic.Rental.ACTIVE_ORDER(r)).sort((a, b) => String(a.rentalDate).localeCompare(String(b.rentalDate)) || a.id.localeCompare(b.id));
+      const poOf = d => { const o = BizLogic.Billing.orderOf(d.no); return o ? o.id : null; };
+      const groups = pos.map(r => ({ r, docs: dl.filter(d => poOf(d) === r.id) }));
+      const loose = dl.filter(d => !pos.some(r => r.id === poOf(d)));
+      groups.forEach(g => {
+        const label = BizLogic.Rental.title(g.r);
+        rows.push({ kind: 'po', label: label + (g.r.poNumber ? ' (' + g.r.id + ')' : '') });
+        g.docs.forEach(doc);
+        if (!g.docs.length) rows.push({ kind: 'note', label: 'Belum ada pengiriman' });
+        rows.push({ kind: 'sub', label: 'TOTAL KIRIM ' + label, v: vals(eq => sum(g.docs, eq)) });
+        rows.push({ kind: 'sub2', label: 'SISA ' + label, v: vals(eq => Math.max(0, g.r.items.filter(i => i.name === eq).reduce((s, i) => s + (Number(i.quantity) || 0), 0) - sum(g.docs, eq))) });
+      });
+      if (loose.length) { rows.push({ kind: 'po', label: 'TANPA PO' }); loose.forEach(doc); }
+      rows.push({ kind: 'total', label: 'TOTAL PENGIRIMAN', v: vals(eq => sum(dl, eq)) });
+      rows.push({ kind: 'warn', label: 'SISA KEBUTUHAN PROYEK', v: vals(eq => Math.max(0, (summary.find(r => r.equipment === eq) || {}).required - sum(dl, eq))) });
+      rows.push({ kind: 'section', label: 'PEMULANGAN' });
+      rt.forEach(doc);
+      if (!rt.length) rows.push({ kind: 'note', label: 'Belum ada pemulangan' });
+      rows.push({ kind: 'total', label: 'TOTAL PEMULANGAN', v: vals(eq => sum(rt, eq)) });
+      if (hl.length) {
+        rows.push({ kind: 'section', label: 'HILANG (DIKLAIM KE CUSTOMER)' });
+        hl.forEach(doc);
+        rows.push({ kind: 'total', label: 'TOTAL HILANG', v: vals(eq => sum(hl, eq)) });
+      }
+      rows.push({ kind: 'grand', label: 'SISA ALAT DI PROYEK', v: vals(eq => sum(dl, eq) - sum(rt, eq) - sum(hl, eq)) });
+      if (kl.length) {
+        rows.push({ kind: 'section', label: 'KEPULANGAN LEBIH (ADJUSTMENT) — tidak dihitung ke customer' });
+        kl.forEach(doc);
+        rows.push({ kind: 'sub', label: 'TOTAL KEPULANGAN LEBIH', v: vals(eq => sum(kl, eq)) });
+      }
+      return { eqs, rows };
+    }
+    function matrixHtml(p) {
+      const { eqs, rows } = matrixRows(p);
       if (!eqs.length) return '<div class="empty-state py-4"><p class="mb-0">Belum ada data</p></div>';
-      const qtyOf = (d, eq) => d.items.filter(i => i.equipment === eq).reduce((s, i) => s + i.qty, 0);
       const cell = v => `<td class="num ${v ? '' : 'zero'}">${v ? formatNumber(v) : ''}</td>`;
-      const docRows = docs => docs.map(d => `<tr><td class="text-nowrap">${formatDate(d.date)}</td><td class="text-mono fs-12 text-nowrap">${d.no}</td>${eqs.map(eq => cell(qtyOf(d, eq))).join('')}</tr>`).join('');
-      const sum = (docs, eq) => docs.reduce((s, d) => s + qtyOf(d, eq), 0);
-      const totalRow = (label, fn, cls) => `<tr class="${cls || 'fw-700'}"><td colspan="2">${label}</td>${eqs.map(eq => `<td class="num">${formatNumber(fn(eq))}</td>`).join('')}</tr>`;
+      const n = eqs.length + 2;
+      const CLS = { total: 'fw-700', sub: 'fw-600', sub2: 'fs-12 text-warning', warn: 'fw-600 text-warning', grand: 'fw-700 table-primary' };
+      const body = rows.map(r => {
+        if (r.kind === 'section') return `<tr class="table-light"><td colspan="${n}" class="fw-700">${r.label}</td></tr>`;
+        if (r.kind === 'po') return `<tr><td colspan="${n}" class="fw-600 text-primary"><i class="bi bi-file-earmark-text me-1"></i>${r.label}</td></tr>`;
+        if (r.kind === 'note') return `<tr><td colspan="${n}" class="text-muted fs-12 ps-4">${r.label}</td></tr>`;
+        if (r.kind === 'doc') return `<tr><td class="text-nowrap ps-4">${formatDate(r.date)}</td><td class="text-mono fs-12 text-nowrap">${r.no}</td>${r.v.map(cell).join('')}</tr>`;
+        return `<tr class="${CLS[r.kind] || ''}"><td colspan="2">${r.label}</td>${r.v.map(v => `<td class="num">${formatNumber(v)}</td>`).join('')}</tr>`;
+      }).join('');
       return `<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
           <div><div class="fw-700">REKAP STOCK PROJECT: ${p.name.toUpperCase()}</div><div class="fs-13 text-muted">${p.customerName}</div></div>
           <button class="btn btn-outline-secondary btn-sm" onclick="exportMatrix()"><i class="bi bi-download me-1"></i>Export CSV</button>
         </div>
         <div class="er-table-wrapper"><table class="er-table fs-13">
           <thead><tr><th>Tanggal</th><th>Surat Jalan</th>${eqs.map(eq => `<th class="num">${eq.toUpperCase()}</th>`).join('')}</tr></thead>
-          <tbody>
-            <tr class="table-light"><td colspan="${eqs.length + 2}" class="fw-600">PENGIRIMAN</td></tr>
-            ${docRows(deliveries) || `<tr><td colspan="${eqs.length + 2}" class="text-muted">Belum ada pengiriman</td></tr>`}
-            ${totalRow('TOTAL PENGIRIMAN', eq => sum(deliveries, eq))}
-            ${totalRow('SISA PO / KEBUTUHAN', eq => Math.max(0, (summary.find(r => r.equipment === eq) || {}).required - sum(deliveries, eq)), 'fw-600 text-warning')}
-            <tr class="table-light"><td colspan="${eqs.length + 2}" class="fw-600">PEMULANGAN</td></tr>
-            ${docRows(returns) || `<tr><td colspan="${eqs.length + 2}" class="text-muted">Belum ada pemulangan</td></tr>`}
-            ${totalRow('TOTAL PEMULANGAN', eq => sum(returns, eq))}
-            ${totalRow('SISA ALAT DI PROYEK', eq => sum(deliveries, eq) - sum(returns, eq), 'fw-700 table-primary')}
-          </tbody></table></div>`;
+          <tbody>${body}</tbody></table></div>
+        <p class="fs-12 text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Pengiriman per PO; pemulangan dari stok proyek (tidak per PO). Sisa alat di proyek = total pengiriman − total pemulangan − hilang. Kepulangan lebih hanya adjustment gudang.</p>`;
     }
     function exportMatrix() {
-      const p = MockData.projects.find(x => x.id === selectedId), summary = L.projectSummary(p.id).sort((a, b) => (b.required - a.required) || a.equipment.localeCompare(b.equipment));
-      const eqs = summary.map(r => r.equipment), dl = L.projectDocs(p.id, 'DELIVERY'), rt = L.projectDocs(p.id, 'RETURN');
-      const q = (d, eq) => d.items.filter(i => i.equipment === eq).reduce((s, i) => s + i.qty, 0), sum = (docs, eq) => docs.reduce((s, d) => s + q(d, eq), 0);
+      const p = MockData.projects.find(x => x.id === selectedId), { eqs, rows } = matrixRows(p);
       const out = [['REKAP STOCK PROJECT: ' + p.name], [p.customerName], [], ['Tanggal', 'Surat Jalan', ...eqs]];
-      dl.forEach(d => out.push([d.date, d.no, ...eqs.map(eq => q(d, eq) || '')]));
-      out.push(['TOTAL PENGIRIMAN', '', ...eqs.map(eq => sum(dl, eq))]);
-      out.push(['SISA PO / KEBUTUHAN', '', ...eqs.map(eq => Math.max(0, summary.find(r => r.equipment === eq).required - sum(dl, eq)))], []);
-      rt.forEach(d => out.push([d.date, d.no, ...eqs.map(eq => q(d, eq) || '')]));
-      out.push(['TOTAL PEMULANGAN', '', ...eqs.map(eq => sum(rt, eq))]);
-      out.push(['SISA ALAT DI PROYEK', '', ...eqs.map(eq => sum(dl, eq) - sum(rt, eq))]);
+      rows.forEach(r => {
+        if (r.kind === 'section') out.push([], [r.label]);
+        else if (r.kind === 'po') out.push([r.label]);
+        else if (r.kind === 'note') out.push(['', r.label]);
+        else if (r.kind === 'doc') out.push([r.date, r.no, ...r.v.map(v => v || '')]);
+        else out.push([r.label, '', ...r.v]);
+      });
       downloadCSV('rekap-stock-' + p.id + '.csv', out);
     }
 
@@ -203,14 +243,14 @@
               <div class="col-6 col-md"><div class="kpi-card"><div class="kpi-icon purple"><span class="fw-600">B</span></div><div class="kpi-content"><div class="kpi-value">${formatNumber(t.delivered)}</div><div class="kpi-label">Terkirim (${deliveries.length} SJ)</div></div></div></div>
               <div class="col-6 col-md"><div class="kpi-card"><div class="kpi-icon orange"><span class="fw-600">C</span></div><div class="kpi-content"><div class="kpi-value">${formatNumber(t.remaining)}</div><div class="kpi-label">Sisa Kebutuhan</div></div></div></div>
               <div class="col-6 col-md"><div class="kpi-card"><div class="kpi-icon info"><span class="fw-600">D</span></div><div class="kpi-content"><div class="kpi-value">${formatNumber(t.returned)}</div><div class="kpi-label">Dipulangkan (${returns.length} SJ)</div></div></div></div>
-              <div class="col-12 col-md"><div class="kpi-card"><div class="kpi-icon green"><i class="bi bi-geo-alt"></i></div><div class="kpi-content"><div class="kpi-value">${formatNumber(t.onSite)}</div><div class="kpi-label">Stok di Lokasi Proyek</div></div></div></div>
+              <div class="col-12 col-md"><div class="kpi-card"><div class="kpi-icon green"><i class="bi bi-geo-alt"></i></div><div class="kpi-content"><div class="kpi-value">${formatNumber(t.onSite)}</div><div class="kpi-label">Stok Proyek (di lokasi)</div></div></div></div>
             </div>
 
             <div class="er-table-wrapper"><table class="er-table">
               <thead><tr>
-                <th>No</th><th>Nama Alat</th><th class="num">Tarif / Hari</th>
+                <th>No</th><th>Nama Alat</th><th class="num">Tarif / Bulan</th>
                 <th class="num">A. Kebutuhan</th><th class="num">B. Terkirim</th><th class="num">C. Sisa (A−B)</th>
-                <th class="num">D. Dipulangkan</th><th class="num">Di Lokasi</th><th>Progress Kirim</th><th>Progress Pulang</th>
+                <th class="num">D. Dipulangkan</th><th class="num">E. Hilang</th><th class="num">Di Lokasi</th><th>Progress Kirim</th><th>Progress Pulang</th>
               </tr></thead>
               <tbody>${summary.map((r, i) => {
                 const prog = pct(r.delivered, r.required);
@@ -222,16 +262,16 @@
                   <td class="num">${r.unitPrice ? formatRupiah(r.unitPrice) : '-'}</td>
                   ${num(r.required, 'fw-600')}${num(r.delivered)}
                   <td class="num ${remainCls}">${remainText}</td>
-                  ${num(r.returned)}${num(r.onSite, 'col-strong')}
+                  ${num(r.returned)}${num(r.lost || 0, 'qty-minus')}${num(r.onSite, 'col-strong')}
                   <td><div class="d-flex align-items-center gap-2"><div class="progress-thin flex-grow-1"><span class="${prog >= 100 ? 'done' : ''}" style="width:${prog}%"></span></div><span class="fs-11 text-muted">${prog}%</span></div></td>
                   <td><div class="d-flex align-items-center gap-2"><div class="progress-thin flex-grow-1"><span class="back" style="width:${pct(r.returned, r.delivered)}%"></span></div><span class="fs-11 text-muted">${pct(r.returned, r.delivered)}%</span></div></td>
                 </tr>`;
-              }).join('') || '<tr><td colspan="10" class="text-center text-muted py-4">Belum ada kebutuhan alat. Klik <strong>Ubah Kebutuhan</strong> untuk mengisi.</td></tr>'}</tbody>
+              }).join('') || '<tr><td colspan="11" class="text-center text-muted py-4">Belum ada kebutuhan alat. Klik <strong>Ubah Kebutuhan</strong> untuk mengisi.</td></tr>'}</tbody>
               <tfoot><tr><td></td><td>TOTAL</td><td class="num">${formatRupiah(t.value)}</td>
                 <td class="num">${formatNumber(t.required)}</td><td class="num">${formatNumber(t.delivered)}</td><td class="num">${formatNumber(t.remaining)}</td>
-                <td class="num">${formatNumber(t.returned)}</td><td class="num">${formatNumber(t.onSite)}</td><td class="fw-600">${pct(t.delivered, t.required)}%</td><td class="fw-600">${pct(t.returned, t.delivered)}%</td></tr></tfoot>
+                <td class="num">${formatNumber(t.returned)}</td><td class="num">${formatNumber(t.lost)}</td><td class="num">${formatNumber(t.onSite)}</td><td class="fw-600">${pct(t.delivered, t.required)}%</td><td class="fw-600">${pct(t.returned, t.delivered)}%</td></tr></tfoot>
             </table></div>
-            <p class="fs-12 text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Di Lokasi = Terkirim − Dipulangkan. Alat hilang dijual ke pelanggan (dipulangkan administratif dulu). Harga satuan × kebutuhan = nilai kebutuhan proyek.</p>
+            <p class="fs-12 text-muted mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Di Lokasi = Terkirim − Dipulangkan − Hilang. Alat hilang diklaim ganti ke pelanggan (atau dijual lewat Jual Alat di Proyek). Harga satuan × kebutuhan = nilai kebutuhan proyek.</p>
           </div>
         </div>
 
@@ -242,7 +282,7 @@
             <button class="er-tab" data-tab="sjr" onclick="switchTab('sjr')">D. Pemulangan per SJ<span class="er-tab-count">${returns.length}</span></button>
             
           </div>
-          <div class="er-tab-content active" id="tab-matrix"><div class="er-card-body">${matrixHtml(p, summary, deliveries, returns)}</div></div>
+          <div class="er-tab-content active" id="tab-matrix"><div class="er-card-body">${matrixHtml(p)}</div></div>
           <div class="er-tab-content" id="tab-sjk"><div class="er-card-body">${sjCards(deliveries, 'Belum ada pengiriman ke proyek ini')}</div></div>
           <div class="er-tab-content" id="tab-sjr"><div class="er-card-body">${sjCards(returns, 'Belum ada pemulangan dari proyek ini')}</div></div>
           
@@ -301,9 +341,9 @@
     }
 
     function exportCSV() {
-      const rows = [['Proyek', 'Customer', 'Nama Alat', 'Tarif / Hari', 'A. Kebutuhan', 'B. Terkirim', 'C. Sisa (A-B)', 'D. Dipulangkan', 'Di Lokasi']];
+      const rows = [['Proyek', 'Customer', 'Nama Alat', 'Tarif / Bulan', 'A. Kebutuhan', 'B. Terkirim', 'C. Sisa (A-B)', 'D. Dipulangkan', 'E. Hilang', 'Di Lokasi']];
       MockData.projects.forEach(p => L.projectSummary(p.id).forEach(r => rows.push([
-        p.name, p.customerName, r.equipment, r.unitPrice, r.required, r.delivered, r.remaining, r.returned, r.onSite
+        p.name, p.customerName, r.equipment, r.unitPrice, r.required, r.delivered, r.remaining, r.returned, r.lost || 0, r.onSite
       ])));
       downloadCSV('stok-proyek-' + new Date().toISOString().split('T')[0] + '.csv', rows);
     }
